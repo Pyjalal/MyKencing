@@ -145,7 +145,7 @@ MyKencing is not a substitute for professional medical advice, diagnosis, or tre
 
 ## Contributing
 
-This is currently a private MVP project. Contributions will be welcome once we open-source.
+This is currently a private MVP project.
 
 ## License
 
@@ -157,4 +157,4 @@ For questions or feedback, please contact the MyKencing team.
 
 ---
 
-Built with ❤️ for Malaysian healthcare
+Built with ❤️ By Notts Biohackers
