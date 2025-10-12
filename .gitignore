@@ -25,10 +25,16 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+pnpm-debug.*
 
 # macOS
 .DS_Store
 *.pem
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # local env files
 .env*.local
@@ -49,6 +55,8 @@ yarn-error.*
 # Environment files
 .env
 .env.local
+.env.*
+!.env.example
 
 # IDE
 .vscode/
@@ -59,3 +67,12 @@ coverage/
 
 # Logs
 *.log
+
+# Android signing (if present)
+*.keystore
+keystore.properties
+
+# Linters & editors
+.eslintcache
+.history/
+*.swp

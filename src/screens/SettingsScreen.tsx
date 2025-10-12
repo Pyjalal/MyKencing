@@ -2,9 +2,11 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Colors, Typography, Spacing } from '../constants/theme';
+import { useNavigation } from '@react-navigation/native';
 
 export default function SettingsScreen() {
   const { settings, loadSettings, updateSettings } = useSettingsStore();
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     loadSettings();
@@ -64,7 +66,7 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Data & Privacy</Text>
-          <TouchableOpacity style={styles.settingButton}>
+          <TouchableOpacity style={styles.settingButton} onPress={() => navigation.navigate('Export')}>
             <Text style={styles.settingButtonText}>Export Data</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.settingButton}>
@@ -81,7 +83,10 @@ export default function SettingsScreen() {
             <Text style={styles.settingLabel}>Version</Text>
             <Text style={styles.settingValue}>1.0.0</Text>
           </View>
-          <TouchableOpacity style={styles.settingButton}>
+          <TouchableOpacity style={styles.settingButton} onPress={() => navigation.navigate('RamadanMode')}>
+            <Text style={styles.settingButtonText}>Ramadan Mode</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingButton} onPress={() => navigation.navigate('Analytics')}>
             <Text style={styles.settingButtonText}>Attributions</Text>
           </TouchableOpacity>
         </View>

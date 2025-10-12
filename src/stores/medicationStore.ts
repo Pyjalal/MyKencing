@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Medication, MedicationWithDetails, Dose, DoseWithMedication, DoseStatus } from '../types';
 import { getDatabase } from '../services/database';
+import { logEvent, EventType } from '../services/analytics';
 
 interface MedicationState {
   medications: MedicationWithDetails[];
@@ -11,7 +12,7 @@ interface MedicationState {
   // Actions
   loadMedications: () => Promise<void>;
   loadTodayDoses: () => Promise<void>;
-  addMedication: (medication: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addMedication: (medication: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   updateMedication: (id: string, medication: Partial<Medication>) => Promise<void>;
   deleteMedication: (id: string) => Promise<void>;
   markDose: (doseId: string, status: DoseStatus, actualTime?: string) => Promise<void>;
@@ -187,10 +188,13 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       );
 
       await get().loadMedications();
+      try { await logEvent(EventType.MedicationAdded); } catch {}
       set({ isLoading: false });
+      return id;
     } catch (error) {
       console.error('Error adding medication:', error);
       set({ error: (error as Error).message, isLoading: false });
+      throw error;
     }
   },
 
@@ -200,8 +204,9 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       const db = getDatabase();
       const now = new Date().toISOString();
 
-      // Build dynamic update query
-      const fields = Object.keys(updates);
+      // Build dynamic update query (ignore undefined fields)
+      const definedEntries = Object.entries(updates).filter(([, v]) => v !== undefined);
+      const fields = definedEntries.map(([k]) => k);
       const setClause = fields
         .map((field) => {
           // Convert camelCase to snake_case
@@ -211,10 +216,10 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         .join(', ');
 
       const values = fields.map((field) => {
-        const value = updates[field as keyof Medication];
+        const value = (updates as any)[field as keyof Medication];
         if (field === 'times') return JSON.stringify(value);
         if (typeof value === 'boolean') return value ? 1 : 0;
-        return value;
+        return value ?? null;
       });
 
       await db.runAsync(
@@ -261,6 +266,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       );
 
       await get().loadTodayDoses();
+      try { await logEvent(EventType.DoseLogged, { status }); } catch {}
       set({ isLoading: false });
     } catch (error) {
       console.error('Error marking dose:', error);

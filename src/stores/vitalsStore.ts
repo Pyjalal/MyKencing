@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Vital, VitalType, BloodPressureVital, GlucoseVital, WeightVital, VitalTrend } from '../types';
 import { getDatabase } from '../services/database';
+import { logEvent, EventType } from '../services/analytics';
 
 interface VitalsState {
   vitals: Vital[];
@@ -98,6 +99,7 @@ export const useVitalsStore = create<VitalsState>((set, get) => ({
       );
 
       await get().loadVitals();
+      try { await logEvent(EventType.VitalLogged, { type: 'blood_pressure' }); } catch {}
       set({ isLoading: false });
     } catch (error) {
       console.error('Error adding blood pressure:', error);

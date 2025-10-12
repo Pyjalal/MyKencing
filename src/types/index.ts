@@ -90,6 +90,7 @@ export interface MedicationWithDetails extends Medication {
  * Dose status
  */
 export enum DoseStatus {
+  Upcoming = 'upcoming',
   Pending = 'pending',
   Taken = 'taken',
   Skipped = 'skipped',
@@ -131,6 +132,14 @@ export interface AdherenceSummary {
   periodStart: string;
   periodEnd: string;
 }
+
+/**
+ * Missed dose guidance
+ */
+export type DoseGuidance = {
+  action: 'take_now' | 'adjust' | 'skip';
+  message: string;
+};
 
 // ----------------------------------------------------------------------------
 // Vitals Types
@@ -208,7 +217,7 @@ export interface VitalTrend {
  * App settings
  */
 export interface AppSettings {
-  language: 'en' | 'ms' | 'zh'; // English, Malay, Chinese
+  language: 'en' | 'ms' | 'zh' | 'ta'; // English, Malay, Chinese, Tamil
   reminderEnabled: boolean;
   reminderSound: boolean;
   reminderVibrate: boolean;
@@ -217,6 +226,14 @@ export interface AppSettings {
   themeMode: 'light' | 'dark' | 'auto';
   glucoseUnit: 'mmol/L' | 'mg/dL';
   weightUnit: 'kg' | 'lb';
+  ramadan?: {
+    enabled: boolean;
+    startDate?: string;
+    endDate?: string;
+    sahurTime?: string; // HH:mm
+    iftarTime?: string; // HH:mm
+    originalTimes?: Record<string, string[]>; // medicationId -> times
+  };
 }
 
 // ----------------------------------------------------------------------------
@@ -319,6 +336,7 @@ export interface ExportData {
 export type RootStackParamList = {
   Onboarding: undefined;
   Home: undefined;
+  MedicationList: undefined;
   AddMedicine: { scannedData?: ExtractedMedicine[] };
   MedicineDetail: { medicationId: string };
   ScanPrescription: undefined;
@@ -327,6 +345,8 @@ export type RootStackParamList = {
   RiskAssessment: undefined;
   Export: undefined;
   Settings: undefined;
+  Analytics: undefined;
+  RamadanMode: undefined;
 };
 
 // ----------------------------------------------------------------------------

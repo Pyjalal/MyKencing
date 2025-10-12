@@ -11,6 +11,10 @@ import AddMedicineScreen from '../screens/AddMedicineScreen';
 import MedicineDetailScreen from '../screens/MedicineDetailScreen';
 import VitalsScreen from '../screens/VitalsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import ScanPrescriptionScreen from '../screens/ScanPrescriptionScreen';
+import AnalyticsDashboardScreen from '../screens/AnalyticsDashboardScreen';
+import ExportReportScreen from '../screens/ExportReportScreen';
+import RamadanModeScreen from '../screens/RamadanModeScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -94,6 +98,26 @@ export default function AppNavigator() {
           name="MedicineDetail"
           component={MedicineDetailScreen}
           options={{ title: 'Medicine Details' }}
+        />
+        <Stack.Screen
+          name="ScanPrescription"
+          component={ScanPrescriptionScreen}
+          options={{ title: 'Scan Prescription' }}
+        />
+        <Stack.Screen
+          name="Export"
+          component={ExportReportScreen}
+          options={{ title: 'Export Report' }}
+        />
+        <Stack.Screen
+          name="Analytics"
+          component={AnalyticsDashboardScreen}
+          options={{ title: 'Analytics' }}
+        />
+        <Stack.Screen
+          name="RamadanMode"
+          component={RamadanModeScreen}
+          options={{ title: 'Ramadan Mode' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

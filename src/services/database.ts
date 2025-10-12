@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 // Database version for migrations
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const DB_NAME = 'mykencing.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -54,6 +54,9 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
   // Apply migrations
   if (currentVersion < 1) {
     await applyMigration1(database);
+  }
+  if (currentVersion < 2) {
+    await applyMigration2(database);
   }
 }
 
@@ -151,6 +154,32 @@ async function applyMigration1(database: SQLite.SQLiteDatabase): Promise<void> {
   );
 
   console.log('Migration 1 applied successfully');
+}
+
+/**
+ * Migration 2: Analytics events table
+ */
+async function applyMigration2(database: SQLite.SQLiteDatabase): Promise<void> {
+  await database.execAsync(`
+    -- Events table for privacy-safe analytics (no PHI)
+    CREATE TABLE IF NOT EXISTS events (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      properties TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    -- Indexes for query performance
+    CREATE INDEX IF NOT EXISTS idx_events_type ON events(type);
+    CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at);
+  `);
+
+  await database.runAsync(
+    'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+    [2, new Date().toISOString()]
+  );
+
+  console.log('Migration 2 applied successfully');
 }
 
 /**
