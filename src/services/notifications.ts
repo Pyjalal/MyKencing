@@ -62,6 +62,9 @@ export async function initializeNotifications(): Promise<boolean> {
  * Set up notification categories with action buttons
  */
 async function setupNotificationCategories(): Promise<void> {
+  if (Platform.OS !== 'ios') {
+    return;
+  }
   await Notifications.setNotificationCategoryAsync('MEDICATION_REMINDER', [
     {
       identifier: 'TAKEN',
@@ -192,12 +195,13 @@ export async function scheduleMedicationNotification(
 
     const body = `${dosage}${foodInstructions ? ` • ${foodInstructions}` : ''}`;
 
+    const notificationBody = body.replace(/\u0007/g, '•');
     const trigger = ({ hour, minute, repeats: true } as unknown) as Notifications.NotificationTriggerInput;
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title: `Time for ${medicationName}`,
-        body,
+        body: notificationBody,
         data: {
           medicationId,
           doseId,

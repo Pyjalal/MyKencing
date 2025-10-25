@@ -354,14 +354,14 @@ export async function gatherExportData(
   periodStart.setDate(periodStart.getDate() - periodDays);
 
   // Get medications with MIMS details
-  const medications = await db.getAllAsync<any>(
+  const medications = await db.getAllAsync(
     `SELECT m.*, mims.*
      FROM medications m
      JOIN mims_cache mims ON m.mims_id = mims.id
      WHERE m.is_active = 1`
   );
 
-  const medicationsWithDetails = medications.map(med => ({
+  const medicationsWithDetails = medications.map((med: any) => ({
     id: med.id,
     mimsId: med.mims_id,
     userDosage: med.user_dosage,
@@ -397,13 +397,8 @@ export async function gatherExportData(
 
   // Get adherence summaries
   const adherenceSummaries = await Promise.all(
-    medicationsWithDetails.map(async med => {
-      const stats = await db.getFirstAsync<{
-        total: number;
-        taken: number;
-        skipped: number;
-        missed: number;
-      }>(
+    medicationsWithDetails.map(async (med: any) => {
+      const stats = await db.getFirstAsync(
         `SELECT
            COUNT(*) as total,
            SUM(CASE WHEN status = 'taken' THEN 1 ELSE 0 END) as taken,
@@ -434,7 +429,7 @@ export async function gatherExportData(
   );
 
   // Get recent vitals
-  const bloodPressure = await db.getAllAsync<any>(
+  const bloodPressure = await db.getAllAsync(
     `SELECT * FROM vitals
      WHERE type = 'blood_pressure'
      AND measured_at >= ?
@@ -443,7 +438,7 @@ export async function gatherExportData(
     [periodStart.toISOString()]
   );
 
-  const glucose = await db.getAllAsync<any>(
+  const glucose = await db.getAllAsync(
     `SELECT * FROM vitals
      WHERE type = 'glucose'
      AND measured_at >= ?
@@ -452,7 +447,7 @@ export async function gatherExportData(
     [periodStart.toISOString()]
   );
 
-  const weight = await db.getAllAsync<any>(
+  const weight = await db.getAllAsync(
     `SELECT * FROM vitals
      WHERE type = 'weight'
      AND measured_at >= ?
@@ -466,7 +461,7 @@ export async function gatherExportData(
     medications: medicationsWithDetails as any,
     adherenceSummaries,
     recentVitals: {
-      bloodPressure: bloodPressure.map(v => ({
+      bloodPressure: bloodPressure.map((v: any) => ({
         id: v.id,
         type: VitalType.BloodPressure,
         systolic: v.systolic,
@@ -476,7 +471,7 @@ export async function gatherExportData(
         notes: v.notes,
         createdAt: v.created_at,
       })),
-      glucose: glucose.map(v => ({
+      glucose: glucose.map((v: any) => ({
         id: v.id,
         type: VitalType.Glucose,
         value: v.value,
@@ -485,7 +480,7 @@ export async function gatherExportData(
         notes: v.notes,
         createdAt: v.created_at,
       })),
-      weight: weight.map(v => ({
+      weight: weight.map((v: any) => ({
         id: v.id,
         type: VitalType.Weight,
         value: v.value,

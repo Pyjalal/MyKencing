@@ -232,7 +232,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>{t('your_medications') || 'Your Medications'}</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('MedicationList')}>
+                <TouchableOpacity onPress={() => navigation.navigate('Home')}>
                   <Text style={styles.viewAllLink}>{t('view_all') || 'View All'}</Text>
                 </TouchableOpacity>
               </View>

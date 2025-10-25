@@ -10,16 +10,54 @@
  * - No PHI sent to servers
  */
 
+import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
+const inMemoryStore: Record<string, string> = {};
+
+function isSecureStoreAvailableForPlatform(): boolean {
+  // Expo SecureStore is unsupported on web; guard at runtime.
+  if (Platform.OS === 'web') {
+    return false;
+  }
+  return typeof SecureStore?.setItemAsync === 'function' && typeof SecureStore?.getItemAsync === 'function';
+}
+
 const NAMESPACE = 'mykencing';
+
+async function deriveKeyFromPassphrase(passphrase: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(passphrase));
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function promptForPassphrase(): string {
+  if (typeof window === 'undefined') {
+    throw new Error('Secure encryption requires a browser environment.');
+  }
+
+  const message = 'Enter your MyKencing encryption passphrase (minimum 8 characters):';
+  const passphrase = window.prompt(message) || '';
+
+  if (passphrase.length < 8) {
+    throw new Error('Encryption passphrase must be at least 8 characters.');
+  }
+
+  return passphrase;
+}
 
 /**
  * Securely store a key-value pair
  */
 export async function secureSet(key: string, value: string): Promise<void> {
   try {
-    await SecureStore.setItemAsync(`${NAMESPACE}.${key}`, value);
+    if (isSecureStoreAvailableForPlatform()) {
+      await SecureStore.setItemAsync(`${NAMESPACE}.${key}`, value);
+    } else {
+      inMemoryStore[`${NAMESPACE}.${key}`] = value;
+    }
   } catch (error) {
     console.error(`Error storing secure item ${key}:`, error);
     throw new Error(`Failed to securely store ${key}`);
@@ -31,7 +69,10 @@ export async function secureSet(key: string, value: string): Promise<void> {
  */
 export async function secureGet(key: string): Promise<string | null> {
   try {
-    return await SecureStore.getItemAsync(`${NAMESPACE}.${key}`);
+    if (isSecureStoreAvailableForPlatform()) {
+      return await SecureStore.getItemAsync(`${NAMESPACE}.${key}`);
+    }
+    return inMemoryStore[`${NAMESPACE}.${key}`] ?? null;
   } catch (error) {
     console.error(`Error retrieving secure item ${key}:`, error);
     return null;
@@ -43,7 +84,10 @@ export async function secureGet(key: string): Promise<string | null> {
  */
 export async function secureDelete(key: string): Promise<void> {
   try {
-    await SecureStore.deleteItemAsync(`${NAMESPACE}.${key}`);
+    if (isSecureStoreAvailableForPlatform()) {
+      await SecureStore.deleteItemAsync(`${NAMESPACE}.${key}`);
+    }
+    delete inMemoryStore[`${NAMESPACE}.${key}`];
   } catch (error) {
     console.error(`Error deleting secure item ${key}:`, error);
     throw new Error(`Failed to delete ${key}`);
@@ -109,10 +153,21 @@ export async function initializeEncryption(): Promise<void> {
     const existingKey = await getDatabaseKey();
 
     if (!existingKey) {
-      // Generate new key on first launch
-      const newKey = generateEncryptionKey();
-      await storeDatabaseKey(newKey);
-      console.log('Generated new database encryption key');
+      if (Platform.OS === 'web') {
+        if (typeof crypto === 'undefined' || !crypto.subtle) {
+          throw new Error('WebCrypto is required for secure web encryption.');
+        }
+
+        const passphrase = promptForPassphrase();
+        const derivedKey = await deriveKeyFromPassphrase(passphrase);
+        await storeDatabaseKey(derivedKey);
+        console.log('Derived web database encryption key from passphrase');
+      } else {
+        // Generate new key on first launch (native platforms)
+        const newKey = generateEncryptionKey();
+        await storeDatabaseKey(newKey);
+        console.log('Generated new database encryption key');
+      }
     }
   } catch (error) {
     console.error('Error initializing encryption:', error);
