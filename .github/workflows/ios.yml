@@ -1,0 +1,63 @@
+name: iOS CI (Simulator)
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install JS deps (if needed)
+        run: |
+          if [ -f package.json ]; then npm ci; fi
+
+      - name: Select Xcode 15.4
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_15.4.app"
+          xcodebuild -version
+
+      - name: Install CocoaPods
+        run: |
+          sudo gem install cocoapods --no-document
+          cd ios
+          pod install --repo-update
+
+      - name: Build for iOS Simulator
+        working-directory: ios
+        run: |
+          set -e
+          SCHEME="MyKencing"
+          WORKSPACE="MyKencing.xcworkspace"
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest' \
+            build | xcpretty
+
+      - name: Zip .app
+        shell: bash
+        run: |
+          APP_PATH=$(ls -d ios/build/Build/Products/Debug-iphonesimulator/*.app | head -n 1)
+          if [ -z "$APP_PATH" ]; then echo "No .app found"; exit 1; fi
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" ios/MyKencing.app.zip
+          echo "Zipped to ios/MyKencing.app.zip"
+
+      - name: Upload iOS artifact (Simulator .app.zip)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-app
+          path: ios/MyKencing.app.zip
