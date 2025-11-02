@@ -8,11 +8,19 @@ on:
 
 jobs:
   build-ios:
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          # Remove unnecessary files to free up space
+          df -h
+          sudo rm -rf ~/Library/Android
+          brew cleanup || true
+          df -h
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -20,25 +28,50 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            ~/Library/Caches/CocoaPods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
       - name: Install JS deps (if needed)
         run: |
           if [ -f package.json ]; then npm install --legacy-peer-deps; fi
+          npm cache clean --force
+          df -h
 
       - name: Expo Prebuild
         run: npx expo prebuild --platform ios --clean
 
-      - name: Select Xcode 15.4
+      - name: Select Xcode 16.1+
         run: |
-          sudo xcode-select -s "/Applications/Xcode_15.4.app"
+          # List available Xcode versions
+          ls /Applications | grep Xcode
+          # Try to select Xcode 16.1 or latest available
+          if [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s "/Applications/Xcode_16.1.app"
+          elif [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s "/Applications/Xcode_16.2.app"
+          elif [ -d "/Applications/Xcode_16.0.app" ]; then
+            sudo xcode-select -s "/Applications/Xcode_16.0.app"
+          fi
           xcodebuild -version
 
       - name: Install CocoaPods
         run: |
-          sudo gem install cocoapods --no-document
           cd ios
-          pod install --repo-update
+          # Use --deployment if Podfile.lock exists, otherwise regular install
+          if [ -f "Podfile.lock" ]; then
+            pod install --deployment
+          else
+            pod install
+          fi
 
-      - name: Build for iOS Simulator
+      - name: Build for iOS Simulator (arm64 only)
         working-directory: ios
         run: |
           set -e
@@ -49,8 +82,10 @@ jobs:
             -scheme "$SCHEME" \
             -configuration Debug \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 15 Pro,OS=latest' \
-            build | xcpretty
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -arch arm64 \
+            -jobs 2 \
+            build
 
       - name: Zip .app
         shell: bash
