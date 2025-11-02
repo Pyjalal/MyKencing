@@ -62,16 +62,7 @@
     "plugins": [
       "expo-sqlite",
       "expo-secure-store",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#2D9F9F",
-          "sounds": [
-            "./assets/notification-sound.wav"
-          ]
-        }
-      ],
+      "expo-notifications",
       [
         "expo-build-properties",
         {

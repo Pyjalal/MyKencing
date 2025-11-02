@@ -10,7 +10,8 @@
       "Bash(npx tailwindcss init)",
       "mcp__figma-desktop__get_design_context",
       "Bash(test:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npx expo prebuild:*)"
     ],
     "deny": [],
     "ask": []
