@@ -18,6 +18,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -37,7 +38,7 @@ jobs:
 
       - name: Install JS deps (if needed)
         run: |
-          if [ -f package.json ]; then npm ci; fi
+          if [ -f package.json ]; then npm install --legacy-peer-deps; fi
 
       - name: Grant gradlew execute
         working-directory: android
