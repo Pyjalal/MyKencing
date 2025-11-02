@@ -11,7 +11,9 @@
       "mcp__figma-desktop__get_design_context",
       "Bash(test:*)",
       "Bash(cat:*)",
-      "Bash(npx expo prebuild:*)"
+      "Bash(npx expo prebuild:*)",
+      "Bash(npm view:*)",
+      "Bash(./gradlew:*)"
     ],
     "deny": [],
     "ask": []
