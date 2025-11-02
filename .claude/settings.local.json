@@ -8,7 +8,9 @@
       "WebFetch(domain:reactnativereusables.com)",
       "WebFetch(domain:github.com)",
       "Bash(npx tailwindcss init)",
-      "mcp__figma-desktop__get_design_context"
+      "mcp__figma-desktop__get_design_context",
+      "Bash(test:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

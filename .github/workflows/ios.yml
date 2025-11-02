@@ -24,6 +24,9 @@ jobs:
         run: |
           if [ -f package.json ]; then npm install --legacy-peer-deps; fi
 
+      - name: Expo Prebuild
+        run: npx expo prebuild --platform ios --clean
+
       - name: Select Xcode 15.4
         run: |
           sudo xcode-select -s "/Applications/Xcode_15.4.app"

@@ -40,6 +40,9 @@ jobs:
         run: |
           if [ -f package.json ]; then npm install --legacy-peer-deps; fi
 
+      - name: Expo Prebuild
+        run: npx expo prebuild --platform android --clean
+
       - name: Grant gradlew execute
         working-directory: android
         run: chmod +x ./gradlew
