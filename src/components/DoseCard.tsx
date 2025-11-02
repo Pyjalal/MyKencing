@@ -10,9 +10,10 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Typography, Spacing, BorderRadius, Shadows, TouchTargets } from '../constants/theme';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { cn } from '../lib/utils';
 import DoseStatusBadge, { DoseStatus } from './DoseStatusBadge';
+import { Colors } from '../constants/theme';
 
 interface DoseCardProps {
   medicationName: string;
@@ -35,150 +36,68 @@ export default function DoseCard({
   onSkipDose,
   onViewDetails,
 }: DoseCardProps) {
-  const statusColor = {
+  const statusColors = {
     taken: Colors.dose.taken,
     pending: Colors.dose.pending,
     upcoming: Colors.dose.upcoming,
     late: Colors.dose.late,
     missed: Colors.dose.missed,
     skipped: Colors.dose.skipped,
-  }[status];
+  };
 
+  const statusColor = statusColors[status];
   const showActions = status === 'pending' || status === 'late';
 
   return (
     <TouchableOpacity
-      style={[styles.card, { borderLeftColor: statusColor }]}
+      style={{ borderLeftColor: statusColor }}
+      className="bg-white rounded-card p-4 min-h-[140px] border-l-4 shadow-md"
       onPress={onViewDetails}
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`${medicationName} ${dosage} at ${time}`}
     >
       {/* Header with time and status */}
-      <View style={styles.header}>
-        <Text style={styles.time}>{time}</Text>
+      <View className="flex-row justify-between items-center mb-2">
+        <Text className="text-base font-semibold text-text-primary">{time}</Text>
         <DoseStatusBadge status={status} />
       </View>
 
       {/* Medication info */}
-      <View style={styles.medicationInfo}>
-        <Text style={styles.medicationName} numberOfLines={1}>
+      <View className="mb-4">
+        <Text className="text-2xl font-bold text-text-primary mb-1" numberOfLines={1}>
           {medicationName}
         </Text>
-        <Text style={styles.dosage}>{dosage}</Text>
+        <Text className="text-base text-text-secondary mb-1">{dosage}</Text>
         {foodInstructions && (
-          <Text style={styles.foodInstructions}>
-            <Text style={styles.foodIcon}>🍽️</Text> {foodInstructions}
+          <Text className="text-sm text-text-tertiary mt-1">
+            <Text className="text-base">🍽️</Text> {foodInstructions}
           </Text>
         )}
       </View>
 
       {/* Action buttons for pending/late doses */}
       {showActions && (
-        <View style={styles.actions}>
+        <View className="flex-row gap-4">
           <TouchableOpacity
-            style={[styles.actionButton, styles.takeButton]}
+            className="flex-1 min-h-[56px] rounded-xl justify-center items-center bg-primary"
             onPress={onTakeDose}
             accessibilityRole="button"
             accessibilityLabel="Take dose"
           >
-            <Text style={styles.takeButtonText}>Take</Text>
+            <Text className="text-base font-semibold text-white">Take</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionButton, styles.skipButton]}
+            className="flex-1 min-h-[56px] rounded-xl justify-center items-center bg-gray-200"
             onPress={onSkipDose}
             accessibilityRole="button"
             accessibilityLabel="Skip dose"
           >
-            <Text style={styles.skipButtonText}>Skip</Text>
+            <Text className="text-base font-semibold text-text-secondary">Skip</Text>
           </TouchableOpacity>
         </View>
       )}
     </TouchableOpacity>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.cardPadding,
-    minHeight: 140,
-    borderLeftWidth: 4,
-    ...Shadows.md,
-  },
-
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-
-  time: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-  },
-
-  medicationInfo: {
-    marginBottom: Spacing.md,
-  },
-
-  medicationName: {
-    fontSize: 24,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: 4,
-  },
-
-  dosage: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-    marginBottom: 4,
-  },
-
-  foodInstructions: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.tertiary,
-    marginTop: 4,
-  },
-
-  foodIcon: {
-    fontSize: Typography.fontSize.base,
-  },
-
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-
-  actionButton: {
-    flex: 1,
-    minHeight: TouchTargets.min,
-    borderRadius: BorderRadius.button,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  takeButton: {
-    backgroundColor: Colors.primary.main,
-  },
-
-  takeButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary.contrast,
-  },
-
-  skipButton: {
-    backgroundColor: Colors.neutral[200],
-  },
-
-  skipButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.secondary,
-  },
-});

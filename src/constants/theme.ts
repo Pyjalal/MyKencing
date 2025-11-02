@@ -5,56 +5,56 @@
 // ============================================================================
 
 /**
- * Enhanced Color Palette
- * - Primary: Soft teal (trust, healthcare) with extended scale
- * - Secondary: Warm coral (gentle alerts)
- * - Accent: Sunny yellow (gamification, positive reinforcement)
+ * Enhanced Color Palette - MyKencing Figma Design
+ * - Primary: Blue tones (trust, healthcare, MyKencing brand)
+ * - Secondary: Warm coral/red (vitals, alerts)
+ * - Accent: Yellow/Gold (medications, actions)
  * - Neutral: Extended gray scale
  * - Status: Calm, reassuring colors
- * - Ramadan: Purple accent for Islamic holidays
+ * - Background: Light lavender/purple tint
  */
 export const Colors = {
-  // Primary palette (Teal - trust, healthcare) with extended scale
+  // Primary palette (Blue - trust, healthcare, MyKencing brand)
   primary: {
-    50: '#E0F2F2',
-    100: '#B3E0E0',
-    200: '#80CCCC',
-    300: '#4DB8B8',
-    400: '#26A9A9',
-    500: '#2D9F9F', // Main
-    600: '#268E8E',
-    700: '#1E7A7A',
-    800: '#166666',
-    900: '#0D4545',
-    main: '#2D9F9F',
-    light: '#5DBFBF',
-    dark: '#1E7A7A',
+    50: '#E8F1F8',
+    100: '#C5DDED',
+    200: '#9FC7E1',
+    300: '#79B1D5',
+    400: '#5C9FCB',
+    500: '#4A8FBD', // Main brand blue
+    600: '#3D7AAC',
+    700: '#2F6699',
+    800: '#235186',
+    900: '#1E4A6D', // Dark navy blue
+    main: '#4A8FBD',
+    light: '#79B1D5',
+    dark: '#1E4A6D',
     contrast: '#FFFFFF',
   },
 
-  // Secondary palette (Warm Coral - gentle alerts)
+  // Secondary palette (Coral/Red - vitals, health indicators)
   secondary: {
-    50: '#FFF3ED',
-    100: '#FFE0D1',
-    200: '#FFCCB3',
-    300: '#FFB89F',
-    400: '#FFA88B',
-    500: '#FF9F7F', // Main
-    600: '#E58F6F',
-    700: '#CC7F5F',
-    800: '#B26F4F',
-    900: '#995F3F',
-    main: '#FF9F7F',
-    light: '#FFB89F',
-    dark: '#E57F5F',
-    contrast: '#000000',
+    50: '#FFEBEE',
+    100: '#FFCDD2',
+    200: '#EF9A9A',
+    300: '#E57373',
+    400: '#EF5350',
+    500: '#E57373', // Main coral
+    600: '#E53935',
+    700: '#D32F2F',
+    800: '#C62828',
+    900: '#B71C1C',
+    main: '#E57373',
+    light: '#FFCDD2',
+    dark: '#D32F2F',
+    contrast: '#FFFFFF',
   },
 
-  // Accent palette (Sunny Yellow - positive reinforcement, gamification)
+  // Accent palette (Yellow/Gold - medications, positive actions)
   accent: {
-    main: '#F59E0B',
-    light: '#FBBF24',
-    dark: '#D97706',
+    main: '#F5B800',
+    light: '#FFD54F',
+    dark: '#F57F17',
     contrast: '#000000',
   },
 
@@ -72,13 +72,16 @@ export const Colors = {
     900: '#212121',
   },
 
-  // Background
+  // Background (Light lavender/purple tint from Figma)
   background: {
-    primary: '#FFFFFF',
+    primary: '#E8EAF0', // Light lavender background
     secondary: '#F5F5F5',
-    tertiary: '#E8E8E8',
+    tertiary: '#E0E0E0',
     card: '#FFFFFF',
     elevated: '#FFFFFF',
+    vitals: '#E57373', // Coral background for vitals
+    meds: '#F5B800', // Yellow/gold background for meds
+    profile: '#4A8FBD', // Blue background for profile
   },
 
   // Text (WCAG AA compliant contrast ratios)

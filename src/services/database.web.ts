@@ -7,6 +7,7 @@ const INDEXED_DB_KEY = 'mykencing_encrypted_db';
 
 let db: Database | null = null;
 let SQL: any = null;
+let persistIntervalId: NodeJS.Timeout | null = null;
 
 // IndexedDB helpers for persistent storage
 async function openIndexedDB(): Promise<IDBDatabase> {
@@ -165,8 +166,11 @@ export async function initDatabase(): Promise<any> {
   // Run migrations (db is guaranteed non-null at this point)
   await runMigrations(db!);
 
-  // Auto-persist on changes
-  setInterval(() => persistDatabase(), 5000); // Persist every 5 seconds
+  // Auto-persist on changes (clear previous interval if exists)
+  if (persistIntervalId) {
+    clearInterval(persistIntervalId);
+  }
+  persistIntervalId = setInterval(() => persistDatabase(), 5000); // Persist every 5 seconds
 
   return db;
 }
@@ -394,4 +398,23 @@ export async function exportDatabaseStats(): Promise<any> {
     vitals: vitals?.count || 0,
     mimsCache: mimsCount?.count || 0,
   };
+}
+
+/**
+ * Cleanup function to stop auto-persist interval
+ * Call this when app is closing to prevent memory leaks
+ */
+export function cleanupDatabase(): void {
+  if (persistIntervalId) {
+    clearInterval(persistIntervalId);
+    persistIntervalId = null;
+    console.log('[database.web] Persist interval cleared');
+  }
+
+  // Final persist before cleanup
+  if (db) {
+    persistDatabase().catch((error) => {
+      console.error('[database.web] Error in final persist:', error);
+    });
+  }
 }

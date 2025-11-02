@@ -1,20 +1,27 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, ActivityIndicator } from 'react-native';
 import { RootStackParamList } from '../types';
+import { CustomTabBar } from '../components/BottomNavBar';
+import { useSettingsStore } from '../stores/settingsStore';
+import { Colors } from '../constants/theme';
 
-// Placeholder screens (will be created next)
+// Screens
 import OnboardingScreen from '../screens/OnboardingScreen';
+import PrivacyConsentScreen from '../screens/PrivacyConsentScreen';
 import HomeScreen from '../screens/HomeScreen';
 import AddMedicineScreen from '../screens/AddMedicineScreen';
 import MedicineDetailScreen from '../screens/MedicineDetailScreen';
 import VitalsScreen from '../screens/VitalsScreen';
+import AddVitalScreen from '../screens/AddVitalScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ScanPrescriptionScreen from '../screens/ScanPrescriptionScreen';
 import AnalyticsDashboardScreen from '../screens/AnalyticsDashboardScreen';
 import ExportReportScreen from '../screens/ExportReportScreen';
 import RamadanModeScreen from '../screens/RamadanModeScreen';
+import MedicationsScreen from '../screens/MedicationsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -25,18 +32,16 @@ const Tab = createBottomTabNavigator();
 function MainTabs() {
   return (
     <Tab.Navigator
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#2D9F9F',
-        tabBarInactiveTintColor: '#757575',
       }}
     >
       <Tab.Screen
         name="HomeTab"
         component={HomeScreen}
         options={{
-          tabBarLabel: 'Today',
-          // tabBarIcon will be added later with icons
+          tabBarLabel: 'Home',
         }}
       />
       <Tab.Screen
@@ -47,10 +52,24 @@ function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="SettingsTab"
+        name="AddMedicine"
+        component={AddMedicineScreen}
+        options={{
+          tabBarLabel: '',
+        }}
+      />
+      <Tab.Screen
+        name="MedicationsTab"
+        component={MedicationsScreen}
+        options={{
+          tabBarLabel: 'Meds',
+        }}
+      />
+      <Tab.Screen
+        name="ProfileTab"
         component={SettingsScreen}
         options={{
-          tabBarLabel: 'Settings',
+          tabBarLabel: 'Profile',
         }}
       />
     </Tab.Navigator>
@@ -61,8 +80,27 @@ function MainTabs() {
  * Root stack navigator
  */
 export default function AppNavigator() {
-  // TODO: Check if onboarding has been completed
-  const hasCompletedOnboarding = false; // Will be loaded from settings
+  const [isLoading, setIsLoading] = useState(true);
+  const settings = useSettingsStore((state) => state.settings);
+  const loadSettings = useSettingsStore((state) => state.loadSettings);
+
+  useEffect(() => {
+    async function init() {
+      await loadSettings();
+      setIsLoading(false);
+    }
+    init();
+  }, [loadSettings]);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.background.primary }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+      </View>
+    );
+  }
+
+  const hasCompletedOnboarding = settings.onboardingCompleted;
 
   return (
     <NavigationContainer>
@@ -71,9 +109,9 @@ export default function AppNavigator() {
         screenOptions={{
           headerShown: true,
           headerStyle: {
-            backgroundColor: '#2D9F9F',
+            backgroundColor: Colors.primary.main,
           },
-          headerTintColor: '#FFFFFF',
+          headerTintColor: Colors.primary.contrast,
           headerTitleStyle: {
             fontWeight: '600',
           },
@@ -85,14 +123,14 @@ export default function AppNavigator() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Home"
-          component={MainTabs}
+          name="PrivacyConsent"
+          component={PrivacyConsentScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="AddMedicine"
-          component={AddMedicineScreen}
-          options={{ title: 'Add Medicine' }}
+          name="Home"
+          component={MainTabs}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="MedicineDetail"
@@ -118,6 +156,11 @@ export default function AppNavigator() {
           name="RamadanMode"
           component={RamadanModeScreen}
           options={{ title: 'Ramadan Mode' }}
+        />
+        <Stack.Screen
+          name="AddVital"
+          component={AddVitalScreen}
+          options={{ title: 'Add Vital' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

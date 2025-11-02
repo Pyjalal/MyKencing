@@ -158,12 +158,13 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
   },
 
   addMedication: async (medication) => {
-    set({ isLoading: true, error: null });
     try {
       const db = getDatabase();
       const id = `med_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
+      // Optimistic update: reload from database to get MIMS data
+      // (We need the JOIN data, so a full reload is necessary here)
       await db.runAsync(
         `INSERT INTO medications (
           id, mims_id, user_dosage, frequency, times, with_food,
@@ -187,19 +188,32 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         ]
       );
 
+      // Reload only medications (no loading state flicker)
       await get().loadMedications();
       try { await logEvent(EventType.MedicationAdded); } catch {}
-      set({ isLoading: false });
       return id;
     } catch (error) {
       console.error('Error adding medication:', error);
-      set({ error: (error as Error).message, isLoading: false });
+      set({ error: (error as Error).message });
       throw error;
     }
   },
 
   updateMedication: async (id, updates) => {
-    set({ isLoading: true, error: null });
+    // Optimistically update the state immediately
+    const currentMedications = get().medications;
+    const index = currentMedications.findIndex((med) => med.id === id);
+
+    if (index !== -1) {
+      const updatedMedications = [...currentMedications];
+      updatedMedications[index] = {
+        ...updatedMedications[index],
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
+      set({ medications: updatedMedications });
+    }
+
     try {
       const db = getDatabase();
       const now = new Date().toISOString();
@@ -226,17 +240,20 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         `UPDATE medications SET ${setClause}, updated_at = ? WHERE id = ?`,
         [...values, now, id]
       );
-
-      await get().loadMedications();
-      set({ isLoading: false });
     } catch (error) {
       console.error('Error updating medication:', error);
-      set({ error: (error as Error).message, isLoading: false });
+      set({ error: (error as Error).message });
+      // Rollback: reload from database on error
+      await get().loadMedications();
     }
   },
 
   deleteMedication: async (id) => {
-    set({ isLoading: true, error: null });
+    // Optimistically remove from state immediately
+    const currentMedications = get().medications;
+    const updatedMedications = currentMedications.filter((med) => med.id !== id);
+    set({ medications: updatedMedications });
+
     try {
       const db = getDatabase();
 
@@ -245,32 +262,44 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         'UPDATE medications SET is_active = 0, updated_at = ? WHERE id = ?',
         [new Date().toISOString(), id]
       );
-
-      await get().loadMedications();
-      set({ isLoading: false });
     } catch (error) {
       console.error('Error deleting medication:', error);
-      set({ error: (error as Error).message, isLoading: false });
+      set({ error: (error as Error).message });
+      // Rollback: reload from database on error
+      await get().loadMedications();
     }
   },
 
   markDose: async (doseId, status, actualTime) => {
-    set({ isLoading: true, error: null });
+    // Optimistically update the dose status in state immediately
+    const currentDoses = get().todayDoses;
+    const index = currentDoses.findIndex((dose) => dose.id === doseId);
+    const time = actualTime || new Date().toISOString();
+
+    if (index !== -1) {
+      const updatedDoses = [...currentDoses];
+      updatedDoses[index] = {
+        ...updatedDoses[index],
+        status,
+        actualTime: time,
+      };
+      set({ todayDoses: updatedDoses });
+    }
+
     try {
       const db = getDatabase();
-      const time = actualTime || new Date().toISOString();
 
       await db.runAsync(
         'UPDATE doses SET status = ?, actual_time = ? WHERE id = ?',
         [status, time, doseId]
       );
 
-      await get().loadTodayDoses();
       try { await logEvent(EventType.DoseLogged, { status }); } catch {}
-      set({ isLoading: false });
     } catch (error) {
       console.error('Error marking dose:', error);
-      set({ error: (error as Error).message, isLoading: false });
+      set({ error: (error as Error).message });
+      // Rollback: reload from database on error
+      await get().loadTodayDoses();
     }
   },
 

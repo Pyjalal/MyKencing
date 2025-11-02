@@ -9,6 +9,25 @@ import { parsePrescriptionText } from './ner';
 import { searchMIMS } from './mims';
 import { similarity } from '../utils/fuzzyMatch';
 import { logEvent, EventType } from './analytics';
+import { Platform } from 'react-native';
+
+// Import ML Kit Text Recognition
+let textRecognition: any = null;
+try {
+  if (Platform.OS !== 'web') {
+    textRecognition = require('@react-native-ml-kit/text-recognition').default;
+  }
+} catch (error) {
+  console.warn('ML Kit Text Recognition not available:', error);
+}
+
+/**
+ * Whether native OCR is available in this runtime
+ * Note: Expo Go and Web do not support this native module.
+ */
+export function isOcrAvailable(): boolean {
+  return !!textRecognition && Platform.OS !== 'web';
+}
 
 /**
  * Process image for better OCR results
@@ -123,20 +142,47 @@ function extractFoodInstructions(text: string): string[] {
 }
 
 /**
+ * Perform OCR on image using ML Kit Text Recognition
+ */
+async function performOCR(imageUri: string): Promise<string> {
+  try {
+    if (!textRecognition) {
+      console.warn('ML Kit Text Recognition not available');
+      return '';
+    }
+
+    const result = await textRecognition.recognize(imageUri);
+
+    // Extract all text from the result
+    let fullText = '';
+    if (result && result.text) {
+      fullText = result.text;
+    } else if (result && result.blocks) {
+      // Some versions return blocks
+      fullText = result.blocks.map((block: any) => block.text).join('\n');
+    }
+
+    return fullText;
+  } catch (error) {
+    console.error('OCR error:', error);
+    return '';
+  }
+}
+
+/**
  * Scan prescription image and extract medication information
- * Note: This is a simplified version. For production, integrate with
- * Google ML Kit Vision or similar OCR service
+ * Uses ML Kit Text Recognition for OCR
  */
 export async function scanPrescription(imageUri: string): Promise<ExtractedMedicine[]> {
   try {
     // Step 1: Preprocess image
     const processedUri = await preprocessImage(imageUri);
 
-    // Step 2: OCR - In production, integrate ML Kit or native OCR here
-    // Placeholder: No OCR extraction available in current build
-    const ocrText = '';
+    // Step 2: Perform OCR using ML Kit
+    const ocrText = await performOCR(processedUri);
 
-    if (!ocrText) {
+    if (!ocrText || ocrText.trim().length === 0) {
+      console.warn('No text extracted from image');
       return [];
     }
 

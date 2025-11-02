@@ -16,7 +16,7 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { scanPrescription } from '../services/ocr';
+import { scanPrescription, isOcrAvailable } from '../services/ocr';
 import { searchMIMS } from '../services/mims';
 import { Colors, Typography, Spacing } from '../constants/theme';
 import type { ExtractedMedicine } from '../types';
@@ -33,6 +33,15 @@ export default function ScanPrescriptionScreen() {
 
   const takePicture = async () => {
     if (!cameraRef.current) return;
+
+    // Guard: OCR availability (Expo Go/Web not supported)
+    if (!isOcrAvailable()) {
+      Alert.alert(
+        t('scan_prescription') || 'Scan Prescription',
+        'OCR is unavailable in this environment. Build and run a development client (not Expo Go) to use OCR, or use Manual Entry.'
+      );
+      return;
+    }
 
     try {
       setIsProcessing(true);

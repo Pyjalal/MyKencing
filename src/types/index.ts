@@ -234,6 +234,12 @@ export interface AppSettings {
     iftarTime?: string; // HH:mm
     originalTimes?: Record<string, string[]>; // medicationId -> times
   };
+  // Onboarding data
+  onboardingCompleted: boolean;
+  userAge?: number;
+  userGender?: 'male' | 'female' | 'other';
+  userWeight?: number;
+  userGoal?: 'get_fit' | 'be_active' | 'be_healthy' | 'find_balance';
 }
 
 // ----------------------------------------------------------------------------
@@ -335,6 +341,7 @@ export interface ExportData {
 
 export type RootStackParamList = {
   Onboarding: undefined;
+  PrivacyConsent: undefined;
   Home: undefined;
   MedicationList: undefined;
   AddMedicine: { scannedData?: ExtractedMedicine[] };

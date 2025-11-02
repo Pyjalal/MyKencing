@@ -9,6 +9,8 @@ export { default as VitalCard } from './VitalCard';
 export { default as StatCard } from './StatCard';
 export { default as PrimaryButton } from './PrimaryButton';
 export { default as DoseStatusBadge } from './DoseStatusBadge';
+export { PillButton } from './PillButton';
+export { CustomTabBar } from './BottomNavBar';
 
 // Export types
 export type { DoseStatus } from './DoseStatusBadge';

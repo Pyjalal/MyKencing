@@ -20,7 +20,32 @@ function isSecureStoreAvailableForPlatform(): boolean {
   if (Platform.OS === 'web') {
     return false;
   }
+
   return typeof SecureStore?.setItemAsync === 'function' && typeof SecureStore?.getItemAsync === 'function';
+}
+
+function isDevelopmentBuild(): boolean {
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    return true;
+  }
+
+  if (typeof process !== 'undefined' && process.env) {
+    const env = process.env.EXPO_PUBLIC_ENV || process.env.NODE_ENV;
+    if (env && env.toLowerCase() === 'development') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function getDevPassphrase(): string {
+  if (typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_WEB_ENCRYPTION_KEY) {
+    return process.env.EXPO_PUBLIC_WEB_ENCRYPTION_KEY;
+  }
+  // SECURITY: Never use hardcoded passphrases in production
+  // This should only be used during development with proper env vars
+  throw new Error('EXPO_PUBLIC_WEB_ENCRYPTION_KEY environment variable is required for web encryption');
 }
 
 const NAMESPACE = 'mykencing';
@@ -158,10 +183,15 @@ export async function initializeEncryption(): Promise<void> {
           throw new Error('WebCrypto is required for secure web encryption.');
         }
 
-        const passphrase = promptForPassphrase();
+        const useDevFlow = isDevelopmentBuild();
+        const passphrase = useDevFlow ? getDevPassphrase() : promptForPassphrase();
         const derivedKey = await deriveKeyFromPassphrase(passphrase);
         await storeDatabaseKey(derivedKey);
-        console.log('Derived web database encryption key from passphrase');
+        console.log(
+          useDevFlow
+            ? 'Using development web encryption key'
+            : 'Derived web database encryption key from passphrase'
+        );
       } else {
         // Generate new key on first launch (native platforms)
         const newKey = generateEncryptionKey();
@@ -191,22 +221,17 @@ export async function clearAllSecureData(): Promise<void> {
 }
 
 /**
- * Simple string encryption/decryption (for non-critical data obfuscation)
- * Note: For actual encryption, use crypto libraries. This is basic XOR.
+ * DEPRECATED: XOR-based encryption is not cryptographically secure.
+ *
+ * These functions have been removed for security reasons.
+ *
+ * For proper encryption, use:
+ * - Web: crypto.subtle.encrypt with AES-GCM
+ * - Native: expo-crypto or react-native-aes-crypto
+ * - Database: SQLCipher for database-level encryption
+ *
+ * If you need these functions for legacy data migration, please implement
+ * proper AES-256 encryption instead.
  */
-export function simpleEncrypt(text: string, key: string): string {
-  let encrypted = '';
-  for (let i = 0; i < text.length; i++) {
-    encrypted += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-  }
-  return btoa(encrypted); // Base64 encode
-}
 
-export function simpleDecrypt(encrypted: string, key: string): string {
-  const decoded = atob(encrypted); // Base64 decode
-  let decrypted = '';
-  for (let i = 0; i < decoded.length; i++) {
-    decrypted += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length));
-  }
-  return decrypted;
-}
+// Removed simpleEncrypt() and simpleDecrypt() - use proper crypto libraries
