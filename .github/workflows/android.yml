@@ -68,7 +68,7 @@ jobs:
 
       - name: Build Debug APK (ARM only)
         working-directory: android
-        run: ./gradlew assembleDebug -x bundleReleaseJsAndAssets --no-daemon
+        run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
