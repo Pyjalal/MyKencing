@@ -14,6 +14,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Free up disk space
+        run: |
+          # Remove unnecessary tools and files to free up space
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android/sdk/ndk/25.*
+          sudo rm -rf /usr/local/lib/android/sdk/ndk/26.*
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          df -h
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -39,26 +48,30 @@ jobs:
       - name: Install JS deps (if needed)
         run: |
           if [ -f package.json ]; then npm install --legacy-peer-deps; fi
+          npm cache clean --force
+          df -h
 
       - name: Expo Prebuild
         run: npx expo prebuild --platform android --clean
+
+      - name: Configure ABI Filters and Gradle settings
+        working-directory: android
+        run: |
+          echo "# Limit ABIs to save disk space in CI" >> gradle.properties
+          echo "reactNativeArchitectures=arm64-v8a,armeabi-v7a" >> gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m" >> gradle.properties
+          echo "org.gradle.parallel=false" >> gradle.properties
 
       - name: Grant gradlew execute
         working-directory: android
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK
+      - name: Build Debug APK (ARM only)
         working-directory: android
-        run: ./gradlew clean assembleDebug
-
-      - name: Build Release AAB (unsigned)
-        working-directory: android
-        run: ./gradlew bundleRelease
+        run: ./gradlew assembleDebug -x bundleReleaseJsAndAssets --no-daemon
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: android-builds
-          path: |
-            android/app/build/outputs/**/*.apk
-            android/app/build/outputs/**/*.aab
+          name: android-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk
