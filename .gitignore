@@ -76,3 +76,6 @@ keystore.properties
 .eslintcache
 .history/
 *.swp
+# Ignore all .md files except README.md
+*.md
+!README.md
