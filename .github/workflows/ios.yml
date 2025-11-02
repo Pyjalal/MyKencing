@@ -71,7 +71,7 @@ jobs:
             pod install
           fi
 
-      - name: Build for iOS Simulator (arm64 only)
+      - name: Build for iOS Simulator
         working-directory: ios
         run: |
           set -e
@@ -83,7 +83,6 @@ jobs:
             -configuration Debug \
             -sdk iphonesimulator \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
-            -arch arm64 \
             -jobs 2 \
             build
 
