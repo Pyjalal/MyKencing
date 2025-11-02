@@ -22,6 +22,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   themeMode: 'light',
   glucoseUnit: 'mmol/L',
   weightUnit: 'kg',
+  onboardingCompleted: false,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({

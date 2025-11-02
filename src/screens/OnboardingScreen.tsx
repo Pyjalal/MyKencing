@@ -1,20 +1,96 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { Colors, Typography, Spacing } from '../constants/theme';
 import { DISCLAIMERS } from '../constants/clinical';
+import { useSettingsStore } from '../stores/settingsStore';
+import OnboardingPersonalInfoScreen from './OnboardingPersonalInfoScreen';
+import OnboardingGoalScreen from './OnboardingGoalScreen';
 
 type OnboardingScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
 };
 
+type OnboardingStep = 'welcome' | 'personal-info' | 'goal' | 'complete';
+
+type OnboardingData = {
+  age?: number;
+  gender?: 'male' | 'female' | 'other';
+  weight?: number;
+  goal?: 'get_fit' | 'be_active' | 'be_healthy' | 'find_balance';
+};
+
 export default function OnboardingScreen({ navigation }: OnboardingScreenProps) {
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
+  const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
+  const updateSettings = useSettingsStore((state) => state.updateSettings);
+
   const handleGetStarted = () => {
-    // TODO: Save consent to settings
-    navigation.replace('Home');
+    setCurrentStep('personal-info');
   };
 
+  const handlePersonalInfoNext = (data: {
+    age: number;
+    gender: 'male' | 'female' | 'other';
+    weight: number;
+  }) => {
+    setOnboardingData((prev) => ({ ...prev, ...data }));
+    setCurrentStep('goal');
+  };
+
+  const handleGoalNext = async (goal: 'get_fit' | 'be_active' | 'be_healthy' | 'find_balance') => {
+    const finalData = { ...onboardingData, goal };
+
+    // Save onboarding data to settings (but not onboardingCompleted yet)
+    await updateSettings({
+      userAge: finalData.age,
+      userGender: finalData.gender,
+      userWeight: finalData.weight,
+      userGoal: finalData.goal,
+    });
+
+    // Navigate to PrivacyConsent screen
+    navigation.replace('PrivacyConsent');
+  };
+
+  const handleSkip = async () => {
+    // Skip to PrivacyConsent screen without saving user data
+    navigation.replace('PrivacyConsent');
+  };
+
+  const handleBack = () => {
+    if (currentStep === 'personal-info') {
+      setCurrentStep('welcome');
+    } else if (currentStep === 'goal') {
+      setCurrentStep('personal-info');
+    }
+  };
+
+  // Render different steps
+  if (currentStep === 'personal-info') {
+    return (
+      <OnboardingPersonalInfoScreen
+        onNext={handlePersonalInfoNext}
+        onBack={handleBack}
+        onSkip={handleSkip}
+        initialData={onboardingData}
+      />
+    );
+  }
+
+  if (currentStep === 'goal') {
+    return (
+      <OnboardingGoalScreen
+        onNext={handleGoalNext}
+        onBack={handleBack}
+        onSkip={handleSkip}
+        initialGoal={onboardingData.goal}
+      />
+    );
+  }
+
+  // Welcome screen
   return (
     <View style={styles.container}>
       <View style={styles.content}>

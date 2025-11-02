@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.figma.com)",
+      "mcp__figma-desktop__get_metadata",
+      "Bash(npm install:*)",
+      "WebSearch",
+      "WebFetch(domain:reactnativereusables.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(npx tailwindcss init)",
+      "mcp__figma-desktop__get_design_context"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

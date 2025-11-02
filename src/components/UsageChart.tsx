@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Platform, Text, View } from 'react-native';
+import { Colors } from '../constants/theme';
 
 type UsageDatum = { date: string; count: number };
 
@@ -14,7 +15,7 @@ export default function UsageChart({ data }: { data: UsageDatum[] }) {
       <View>
         <Text style={{ fontWeight: '600', marginBottom: 8 }}>Daily activity</Text>
         {chartData.length === 0 ? (
-          <Text style={{ color: '#6B7280' }}>No activity recorded for this range.</Text>
+          <Text style={{ color: Colors.text.tertiary }}>No activity recorded for this range.</Text>
         ) : (
           chartData.map(entry => (
             <View
@@ -22,13 +23,13 @@ export default function UsageChart({ data }: { data: UsageDatum[] }) {
               style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}
             >
               <Text style={{ width: 56 }}>{entry.x}</Text>
-              <View style={{ flex: 1, height: 8, backgroundColor: '#E5E7EB', borderRadius: 4 }}>
+              <View style={{ flex: 1, height: 8, backgroundColor: Colors.neutral[200], borderRadius: 4 }}>
                 <View
                   style={{
                     width: `${Math.min(entry.y * 10, 100)}%`,
                     height: 8,
                     borderRadius: 4,
-                    backgroundColor: '#2D9F9F',
+                    backgroundColor: Colors.text.link,
                   }}
                 />
               </View>
@@ -57,7 +58,7 @@ export default function UsageChart({ data }: { data: UsageDatum[] }) {
           x="x"
           y="y"
           cornerRadius={{ top: 4 }}
-          style={{ data: { fill: '#2D9F9F' } }}
+          style={{ data: { fill: Colors.text.link } }}
         />
       </VictoryChart>
     </View>

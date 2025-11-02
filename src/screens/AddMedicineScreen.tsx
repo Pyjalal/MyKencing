@@ -2,23 +2,27 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, TextInput } from 'react-native';
 import { Colors, Typography, Spacing } from '../constants/theme';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { RootStackParamList, ExtractedMedicine, Medication, FoodTiming } from '../types';
-import { searchMIMS } from '../services/mims';
+import { searchMIMS, getMIMSMedicine } from '../services/mims';
 import { useMedicationStore } from '../stores/medicationStore';
 import { MEDICATION_TIMING } from '../constants/clinical';
 import { scheduleMedicationReminders, createDoseEntries } from '../services/notifications';
+import DrugInteractionWarning from '../components/DrugInteractionWarning';
 
 export default function AddMedicineScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<RootStackParamList, 'AddMedicine'>>();
   const scannedData = route.params?.scannedData || [];
-  const { addMedication } = useMedicationStore();
+  const { addMedication, medications } = useMedicationStore();
 
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Array<{ id: string; genericName: string; brandName?: string; strength?: string; dosageForm?: string }>>([]);
   const [searching, setSearching] = useState(false);
+  const [interactions, setInteractions] = useState<string[]>([]);
 
   const derivedItems = useMemo(() => scannedData.map((m) => ({ ...m })), [scannedData]);
 
@@ -33,11 +37,83 @@ export default function AddMedicineScreen() {
     return MEDICATION_TIMING.onceDailyMorning;
   };
 
+  const checkForInteractions = useCallback(async (newMimsId: string) => {
+    try {
+      // Get the new medication details
+      const newMed = await getMIMSMedicine(newMimsId);
+      if (!newMed) {
+        setInteractions([]);
+        return;
+      }
+
+      // Get active medications from store
+      const activeMeds = medications.filter(m => m.isActive);
+
+      const foundInteractions: string[] = [];
+
+      // Check if any active medication's drugInteractions field mentions the new medication
+      for (const med of activeMeds) {
+        if (med.mims?.drugInteractions) {
+          // Check if new medication interacts with existing medication
+          if (med.mims.drugInteractions.toLowerCase().includes(newMed.genericName.toLowerCase())) {
+            foundInteractions.push(
+              `${newMed.brandName || newMed.genericName} may interact with ${med.mims.brandName || med.mims.genericName}`
+            );
+          }
+        }
+      }
+
+      // Also check if the new medication's drugInteractions mention any existing medications
+      if (newMed.drugInteractions) {
+        for (const med of activeMeds) {
+          const medName = med.mims?.genericName || '';
+          if (newMed.drugInteractions.toLowerCase().includes(medName.toLowerCase())) {
+            const interactionMsg = `${newMed.brandName || newMed.genericName} may interact with ${med.mims?.brandName || med.mims?.genericName}`;
+            // Avoid duplicates
+            if (!foundInteractions.includes(interactionMsg)) {
+              foundInteractions.push(interactionMsg);
+            }
+          }
+        }
+      }
+
+      setInteractions(foundInteractions);
+    } catch (error) {
+      console.error('Error checking interactions:', error);
+      setInteractions([]);
+    }
+  }, [medications]);
+
   const saveAll = useCallback(async () => {
     try {
       setIsSaving(true);
       setMessage(null);
 
+      // Collect all MIMS IDs to check for interactions
+      const allNewMimsIds: string[] = [];
+      for (const item of derivedItems) {
+        const matches = await searchMIMS(item.name, 5);
+        if (matches && matches.length > 0) {
+          allNewMimsIds.push(matches[0].id);
+        }
+      }
+
+      // Check for interactions with all new medications
+      const allInteractions: string[] = [];
+      for (const mimsId of allNewMimsIds) {
+        await checkForInteractions(mimsId);
+        // Collect the interactions that were found
+        if (interactions.length > 0) {
+          allInteractions.push(...interactions);
+        }
+      }
+
+      // Show all interactions if found (informational, not blocking)
+      if (allInteractions.length > 0) {
+        setInteractions(allInteractions);
+      }
+
+      // Proceed with adding all medications
       for (const item of derivedItems) {
         // Match to MIMS (best single match)
         const matches = await searchMIMS(item.name, 5);
@@ -64,14 +140,15 @@ export default function AddMedicineScreen() {
         await scheduleMedicationReminders({ ...(medInput as any), id: newId } as Medication);
       }
 
-      setMessage('Saved medications successfully');
+      setMessage(t('saved_successfully'));
+      setInteractions([]);
       navigation.goBack();
     } catch (e) {
       setMessage((e as Error).message);
     } finally {
       setIsSaving(false);
     }
-  }, [derivedItems, addMedication, navigation]);
+  }, [derivedItems, addMedication, navigation, checkForInteractions, interactions]);
 
   const onSearch = useCallback(async () => {
     if (!query || query.trim().length < 2) {
@@ -90,6 +167,10 @@ export default function AddMedicineScreen() {
   const quickAdd = useCallback(async (mimsId: string, label: string) => {
     try {
       setIsSaving(true);
+
+      // Check for interactions before adding
+      await checkForInteractions(mimsId);
+
       const times = MEDICATION_TIMING.onceDailyMorning;
       const now = new Date().toISOString().slice(0, 10);
       const medInput: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -107,26 +188,29 @@ export default function AddMedicineScreen() {
       const newId = await addMedication(medInput);
       await createDoseEntries(newId, times, now);
       await scheduleMedicationReminders({ ...(medInput as any), id: newId } as Medication);
-      setMessage(`Added ${label}`);
+      setMessage(t('added_medication', { name: label }));
+
+      // Clear interactions after successful add
+      setInteractions([]);
     } catch (e) {
       setMessage((e as Error).message);
     } finally {
       setIsSaving(false);
     }
-  }, [addMedication]);
+  }, [addMedication, checkForInteractions]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Add Medicine</Text>
+      <Text style={styles.title}>{t('add_medicine')}</Text>
       {scannedData.length === 0 ? (
         <>
-          <Text style={styles.subtitle}>Scan prescription or search manually</Text>
+          <Text style={styles.subtitle}>{t('scan_or_search')}</Text>
           <TouchableOpacity style={styles.action} onPress={() => navigation.navigate('ScanPrescription') }>
-            <Text style={styles.actionText}>Scan Prescription</Text>
+            <Text style={styles.actionText}>{t('scan_prescription')}</Text>
           </TouchableOpacity>
           <View style={styles.searchBox}>
             <TextInput
-              placeholder="Search MIMS (name or brand)"
+              placeholder={t('search_mims')}
               placeholderTextColor={Colors.text.tertiary}
               style={styles.input}
               value={query}
@@ -135,9 +219,16 @@ export default function AddMedicineScreen() {
               onSubmitEditing={onSearch}
             />
             <TouchableOpacity style={[styles.smallBtn]} onPress={onSearch} disabled={searching}>
-              <Text style={styles.smallBtnText}>{searching ? '...' : 'Search'}</Text>
+              <Text style={styles.smallBtnText}>{searching ? '...' : t('search')}</Text>
             </TouchableOpacity>
           </View>
+          {interactions.length > 0 && (
+            <DrugInteractionWarning
+              interactions={interactions}
+              severity="high"
+              testID="drug-interaction-warning"
+            />
+          )}
           <FlatList
             data={results}
             keyExtractor={(it) => it.id}
@@ -146,7 +237,7 @@ export default function AddMedicineScreen() {
                 <Text style={styles.cardTitle}>{item.brandName || item.genericName}</Text>
                 <Text style={styles.cardLine}>{item.genericName} {item.strength || ''} {item.dosageForm || ''}</Text>
                 <TouchableOpacity style={[styles.smallBtn, styles.mt8]} onPress={() => quickAdd(item.id, item.brandName || item.genericName)}>
-                  <Text style={styles.smallBtnText}>Add</Text>
+                  <Text style={styles.smallBtnText}>{t('add')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -155,22 +246,29 @@ export default function AddMedicineScreen() {
         </>
       ) : (
         <>
-          <Text style={styles.subtitle}>Review extracted medications</Text>
+          <Text style={styles.subtitle}>{t('review_extracted')}</Text>
+          {interactions.length > 0 && (
+            <DrugInteractionWarning
+              interactions={interactions}
+              severity="high"
+              testID="drug-interaction-warning"
+            />
+          )}
           <FlatList
             data={derivedItems}
             keyExtractor={(it, idx) => `${it.name}-${idx}`}
             renderItem={({ item }) => (
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>{item.name}</Text>
-                <Text style={styles.cardLine}>Strength/Dosage: {item.strength || item.dosage || '-'}</Text>
-                <Text style={styles.cardLine}>Frequency: {item.frequency || '1'}x / day</Text>
-                <Text style={styles.cardLine}>Confidence: {Math.round((item.confidence || 0) * 100)}%</Text>
+                <Text style={styles.cardLine}>{t('strength_dosage')}: {item.strength || item.dosage || '-'}</Text>
+                <Text style={styles.cardLine}>{t('frequency')}: {item.frequency || '1'}x / {t('times_per_day')}</Text>
+                <Text style={styles.cardLine}>{t('confidence')}: {Math.round((item.confidence || 0) * 100)}%</Text>
               </View>
             )}
             contentContainerStyle={{ paddingVertical: Spacing.md, gap: 8 }}
           />
           <TouchableOpacity style={[styles.action, isSaving && styles.disabled]} disabled={isSaving} onPress={saveAll}>
-            {isSaving ? <ActivityIndicator color={Colors.text.inverse} /> : <Text style={styles.actionText}>Save All</Text>}
+            {isSaving ? <ActivityIndicator color={Colors.text.inverse} /> : <Text style={styles.actionText}>{t('save_all')}</Text>}
           </TouchableOpacity>
           {message && <Text style={styles.message}>{message}</Text>}
         </>

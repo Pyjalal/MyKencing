@@ -1,12 +1,19 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+/**
+ * ProfileScreen - Profile & Settings
+ * Matches Figma design: Profile.png
+ */
+
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput } from 'react-native';
 import { useSettingsStore } from '../stores/settingsStore';
-import { Colors, Typography, Spacing } from '../constants/theme';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useNavigation } from '@react-navigation/native';
+import { Search } from 'lucide-react-native';
 
 export default function SettingsScreen() {
   const { settings, loadSettings, updateSettings } = useSettingsStore();
   const navigation = useNavigation<any>();
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     loadSettings();
@@ -14,10 +21,32 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Settings</Text>
+      {/* Header with background */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.canGoBack() && navigation.goBack()}
+        >
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search here"
+            placeholderTextColor={Colors.text.tertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
         </View>
+
+        {/* Title */}
+        <Text style={styles.headerTitle}>Profile & Settings</Text>
+      </View>
+
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Reminders</Text>
@@ -98,20 +127,53 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.background.primary,
+  },
+  header: {
+    backgroundColor: Colors.background.profile,
+    paddingTop: Spacing['2xl'] + 10,
+    paddingBottom: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  backIcon: {
+    fontSize: 28,
+    color: Colors.text.inverse,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    marginBottom: Spacing.lg,
+  },
+  searchIcon: {
+    marginRight: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.inverse,
+    marginBottom: Spacing.sm,
   },
   scrollView: {
     flex: 1,
   },
-  header: {
-    backgroundColor: Colors.primary.main,
-    padding: Spacing.lg,
-    paddingTop: Spacing.xl,
-  },
-  headerTitle: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.inverse,
+  scrollContent: {
+    paddingBottom: 100,
   },
   section: {
     backgroundColor: Colors.background.card,

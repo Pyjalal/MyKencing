@@ -198,6 +198,10 @@ export const useVitalsStore = create<VitalsState>((set, get) => ({
   },
 
   getLatestByType: (type) => {
-    return get().vitals.find((vital) => vital.type === type);
+    return get().vitals
+      .filter((v) => v.type === type)
+      .sort((a, b) =>
+        new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime()
+      )[0];
   },
 }));

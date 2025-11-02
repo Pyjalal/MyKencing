@@ -2,11 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Colors, Typography, Spacing } from '../constants/theme';
 import { useRoute, RouteProp } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { checkDrugInteractions } from '../services/mims';
+import DrugInteractionWarning from '../components/DrugInteractionWarning';
 
 export default function MedicineDetailScreen() {
+  const { t } = useTranslation();
   const route = useRoute<RouteProp<RootStackParamList, 'MedicineDetail'>>();
   const medicationId = route.params?.medicationId;
   const { medications, loadMedications } = useMedicationStore();
@@ -33,8 +36,8 @@ export default function MedicineDetailScreen() {
   if (!med) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Medicine Details</Text>
-        <Text style={styles.text}>Medication not found.</Text>
+        <Text style={styles.title}>{t('medicine_details')}</Text>
+        <Text style={styles.text}>{t('medication_not_found')}</Text>
       </View>
     );
   }
@@ -47,32 +50,25 @@ export default function MedicineDetailScreen() {
       <Text style={styles.subtitle}>{m.genericName}</Text>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Prescription</Text>
-        <Text style={styles.text}>Dosage: {med.userDosage}</Text>
-        <Text style={styles.text}>Frequency: {med.frequency}x daily</Text>
-        <Text style={styles.text}>Times: {med.times.join(', ')}</Text>
-        {med.notes ? <Text style={styles.text}>Notes: {med.notes}</Text> : null}
+        <Text style={styles.cardTitle}>{t('prescription')}</Text>
+        <Text style={styles.text}>{t('dosage')}: {med.userDosage}</Text>
+        <Text style={styles.text}>{t('frequency')}: {med.frequency}x {t('times_per_day')}</Text>
+        <Text style={styles.text}>{t('medication_times')}: {med.times.join(', ')}</Text>
+        {med.notes ? <Text style={styles.text}>{t('notes')}: {med.notes}</Text> : null}
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>MIMS Information</Text>
-        {m.instructions ? <Text style={styles.text}>Instructions: {m.instructions}</Text> : null}
-        {m.foodInstructions ? <Text style={styles.text}>Food: {m.foodInstructions}</Text> : null}
-        {m.warnings ? <Text style={styles.text}>Warnings: {m.warnings}</Text> : null}
-        {m.sideEffects ? <Text style={styles.text}>Side Effects: {m.sideEffects}</Text> : null}
-        {m.contraindications ? <Text style={styles.text}>Contraindications: {m.contraindications}</Text> : null}
+        <Text style={styles.cardTitle}>{t('mims_information')}</Text>
+        {m.instructions ? <Text style={styles.text}>{m.instructions}</Text> : null}
+        {m.foodInstructions ? <Text style={styles.text}>{t('food_instructions')}: {m.foodInstructions}</Text> : null}
+        {m.warnings ? <Text style={styles.text}>{t('warnings_label')}: {m.warnings}</Text> : null}
+        {m.sideEffects ? <Text style={styles.text}>{t('side_effects_label')}: {m.sideEffects}</Text> : null}
+        {m.contraindications ? <Text style={styles.text}>{t('contraindications_label')}: {m.contraindications}</Text> : null}
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Interaction Check</Text>
-        {interactions.length === 0 ? (
-          <Text style={styles.text}>No known interactions with your other medications.</Text>
-        ) : (
-          interactions.map((line, idx) => (
-            <Text key={idx} style={[styles.text, styles.warn]}>{line}</Text>
-          ))
-        )}
-      </View>
+      {interactions.length > 0 && (
+        <DrugInteractionWarning interactions={interactions} severity="high" />
+      )}
     </ScrollView>
   );
 }

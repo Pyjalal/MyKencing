@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Typography, Spacing } from '../constants/theme';
 import { getEventCounts, EventType, clearAnalyticsData } from '../services/analytics';
 import UsageChart from '../components/UsageChart';
 
 export default function AnalyticsDashboardScreen() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [counts, setCounts] = useState<{ total: number; byType: Record<string, number>; byDay: { date: string; count: number }[] }>({ total: 0, byType: {}, byDay: [] });
@@ -35,16 +37,16 @@ export default function AnalyticsDashboardScreen() {
 
   if (loading) {
     return (
-      <View style={styles.center}> 
-        <Text style={styles.subtitle}>Loading usage...</Text>
+      <View style={styles.center}>
+        <Text style={styles.subtitle}>{t('loading_usage')}</Text>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.center}> 
-        <Text style={styles.error}>Error: {error}</Text>
+      <View style={styles.center}>
+        <Text style={styles.error}>{t('error')}: {error}</Text>
       </View>
     );
   }
@@ -52,7 +54,7 @@ export default function AnalyticsDashboardScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: Spacing.md }}>
-        <Text style={styles.title}>Your Usage (Last {days} Days)</Text>
+        <Text style={styles.title}>{t('your_usage_days', { days })}</Text>
 
         <View style={styles.row}>
           <TouchableOpacity style={[styles.chip, days === 7 && styles.chipActive]} onPress={() => setDays(7)}>
@@ -66,22 +68,22 @@ export default function AnalyticsDashboardScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1 }} />
           <TouchableOpacity style={[styles.button, styles.danger]} onPress={onClear}>
-            <Text style={[styles.buttonText, styles.dangerText]}>Clear Data</Text>
+            <Text style={[styles.buttonText, styles.dangerText]}>{t('clear_data')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Activity Summary</Text>
-          <Text style={styles.row}>Total events: <Text style={styles.bold}>{counts.total}</Text></Text>
-          <Text style={styles.row}>App opens: <Text style={styles.bold}>{counts.byType[EventType.AppOpened] || 0}</Text></Text>
-          <Text style={styles.row}>Doses logged: <Text style={styles.bold}>{counts.byType[EventType.DoseLogged] || 0}</Text></Text>
-          <Text style={styles.row}>Vitals logged: <Text style={styles.bold}>{counts.byType[EventType.VitalLogged] || 0}</Text></Text>
-          <Text style={styles.row}>OCR scans: <Text style={styles.bold}>{counts.byType[EventType.OCRScanned] || 0}</Text></Text>
-          <Text style={styles.row}>Reports generated: <Text style={styles.bold}>{counts.byType[EventType.ReportGenerated] || 0}</Text></Text>
+          <Text style={styles.sectionTitle}>{t('activity_summary')}</Text>
+          <Text style={styles.row}>{t('total_events')}: <Text style={styles.bold}>{counts.total}</Text></Text>
+          <Text style={styles.row}>{t('app_opens')}: <Text style={styles.bold}>{counts.byType[EventType.AppOpened] || 0}</Text></Text>
+          <Text style={styles.row}>{t('doses_logged')}: <Text style={styles.bold}>{counts.byType[EventType.DoseLogged] || 0}</Text></Text>
+          <Text style={styles.row}>{t('vitals_logged')}: <Text style={styles.bold}>{counts.byType[EventType.VitalLogged] || 0}</Text></Text>
+          <Text style={styles.row}>{t('ocr_scans')}: <Text style={styles.bold}>{counts.byType[EventType.OCRScanned] || 0}</Text></Text>
+          <Text style={styles.row}>{t('reports_generated')}: <Text style={styles.bold}>{counts.byType[EventType.ReportGenerated] || 0}</Text></Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Daily Activity</Text>
+          <Text style={styles.sectionTitle}>{t('daily_activity')}</Text>
           <UsageChart data={counts.byDay} />
         </View>
       </ScrollView>
