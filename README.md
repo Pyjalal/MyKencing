@@ -1,15 +1,15 @@
 # MyMedix API
 
-A production-ready REST API for searching Malaysian medicines and checking drug interactions. Built with modern web technologies, this API scrapes data from QUEST3+ (Malaysian pharmaceutical database) and integrates with Stockley's drug interaction database to provide comprehensive medication safety information.
+A production-ready REST API for searching Malaysian medicines and checking drug interactions. Built with modern web technologies, this API uses the official Malaysian government pharmaceutical database and integrates with Stockley's drug interaction database to provide comprehensive medication safety information.
 
 ## 🌟 Features
 
-- **🔍 Medicine Search**: Fast search across Malaysian pharmaceutical database (QUEST3+)
+- **🔍 Medicine Search**: Fast search across Malaysian pharmaceutical database (official government data)
 - **⚠️ Drug Interaction Checking**: Comprehensive interaction analysis using Stockley's database
-- **⚡ Smart Caching**: In-memory caching with TTL for optimal performance
-- **💾 Persistent Storage**: Supabase integration for medicine-ingredient mappings
+- **💾 Persistent Storage**: Supabase database with full pharmaceutical dataset
 - **✅ Type-Safe**: Full TypeScript implementation with Zod validation
 - **🧪 Well-Tested**: Comprehensive test coverage with Jest
+- **📊 Official Data Source**: Uses data from [data.gov.my](https://storage.data.gov.my/healthcare/pharmaceutical_products.csv)
 
 ## 🚀 Quick Start
 
@@ -36,11 +36,28 @@ cp env.example .env
 # Run database migrations
 npm run db:migrate
 
+# Populate the database with Malaysian pharmaceutical data
+npm run populate:medicines
+
 # Start development server
 npm run dev
 ```
 
 The API will be available at `http://localhost:3000`
+
+### Database Setup
+
+The API requires a Supabase database populated with pharmaceutical data:
+
+1. **Run migrations**: `npm run db:migrate` - Creates the necessary database schema
+2. **Populate data**: `npm run populate:medicines` - Downloads and imports the latest pharmaceutical data from the Malaysian government (this may take a few minutes)
+
+The populate script will:
+- Download the latest CSV from [data.gov.my](https://storage.data.gov.my/healthcare/pharmaceutical_products.csv)
+- Parse pharmaceutical records and extract active ingredients
+- Insert all records into your Supabase database
+
+You can re-run `npm run populate:medicines` anytime to refresh the data with the latest version.
 
 ## 📚 API Documentation
 
@@ -67,7 +84,7 @@ GET /
 
 #### Search Medicines
 
-Search for medicines by name in the QUEST3+ database.
+Search for medicines by name in the Malaysian pharmaceutical database.
 
 ```http
 GET /api/medicines/search?q={searchTerm}
