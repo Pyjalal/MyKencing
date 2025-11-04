@@ -56,12 +56,13 @@ export class IngredientMapper {
 
   async searchMedicines(searchTerm: string): Promise<Medicine[]> {
     try {
-      // Use trigram similarity search for fuzzy matching
-      const { data, error } = await this.supabase
-        .from('medicine_ingredients')
-        .select('registration_no, medicine_name, active_ingredients')
-        .or(`medicine_name.ilike.%${searchTerm}%`)
-        .limit(50);
+      // Use PostgreSQL's similarity() function to rank results
+      // The pg_trgm extension handles typos and fuzzy matching automatically
+      const { data, error } = await this.supabase.rpc('search_medicines_by_similarity', {
+        search_term: searchTerm,
+        match_threshold: 0.2,
+        max_results: 50
+      });
 
       if (error) {
         throw error;
