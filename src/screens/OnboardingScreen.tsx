@@ -7,6 +7,7 @@ import { DISCLAIMERS } from '../constants/clinical';
 import { useSettingsStore } from '../stores/settingsStore';
 import OnboardingPersonalInfoScreen from './OnboardingPersonalInfoScreen';
 import OnboardingGoalScreen from './OnboardingGoalScreen';
+import { useTranslation } from 'react-i18next';
 
 type OnboardingScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Onboarding'>;
@@ -22,6 +23,7 @@ type OnboardingData = {
 };
 
 export default function OnboardingScreen({ navigation }: OnboardingScreenProps) {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({});
   const updateSettings = useSettingsStore((state) => state.updateSettings);
@@ -42,7 +44,6 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   const handleGoalNext = async (goal: 'get_fit' | 'be_active' | 'be_healthy' | 'find_balance') => {
     const finalData = { ...onboardingData, goal };
 
-    // Save onboarding data to settings (but not onboardingCompleted yet)
     await updateSettings({
       userAge: finalData.age,
       userGender: finalData.gender,
@@ -50,12 +51,10 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
       userGoal: finalData.goal,
     });
 
-    // Navigate to PrivacyConsent screen
     navigation.replace('PrivacyConsent');
   };
 
   const handleSkip = async () => {
-    // Skip to PrivacyConsent screen without saving user data
     navigation.replace('PrivacyConsent');
   };
 
@@ -67,7 +66,6 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     }
   };
 
-  // Render different steps
   if (currentStep === 'personal-info') {
     return (
       <OnboardingPersonalInfoScreen
@@ -90,46 +88,44 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
     );
   }
 
-  // Welcome screen
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Welcome to MyKencing</Text>
+        <Text style={styles.title}>{t('onboarding.welcome_title')}</Text>
         <Text style={styles.subtitle}>
-          Your personal medication and health tracking companion
+          {t('onboarding.welcome_subtitle')}
         </Text>
 
         <View style={styles.featuresContainer}>
           <FeatureItem
-            title="Scan & Understand"
-            description="Scan prescriptions and get plain-language medicine guidance"
+            title={t('onboarding.feature_scan_title')}
+            description={t('onboarding.feature_scan_desc')}
           />
           <FeatureItem
-            title="Never Miss a Dose"
-            description="Set reminders and track your medication adherence"
+            title={t('onboarding.feature_reminders_title')}
+            description={t('onboarding.feature_reminders_desc')}
           />
           <FeatureItem
-            title="Monitor Your Health"
-            description="Log vitals and track trends over time"
+            title={t('onboarding.feature_monitor_title')}
+            description={t('onboarding.feature_monitor_desc')}
           />
           <FeatureItem
-            title="Privacy First"
-            description="All your health data stays on your device, encrypted and secure"
+            title={t('onboarding.feature_privacy_title')}
+            description={t('onboarding.feature_privacy_desc')}
           />
         </View>
 
         <View style={styles.disclaimerContainer}>
-          <Text style={styles.disclaimerTitle}>Important Notice</Text>
+          <Text style={styles.disclaimerTitle}>{t('onboarding.important_notice')}</Text>
           <Text style={styles.disclaimerText}>{DISCLAIMERS.general}</Text>
         </View>
 
         <TouchableOpacity style={styles.button} onPress={handleGetStarted}>
-          <Text style={styles.buttonText}>Get Started</Text>
+          <Text style={styles.buttonText}>{t('onboarding.get_started')}</Text>
         </TouchableOpacity>
 
         <Text style={styles.footerText}>
-          By continuing, you agree to keep your health data private and understand this app is for
-          tracking purposes only.
+          {t('onboarding.footer_text')}
         </Text>
       </View>
     </View>

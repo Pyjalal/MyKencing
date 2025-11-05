@@ -20,20 +20,16 @@ export default function PrivacyConsentScreen({ navigation }: PrivacyConsentScree
       return;
     }
 
-    // Save PDPA consent and mark onboarding as completed
     await updateSettings({
       consentGiven: true,
       consentDate: new Date().toISOString(),
       onboardingCompleted: true,
     });
 
-    // Navigate to home
     navigation.replace('Home');
   };
 
   const handleDecline = () => {
-    // User declined - can't use the app without consent
-    // In a real app, you might want to show an explanation or exit
     setHasConsented(false);
   };
 
@@ -44,31 +40,31 @@ export default function PrivacyConsentScreen({ navigation }: PrivacyConsentScree
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={true}
       >
-        <Text style={styles.title}>{t('pdpa_title')}</Text>
-        <Text style={styles.subtitle}>{t('pdpa_subtitle')}</Text>
+        <Text style={styles.title}>{t('privacy.pdpa_title')}</Text>
+        <Text style={styles.subtitle}>{t('privacy.pdpa_subtitle')}</Text>
 
         <View style={styles.introContainer}>
-          <Text style={styles.introText}>{t('pdpa_intro')}</Text>
+          <Text style={styles.introText}>{t('privacy.pdpa_intro')}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('pdpa_collection_title')}</Text>
-          <Text style={styles.sectionText}>{t('pdpa_collection_text')}</Text>
+          <Text style={styles.sectionTitle}>{t('privacy.pdpa_collection_title')}</Text>
+          <Text style={styles.sectionText}>{t('privacy.pdpa_collection_text')}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('pdpa_usage_title')}</Text>
-          <Text style={styles.sectionText}>{t('pdpa_usage_text')}</Text>
+          <Text style={styles.sectionTitle}>{t('privacy.pdpa_usage_title')}</Text>
+          <Text style={styles.sectionText}>{t('privacy.pdpa_usage_text')}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('pdpa_storage_title')}</Text>
-          <Text style={styles.sectionText}>{t('pdpa_storage_text')}</Text>
+          <Text style={styles.sectionTitle}>{t('privacy.pdpa_storage_title')}</Text>
+          <Text style={styles.sectionText}>{t('privacy.pdpa_storage_text')}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('pdpa_rights_title')}</Text>
-          <Text style={styles.sectionText}>{t('pdpa_rights_text')}</Text>
+          <Text style={styles.sectionTitle}>{t('privacy.pdpa_rights_title')}</Text>
+          <Text style={styles.sectionText}>{t('privacy.pdpa_rights_text')}</Text>
         </View>
 
         <View style={styles.consentContainer}>
@@ -78,13 +74,13 @@ export default function PrivacyConsentScreen({ navigation }: PrivacyConsentScree
               onValueChange={setHasConsented}
               trackColor={{ false: Colors.border.light, true: Colors.primary.light }}
               thumbColor={hasConsented ? Colors.primary.main : Colors.background.tertiary}
-              accessibilityLabel={t('pdpa_consent_text')}
+              accessibilityLabel={t('privacy.pdpa_consent_text')}
               accessibilityRole="switch"
             />
-            <Text style={styles.consentText}>{t('pdpa_consent_text')}</Text>
+            <Text style={styles.consentText}>{t('privacy.pdpa_consent_text')}</Text>
           </View>
           {!hasConsented && (
-            <Text style={styles.requiredNotice}>{t('pdpa_required_notice')}</Text>
+            <Text style={styles.requiredNotice}>{t('privacy.pdpa_required_notice')}</Text>
           )}
         </View>
       </ScrollView>
@@ -93,10 +89,10 @@ export default function PrivacyConsentScreen({ navigation }: PrivacyConsentScree
         <TouchableOpacity
           style={[styles.button, styles.declineButton]}
           onPress={handleDecline}
-          accessibilityLabel={t('decline')}
+          accessibilityLabel={t('privacy.decline')}
           accessibilityRole="button"
         >
-          <Text style={styles.declineButtonText}>{t('decline')}</Text>
+          <Text style={styles.declineButtonText}>{t('privacy.decline')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -107,7 +103,7 @@ export default function PrivacyConsentScreen({ navigation }: PrivacyConsentScree
           ]}
           onPress={handleAccept}
           disabled={!hasConsented}
-          accessibilityLabel={t('i_agree')}
+          accessibilityLabel={t('privacy.i_agree')}
           accessibilityRole="button"
           accessibilityState={{ disabled: !hasConsented }}
         >
@@ -115,7 +111,7 @@ export default function PrivacyConsentScreen({ navigation }: PrivacyConsentScree
             styles.acceptButtonText,
             !hasConsented && styles.acceptButtonTextDisabled,
           ]}>
-            {t('i_agree')}
+            {t('privacy.i_agree')}
           </Text>
         </TouchableOpacity>
       </View>

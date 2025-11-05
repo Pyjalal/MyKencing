@@ -1,8 +1,3 @@
-/**
- * MedicationsScreen - Medications list and reminders
- * Matches Figma design: Meds 1.png
- */
-
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -18,12 +13,14 @@ import { RootStackParamList } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Search, MessageSquare } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
 type MedicationsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
 };
 
 export default function MedicationsScreen({ navigation }: MedicationsScreenProps) {
+  const { t } = useTranslation();
   const { todayDoses, loadMedications, loadTodayDoses } = useMedicationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -55,7 +52,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
           <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search here"
+            placeholder={t('medications.search_placeholder')}
             placeholderTextColor={Colors.text.tertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -63,7 +60,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>Medications</Text>
+        <Text style={styles.title}>{t('medications.medications_title')}</Text>
 
         {/* AI Chat Button */}
         <TouchableOpacity style={styles.aiButton}>
@@ -88,7 +85,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
       >
         {/* Today's Reminders Card */}
         <View style={styles.remindersCard}>
-          <Text style={styles.cardTitle}>Today's Reminders</Text>
+          <Text style={styles.cardTitle}>{t('medications.todays_reminders')}</Text>
 
           {todayDoses.length > 0 ? (
             <View style={styles.remindersList}>
@@ -121,7 +118,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
             </View>
           ) : (
             <View style={styles.emptyReminders}>
-              <Text style={styles.emptyText}>No reminders for today</Text>
+              <Text style={styles.emptyText}>{t('medications.no_reminders_today')}</Text>
             </View>
           )}
         </View>

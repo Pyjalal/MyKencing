@@ -36,8 +36,8 @@ export default function MedicineDetailScreen() {
   if (!med) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>{t('medicine_details')}</Text>
-        <Text style={styles.text}>{t('medication_not_found')}</Text>
+        <Text style={styles.title}>{t('medicine_detail.medicine_details')}</Text>
+        <Text style={styles.text}>{t('medicine_detail.medication_not_found')}</Text>
       </View>
     );
   }
@@ -50,20 +50,20 @@ export default function MedicineDetailScreen() {
       <Text style={styles.subtitle}>{m.genericName}</Text>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>{t('prescription')}</Text>
-        <Text style={styles.text}>{t('dosage')}: {med.userDosage}</Text>
-        <Text style={styles.text}>{t('frequency')}: {med.frequency}x {t('times_per_day')}</Text>
-        <Text style={styles.text}>{t('medication_times')}: {med.times.join(', ')}</Text>
-        {med.notes ? <Text style={styles.text}>{t('notes')}: {med.notes}</Text> : null}
+        <Text style={styles.cardTitle}>{t('medicine_detail.prescription')}</Text>
+        <Text style={styles.text}>{t('medicine_detail.dosage')}: {med.userDosage}</Text>
+        <Text style={styles.text}>{t('add_medicine.frequency')}: {med.frequency}x {t('add_medicine.times_per_day')}</Text>
+        <Text style={styles.text}>{t('medicine_detail.medication_times')}: {med.times.join(', ')}</Text>
+        {med.notes ? <Text style={styles.text}>{t('add_vital.notes')}: {med.notes}</Text> : null}
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>{t('mims_information')}</Text>
+        <Text style={styles.cardTitle}>{t('medicine_detail.mims_information')}</Text>
         {m.instructions ? <Text style={styles.text}>{m.instructions}</Text> : null}
-        {m.foodInstructions ? <Text style={styles.text}>{t('food_instructions')}: {m.foodInstructions}</Text> : null}
-        {m.warnings ? <Text style={styles.text}>{t('warnings_label')}: {m.warnings}</Text> : null}
-        {m.sideEffects ? <Text style={styles.text}>{t('side_effects_label')}: {m.sideEffects}</Text> : null}
-        {m.contraindications ? <Text style={styles.text}>{t('contraindications_label')}: {m.contraindications}</Text> : null}
+        {m.foodInstructions ? <Text style={styles.text}>{t('medicine_detail.food_instructions')}: {m.foodInstructions}</Text> : null}
+        {m.warnings ? <Text style={styles.text}>{t('medicine_detail.warnings_label')}: {m.warnings}</Text> : null}
+        {m.sideEffects ? <Text style={styles.text}>{t('medicine_detail.side_effects_label')}: {m.sideEffects}</Text> : null}
+        {m.contraindications ? <Text style={styles.text}>{t('medicine_detail.contraindications_label')}: {m.contraindications}</Text> : null}
       </View>
 
       {interactions.length > 0 && (

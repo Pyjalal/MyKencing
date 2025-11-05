@@ -55,32 +55,206 @@ MyKencing/
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
-- Expo CLI
-- iOS Simulator (Mac) or Android Emulator
+#### For Both Mac and Windows:
+- **Node.js 18+** - [Download from nodejs.org](https://nodejs.org/)
+- **Git** - [Download from git-scm.com](https://git-scm.com/)
+- A smartphone with **Expo Go** app installed:
+  - [iOS App Store](https://apps.apple.com/app/expo-go/id982107779)
+  - [Google Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent)
+
+#### Platform-Specific Prerequisites:
+
+**Mac Only (for iOS development):**
+- **Xcode 15+** - [Download from Mac App Store](https://apps.apple.com/app/xcode/id497799835)
+- **CocoaPods** - Install via `sudo gem install cocoapods`
+
+**Windows Only (for Android development):**
+- **Android Studio** - [Download from developer.android.com](https://developer.android.com/studio)
+- **Java Development Kit (JDK) 17+** - Included with Android Studio
 
 ### Installation
 
-1. Clone the repository:
-   ```bash
-   cd MyKencing
-   ```
+#### Step 1: Clone the Repository
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+**Mac/Linux:**
+```bash
+git clone https://github.com/yourusername/MyKencing.git
+cd MyKencing
+```
 
-3. Start the development server:
-   ```bash
-   npm start
-   ```
+**Windows (Command Prompt or PowerShell):**
+```cmd
+git clone https://github.com/yourusername/MyKencing.git
+cd MyKencing
+```
 
-4. Run on your device:
-   - Press `a` for Android
-   - Press `i` for iOS (Mac only)
-   - Scan QR code with Expo Go app
+#### Step 2: Install Dependencies
+
+```bash
+npm install
+```
+
+This will install all required packages including React Native, Expo, and other dependencies.
+
+#### Step 3: Start the Development Server
+
+```bash
+npm start
+```
+
+Or use the Expo CLI directly:
+```bash
+npx expo start
+```
+
+You should see a QR code and several options in your terminal.
+
+### Running the App
+
+#### Option 1: Run on Physical Device (Easiest - Recommended for Testing)
+
+1. Ensure your smartphone is connected to the **same Wi-Fi network** as your computer
+2. Open the **Expo Go** app on your phone
+3. **iOS**: Scan the QR code from the terminal using your camera app
+4. **Android**: Scan the QR code using the Expo Go app's built-in scanner
+5. The app will load on your device
+
+#### Option 2: Run on iOS Simulator (Mac Only)
+
+1. Make sure Xcode is installed with iOS Simulator
+2. Press `i` in the terminal after running `npm start`
+3. Or run: `npm run ios`
+
+**First-time iOS setup:**
+```bash
+# Install iOS pods
+cd ios && pod install && cd ..
+```
+
+#### Option 3: Run on Android Emulator
+
+**Setup Android Emulator (First Time):**
+
+1. Open Android Studio
+2. Go to **Tools → Device Manager** (or **AVD Manager**)
+3. Click **Create Device**
+4. Select a device (e.g., Pixel 5)
+5. Download a system image (recommended: **Android 13** or higher)
+6. Finish setup and start the emulator
+
+**Run the app:**
+1. Start your Android emulator first
+2. Press `a` in the terminal after running `npm start`
+3. Or run: `npm run android`
+
+**Windows-specific Android setup:**
+```cmd
+# Add Android SDK to PATH (add to System Environment Variables):
+# ANDROID_HOME = C:\Users\YourUsername\AppData\Local\Android\Sdk
+# Add to PATH: %ANDROID_HOME%\platform-tools
+# Add to PATH: %ANDROID_HOME%\emulator
+```
+
+### Available Scripts
+
+```bash
+npm start          # Start Expo development server
+npm run android    # Run on Android emulator/device
+npm run ios        # Run on iOS simulator (Mac only)
+npm run web        # Run in web browser (experimental)
+```
+
+### Troubleshooting
+
+#### Common Issues on Windows:
+
+**"Metro bundler not starting":**
+```cmd
+# Clear cache and restart
+npx expo start --clear
+```
+
+**"Android emulator not detected":**
+```cmd
+# Check if emulator is running
+adb devices
+
+# Restart ADB server
+adb kill-server
+adb start-server
+```
+
+**"Port already in use":**
+```cmd
+# Kill process on port 8081
+npx kill-port 8081
+# Or specify a different port
+npx expo start --port 8082
+```
+
+#### Common Issues on Mac:
+
+**"iOS build fails" or "Pod install fails":**
+```bash
+# Update CocoaPods and reinstall
+cd ios
+pod deintegrate
+pod install
+cd ..
+```
+
+**"Command not found: npx":**
+```bash
+# Reinstall Node.js or use full path
+./node_modules/.bin/expo start
+```
+
+#### General Issues:
+
+**"Unable to connect to device":**
+- Ensure device and computer are on the same Wi-Fi network
+- Disable VPN if active
+- Check firewall settings (allow Node.js and Expo)
+- Try using tunnel mode: `npx expo start --tunnel`
+
+**"Dependencies error" or "Module not found":**
+```bash
+# Clean install
+rm -rf node_modules package-lock.json  # Mac/Linux
+# or
+rmdir /s node_modules && del package-lock.json  # Windows
+
+npm install
+npx expo start --clear
+```
+
+**"Memory or storage issues":**
+```bash
+# Clear watchman (Mac/Linux only)
+watchman watch-del-all
+
+# Clear Expo cache
+npx expo start --clear
+
+# Clear npm cache
+npm cache clean --force
+```
+
+### Development Environment Setup (Optional but Recommended)
+
+**VSCode Extensions:**
+- ESLint
+- Prettier - Code formatter
+- React Native Tools
+- TypeScript and JavaScript Language Features
+
+**Configure VSCode settings.json:**
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
+}
+```
 
 ## Development
 

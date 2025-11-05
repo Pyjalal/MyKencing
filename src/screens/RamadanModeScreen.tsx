@@ -5,8 +5,10 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { useMedicationStore } from '../stores/medicationStore';
 import { adjustMedicationForRamadan, restoreOriginalSchedule, getRamadanDates } from '../utils/ramadanAdjustments';
 import { cancelMedicationReminders, scheduleMedicationReminders } from '../services/notifications';
+import { useTranslation } from 'react-i18next';
 
 export default function RamadanModeScreen() {
+  const { t } = useTranslation();
   const { settings, loadSettings, updateSettings } = useSettingsStore();
   const { medications, loadMedications, updateMedication } = useMedicationStore();
 
@@ -65,9 +67,9 @@ export default function RamadanModeScreen() {
           originalTimes,
         },
       });
-      Alert.alert('Ramadan Mode', 'Medication schedules adjusted for Ramadan.');
+      Alert.alert(t('ramadan.ramadan_mode_alert_title'), t('ramadan.ramadan_mode_alert_message'));
     } catch (e) {
-      Alert.alert('Error', (e as Error).message);
+      Alert.alert(t('ramadan.error_alert_title'), (e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -84,9 +86,9 @@ export default function RamadanModeScreen() {
         await scheduleMedicationReminders({ ...med, times: restored.times } as any);
       }
       await updateSettings({ ramadan: { enabled: false, originalTimes: map } });
-      Alert.alert('Ramadan Mode', 'Original schedules restored.');
+      Alert.alert(t('ramadan.ramadan_mode_alert_title'), t('ramadan.ramadan_mode_restored_alert_message'));
     } catch (e) {
-      Alert.alert('Error', (e as Error).message);
+      Alert.alert(t('ramadan.error_alert_title'), (e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -100,41 +102,41 @@ export default function RamadanModeScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Ramadan Mode</Text>
+      <Text style={styles.title}>{t('ramadan.ramadan_mode_title')}</Text>
 
       <View style={styles.rowBetween}>
-        <Text style={styles.label}>Enable Ramadan Adjustments</Text>
+        <Text style={styles.label}>{t('ramadan.enable_ramadan_adjustments')}</Text>
         <Switch value={enabled} onValueChange={onToggle} disabled={busy} />
       </View>
 
       <View style={styles.fieldRow}>
-        <Text style={styles.label}>Sahur time (HH:mm)</Text>
+        <Text style={styles.label}>{t('ramadan.sahur_time')}</Text>
         <TextInput style={styles.input} value={sahur} onChangeText={setSahur} placeholder="05:30" />
       </View>
       <View style={styles.fieldRow}>
-        <Text style={styles.label}>Iftar time (HH:mm)</Text>
+        <Text style={styles.label}>{t('ramadan.iftar_time')}</Text>
         <TextInput style={styles.input} value={iftar} onChangeText={setIftar} placeholder="19:15" />
       </View>
 
       <View style={styles.fieldRow}>
-        <Text style={styles.label}>Start date (YYYY-MM-DD)</Text>
+        <Text style={styles.label}>{t('ramadan.start_date')}</Text>
         <TextInput style={styles.input} value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" />
       </View>
       <View style={styles.fieldRow}>
-        <Text style={styles.label}>End date (YYYY-MM-DD)</Text>
+        <Text style={styles.label}>{t('ramadan.end_date')}</Text>
         <TextInput style={styles.input} value={endDate} onChangeText={setEndDate} placeholder="YYYY-MM-DD" />
       </View>
 
       <TouchableOpacity style={styles.button} onPress={onAutoSetDates} disabled={busy}>
-        <Text style={styles.buttonText}>Auto-set Dates</Text>
+        <Text style={styles.buttonText}>{t('ramadan.auto_set_dates')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.button, styles.primary]} onPress={applyAdjustments} disabled={busy}>
-        <Text style={[styles.buttonText, styles.primaryText]}>Apply Adjustments</Text>
+        <Text style={[styles.buttonText, styles.primaryText]}>{t('ramadan.apply_adjustments')}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.button, styles.danger]} onPress={restoreSchedules} disabled={busy}>
-        <Text style={[styles.buttonText, styles.dangerText]}>Restore Original</Text>
+        <Text style={[styles.buttonText, styles.dangerText]}>{t('ramadan.restore_original')}</Text>
       </TouchableOpacity>
     </View>
   );

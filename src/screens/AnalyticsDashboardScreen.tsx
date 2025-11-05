@@ -38,7 +38,7 @@ export default function AnalyticsDashboardScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <Text style={styles.subtitle}>{t('loading_usage')}</Text>
+        <Text style={styles.subtitle}>{t('analytics.loading_usage')}</Text>
       </View>
     );
   }
@@ -46,7 +46,7 @@ export default function AnalyticsDashboardScreen() {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.error}>{t('error')}: {error}</Text>
+        <Text style={styles.error}>{t('analytics.error')}: {error}</Text>
       </View>
     );
   }
@@ -54,9 +54,9 @@ export default function AnalyticsDashboardScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={{ padding: Spacing.md }}>
-        <Text style={styles.title}>{t('your_usage_days', { days })}</Text>
+        <Text style={styles.title}>{t('analytics.your_usage_days', { days })}</Text>
 
-        <View style={styles.row}>
+        <View style={styles.rowContainer}>
           <TouchableOpacity style={[styles.chip, days === 7 && styles.chipActive]} onPress={() => setDays(7)}>
             <Text style={[styles.chipText, days === 7 && styles.chipTextActive]}>7d</Text>
           </TouchableOpacity>
@@ -68,22 +68,22 @@ export default function AnalyticsDashboardScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1 }} />
           <TouchableOpacity style={[styles.button, styles.danger]} onPress={onClear}>
-            <Text style={[styles.buttonText, styles.dangerText]}>{t('clear_data')}</Text>
+            <Text style={[styles.buttonText, styles.dangerText]}>{t('analytics.clear_data')}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('activity_summary')}</Text>
-          <Text style={styles.row}>{t('total_events')}: <Text style={styles.bold}>{counts.total}</Text></Text>
-          <Text style={styles.row}>{t('app_opens')}: <Text style={styles.bold}>{counts.byType[EventType.AppOpened] || 0}</Text></Text>
-          <Text style={styles.row}>{t('doses_logged')}: <Text style={styles.bold}>{counts.byType[EventType.DoseLogged] || 0}</Text></Text>
-          <Text style={styles.row}>{t('vitals_logged')}: <Text style={styles.bold}>{counts.byType[EventType.VitalLogged] || 0}</Text></Text>
-          <Text style={styles.row}>{t('ocr_scans')}: <Text style={styles.bold}>{counts.byType[EventType.OCRScanned] || 0}</Text></Text>
-          <Text style={styles.row}>{t('reports_generated')}: <Text style={styles.bold}>{counts.byType[EventType.ReportGenerated] || 0}</Text></Text>
+          <Text style={styles.sectionTitle}>{t('analytics.activity_summary')}</Text>
+          <Text style={styles.row}>{t('analytics.total_events')}: <Text style={styles.bold}>{counts.total}</Text></Text>
+          <Text style={styles.row}>{t('analytics.app_opens')}: <Text style={styles.bold}>{counts.byType[EventType.AppOpened] || 0}</Text></Text>
+          <Text style={styles.row}>{t('analytics.doses_logged')}: <Text style={styles.bold}>{counts.byType[EventType.DoseLogged] || 0}</Text></Text>
+          <Text style={styles.row}>{t('analytics.vitals_logged')}: <Text style={styles.bold}>{counts.byType[EventType.VitalLogged] || 0}</Text></Text>
+          <Text style={styles.row}>{t('analytics.ocr_scans')}: <Text style={styles.bold}>{counts.byType[EventType.OCRScanned] || 0}</Text></Text>
+          <Text style={styles.row}>{t('analytics.reports_generated')}: <Text style={styles.bold}>{counts.byType[EventType.ReportGenerated] || 0}</Text></Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>{t('daily_activity')}</Text>
+          <Text style={styles.sectionTitle}>{t('analytics.daily_activity')}</Text>
           <UsageChart data={counts.byDay} />
         </View>
       </ScrollView>

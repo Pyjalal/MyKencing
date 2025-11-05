@@ -17,9 +17,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { scanPrescription, isOcrAvailable } from '../services/ocr';
-import { searchMIMS } from '../services/mims';
 import { Colors, Typography, Spacing } from '../constants/theme';
-import type { ExtractedMedicine } from '../types';
 
 export default function ScanPrescriptionScreen() {
   const { t } = useTranslation();
@@ -34,11 +32,10 @@ export default function ScanPrescriptionScreen() {
   const takePicture = async () => {
     if (!cameraRef.current) return;
 
-    // Guard: OCR availability (Expo Go/Web not supported)
     if (!isOcrAvailable()) {
       Alert.alert(
-        t('scan_prescription') || 'Scan Prescription',
-        'OCR is unavailable in this environment. Build and run a development client (not Expo Go) to use OCR, or use Manual Entry.'
+        t('scan.scan_prescription_title'),
+        t('scan.ocr_unavailable_alert_message')
       );
       return;
     }
@@ -53,18 +50,16 @@ export default function ScanPrescriptionScreen() {
 
       setCapturedImage(photo.uri);
 
-      // Process the image with OCR
       const extracted = await scanPrescription(photo.uri);
 
       if (extracted.length === 0) {
-        // No medicines detected, prompt manual entry
         Alert.alert(
-          t('scan_prescription') || 'Scan Prescription',
-          'No medications detected in the image. Please try again with better lighting or enter manually.',
+          t('scan.scan_prescription_title'),
+          t('scan.no_medications_detected_alert_message'),
           [
-            { text: t('cancel') || 'Cancel', style: 'cancel' },
+            { text: t('add_vital.cancel'), style: 'cancel' },
             {
-              text: t('manual_entry') || 'Manual Entry',
+              text: t('scan.manual_entry'),
               onPress: () => navigation.navigate('AddMedicine'),
             },
           ]
@@ -73,12 +68,11 @@ export default function ScanPrescriptionScreen() {
         return;
       }
 
-      // Navigate to AddMedicine screen with extracted data
       navigation.navigate('AddMedicine', { scannedData: extracted });
       setIsProcessing(false);
     } catch (error) {
       console.error('Error taking picture:', error);
-      Alert.alert('Error', 'Failed to process prescription. Please try again.');
+      Alert.alert(t('analytics.error'), t('scan.failed_to_process_prescription_alert_message'));
       setIsProcessing(false);
     }
   };
@@ -92,7 +86,7 @@ export default function ScanPrescriptionScreen() {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={Colors.primary.main} />
-        <Text style={styles.message}>{t('loading') || 'Loading...'}</Text>
+        <Text style={styles.message}>{t('add_vital.loading')}</Text>
       </View>
     );
   }
@@ -101,7 +95,7 @@ export default function ScanPrescriptionScreen() {
     return (
       <View style={styles.container}>
         <Text style={styles.message}>
-          Camera permission is required to scan prescriptions
+          {t('scan.camera_permission_required')}
         </Text>
         <TouchableOpacity
           style={styles.permissionButton}
@@ -109,7 +103,7 @@ export default function ScanPrescriptionScreen() {
             await requestPermission();
           }}
         >
-          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+          <Text style={styles.permissionButtonText}>{t('scan.grant_permission')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -122,12 +116,12 @@ export default function ScanPrescriptionScreen() {
         {isProcessing ? (
           <View style={styles.processingOverlay}>
             <ActivityIndicator size="large" color={Colors.primary.main} />
-            <Text style={styles.processingText}>Processing prescription...</Text>
+            <Text style={styles.processingText}>{t('scan.processing_prescription')}</Text>
           </View>
         ) : (
           <View style={styles.actions}>
             <TouchableOpacity style={styles.retakeButton} onPress={retake}>
-              <Text style={styles.retakeButtonText}>Retake</Text>
+              <Text style={styles.retakeButtonText}>{t('scan.retake')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -141,7 +135,7 @@ export default function ScanPrescriptionScreen() {
         <View style={styles.cameraOverlay}>
           <View style={styles.guidebox} />
           <Text style={styles.instruction}>
-            Position prescription within the frame
+            {t('scan.position_prescription_within_frame')}
           </Text>
         </View>
       </CameraView>
@@ -160,7 +154,7 @@ export default function ScanPrescriptionScreen() {
           onPress={() => navigation.navigate('AddMedicine')}
         >
           <Text style={styles.manualButtonText}>
-            {t('manual_entry') || 'Manual Entry'}
+            {t('scan.manual_entry')}
           </Text>
         </TouchableOpacity>
       </View>

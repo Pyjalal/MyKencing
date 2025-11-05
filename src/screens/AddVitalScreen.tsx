@@ -44,13 +44,13 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
   const getTitle = () => {
     switch (type) {
       case VitalType.BloodPressure:
-        return t('blood_pressure');
+        return t('add_vital.blood_pressure');
       case VitalType.Glucose:
-        return t('glucose');
+        return t('add_vital.glucose');
       case VitalType.Weight:
-        return t('weight');
+        return t('add_vital.weight');
       default:
-        return t('add_vital');
+        return t('add_vital.add_vital');
     }
   };
 
@@ -93,27 +93,27 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
   const renderBloodPressureForm = () => (
     <>
       <View style={styles.formGroup}>
-        <Text style={styles.label}>{t('systolic')} (mmHg)</Text>
+        <Text style={styles.label}>{t('add_vital.systolic')} (mmHg)</Text>
         <TextInput
           style={styles.input}
           value={systolic}
           onChangeText={setSystolic}
           placeholder="120"
           keyboardType="numeric"
-          accessibilityLabel={t('systolic')}
+          accessibilityLabel={t('add_vital.systolic')}
           accessibilityRole="none"
         />
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>{t('diastolic')} (mmHg)</Text>
+        <Text style={styles.label}>{t('add_vital.diastolic')} (mmHg)</Text>
         <TextInput
           style={styles.input}
           value={diastolic}
           onChangeText={setDiastolic}
           placeholder="80"
           keyboardType="numeric"
-          accessibilityLabel={t('diastolic')}
+          accessibilityLabel={t('add_vital.diastolic')}
           accessibilityRole="none"
         />
       </View>
@@ -123,20 +123,20 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
   const renderGlucoseForm = () => (
     <>
       <View style={styles.formGroup}>
-        <Text style={styles.label}>{t('value')}</Text>
+        <Text style={styles.label}>{t('add_vital.value')}</Text>
         <TextInput
           style={styles.input}
           value={glucoseValue}
           onChangeText={setGlucoseValue}
           placeholder="5.5"
           keyboardType="decimal-pad"
-          accessibilityLabel={t('value')}
+          accessibilityLabel={t('add_vital.value')}
           accessibilityRole="none"
         />
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>{t('glucose_unit')}</Text>
+        <Text style={styles.label}>{t('add_vital.glucose_unit')}</Text>
         <View style={styles.unitSelector}>
           <TouchableOpacity
             style={[styles.unitButton, glucoseUnit === 'mmol/L' && styles.unitButtonActive]}
@@ -168,20 +168,20 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
   const renderWeightForm = () => (
     <>
       <View style={styles.formGroup}>
-        <Text style={styles.label}>{t('value')}</Text>
+        <Text style={styles.label}>{t('add_vital.value')}</Text>
         <TextInput
           style={styles.input}
           value={weightValue}
           onChangeText={setWeightValue}
           placeholder="70"
           keyboardType="decimal-pad"
-          accessibilityLabel={t('value')}
+          accessibilityLabel={t('add_vital.value')}
           accessibilityRole="none"
         />
       </View>
 
       <View style={styles.formGroup}>
-        <Text style={styles.label}>{t('weight_unit')}</Text>
+        <Text style={styles.label}>{t('add_vital.weight_unit')}</Text>
         <View style={styles.unitSelector}>
           <TouchableOpacity
             style={[styles.unitButton, weightUnit === 'kg' && styles.unitButtonActive]}
@@ -223,16 +223,16 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         {type === VitalType.Weight && renderWeightForm()}
 
         <View style={styles.formGroup}>
-          <Text style={styles.label}>{t('notes')} ({t('optional', { defaultValue: 'Optional' })})</Text>
+          <Text style={styles.label}>{t('add_vital.notes')} ({t('add_vital.optional')})</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={notes}
             onChangeText={setNotes}
-            placeholder={t('notes')}
+            placeholder={t('add_vital.notes')}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
-            accessibilityLabel={t('notes')}
+            accessibilityLabel={t('add_vital.notes')}
             accessibilityRole="none"
           />
         </View>
@@ -242,22 +242,22 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         <TouchableOpacity
           style={[styles.button, styles.cancelButton]}
           onPress={() => navigation.goBack()}
-          accessibilityLabel={t('cancel')}
+          accessibilityLabel={t('add_vital.cancel')}
           accessibilityRole="button"
         >
-          <Text style={styles.cancelButtonText}>{t('cancel')}</Text>
+          <Text style={styles.cancelButtonText}>{t('add_vital.cancel')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.saveButton, !isValid() && styles.saveButtonDisabled]}
           onPress={handleSave}
           disabled={!isValid() || isLoading}
-          accessibilityLabel={t('save')}
+          accessibilityLabel={t('add_vital.save')}
           accessibilityRole="button"
           accessibilityState={{ disabled: !isValid() || isLoading }}
         >
           <Text style={[styles.saveButtonText, !isValid() && styles.saveButtonTextDisabled]}>
-            {isLoading ? t('loading') : t('save')}
+            {isLoading ? t('add_vital.loading') : t('add_vital.save')}
           </Text>
         </TouchableOpacity>
       </View>

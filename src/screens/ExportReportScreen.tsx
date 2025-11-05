@@ -3,8 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors, Typography, Spacing } from '../constants/theme';
 import { generateAndShareReport } from '../services/export';
 import { logEvent, EventType } from '../services/analytics';
+import { useTranslation } from 'react-i18next';
 
 export default function ExportReportScreen() {
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<7 | 30 | 90>(30);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -15,9 +17,9 @@ export default function ExportReportScreen() {
     try {
       const result = await generateAndShareReport(period);
       if (!result.success) {
-        setMessage(result.error || 'Failed to generate report');
+        setMessage(result.error || t('export.failed_to_generate'));
       } else {
-        setMessage('Report generated. Choose an app to share.');
+        setMessage(t('export.report_generated_success'));
         try { await logEvent(EventType.ReportGenerated, { period }); } catch {}
       }
     } catch (e) {
@@ -29,19 +31,19 @@ export default function ExportReportScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Export Medication & Vitals Report</Text>
+      <Text style={styles.title}>{t('export.export_report_title')}</Text>
 
-      <Text style={styles.subtitle}>Select period</Text>
+      <Text style={styles.subtitle}>{t('export.select_period')}</Text>
       <View style={styles.row}>
         {[7, 30, 90].map((p) => (
           <TouchableOpacity key={p} style={[styles.chip, period === p ? styles.chipActive : null]} onPress={() => setPeriod(p as 7 | 30 | 90)}>
-            <Text style={[styles.chipText, period === p ? styles.chipTextActive : null]}>{p} days</Text>
+            <Text style={[styles.chipText, period === p ? styles.chipTextActive : null]}>{t('export.days', { count: p })}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       <TouchableOpacity style={[styles.button, loading && styles.buttonDisabled]} onPress={doExport} disabled={loading}>
-        <Text style={styles.buttonText}>{loading ? 'Generating...' : 'Generate & Share'}</Text>
+        <Text style={styles.buttonText}>{loading ? t('export.generating') : t('export.generate_and_share')}</Text>
       </TouchableOpacity>
 
       {message && <Text style={styles.message}>{message}</Text>}

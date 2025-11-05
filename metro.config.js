@@ -6,7 +6,4 @@ const config = getDefaultConfig(__dirname);
 // Configure for web support
 config.resolver.sourceExts.push('css');
 
-module.exports = withNativeWind(config, {
-  input: './global.css',
-  inlineRem: false,
-});
+module.exports = withNativeWind(config, { input: './global.css' });

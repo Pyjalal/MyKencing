@@ -118,7 +118,7 @@ export default function VitalsScreen() {
           <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder={t('search_here')}
+            placeholder={t('vitals.search_here')}
             placeholderTextColor={Colors.text.tertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -126,7 +126,7 @@ export default function VitalsScreen() {
         </View>
 
         {/* Title */}
-        <Text style={styles.headerTitle}>{t('vitals_tracker')}</Text>
+        <Text style={styles.headerTitle}>{t('vitals.vitals_tracker')}</Text>
 
         {/* AI Chat Button */}
         <TouchableOpacity style={styles.aiButton}>
@@ -143,7 +143,7 @@ export default function VitalsScreen() {
           onPress={() => setIsDemoMode(!isDemoMode)}
         >
           <Text style={styles.demoToggleText}>
-            {isDemoMode ? '🎬 Demo Mode ON' : '📊 Real Data'}
+            {isDemoMode ? t('vitals.demo_mode_on') : t('vitals.real_data')}
           </Text>
         </TouchableOpacity>
 
@@ -151,13 +151,13 @@ export default function VitalsScreen() {
           <>
             {/* 14-Day Summary Header */}
             <View style={styles.summaryHeader}>
-              <Text style={styles.summaryTitle}>Here's your 14-day summary</Text>
+              <Text style={styles.summaryTitle}>{t('vitals.summary_title')}</Text>
             </View>
 
             {/* Blood Pressure Card */}
             <View style={styles.vitalCard}>
-              <Text style={styles.cardTitle}>Blood Pressure</Text>
-              <Text style={styles.cardSubtitle}>Normal range: 120/80 mmHg</Text>
+              <Text style={styles.cardTitle}>{t('vitals.blood_pressure_card_title')}</Text>
+              <Text style={styles.cardSubtitle}>{t('vitals.bp_normal_range')}</Text>
               
               {/* Simple bar chart visualization */}
               <View style={styles.chartContainer}>
@@ -181,29 +181,29 @@ export default function VitalsScreen() {
               <View style={styles.legend}>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: '#2C5F8D' }]} />
-                  <Text style={styles.legendText}>Systolic</Text>
+                  <Text style={styles.legendText}>{t('vitals.systolic')}</Text>
                 </View>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: '#5B9BD5' }]} />
-                  <Text style={styles.legendText}>Diastolic</Text>
+                  <Text style={styles.legendText}>{t('vitals.diastolic')}</Text>
                 </View>
               </View>
 
               <Text style={styles.avgText}>
-                Avg: {bpAvg.systolic}/{bpAvg.diastolic} mmHg — <Text style={styles.statusStable}>Stable</Text>
+                {t('vitals.avg_bp', { systolic: bpAvg.systolic, diastolic: bpAvg.diastolic })} — <Text style={styles.statusStable}>{t('vitals.stable')}</Text>
               </Text>
             </View>
 
             {/* Weight Card */}
             <View style={styles.vitalCard}>
-              <Text style={styles.cardTitle}>Weight</Text>
+              <Text style={styles.cardTitle}>{t('vitals.weight_card_title')}</Text>
               <View style={styles.weightHeader}>
                 <Text style={styles.weightValue}>{weightAvg} kg</Text>
                 <View style={styles.bmiBadge}>
-                  <Text style={styles.bmiText}>BMI: {bmiAvg}</Text>
+                  <Text style={styles.bmiText}>{t('vitals.bmi', { bmi: bmiAvg })}</Text>
                 </View>
               </View>
-              <Text style={styles.changeText}>+0.3 kg since last week</Text>
+              <Text style={styles.changeText}>{t('vitals.weight_change_since_last_week')}</Text>
 
               {/* Bar chart for weight */}
               <View style={styles.chartContainer}>
@@ -220,19 +220,19 @@ export default function VitalsScreen() {
               <View style={styles.legend}>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: '#2C5F8D' }]} />
-                  <Text style={styles.legendText}>Weight</Text>
+                  <Text style={styles.legendText}>{t('add_vital.weight')}</Text>
                 </View>
                 <View style={styles.legendItem}>
                   <View style={[styles.legendDot, { backgroundColor: '#5B9BD5' }]} />
-                  <Text style={styles.legendText}>BMI</Text>
+                  <Text style={styles.legendText}>{t('vitals.bmi', { bmi: '' })}</Text>
                 </View>
               </View>
             </View>
 
             {/* Glucose Levels Card */}
             <View style={styles.vitalCard}>
-              <Text style={styles.cardTitle}>Glucose Levels</Text>
-              <Text style={styles.cardSubtitle}>Normal range: 3.9 to 5.5 mmol/L</Text>
+              <Text style={styles.cardTitle}>{t('vitals.glucose_card_title')}</Text>
+              <Text style={styles.cardSubtitle}>{t('vitals.glucose_normal_range')}</Text>
 
               <View style={styles.chartContainer}>
                 {DEMO_DATA.glucose.map((data, index) => (
@@ -250,14 +250,14 @@ export default function VitalsScreen() {
               </View>
 
               <Text style={styles.avgText}>
-                Avg: {glucoseAvg} mmol/L — <Text style={styles.statusElevated}>Slightly elevated</Text>
+                {t('vitals.avg_glucose', { avg: glucoseAvg })} — <Text style={styles.statusElevated}>{t('vitals.slightly_elevated')}</Text>
               </Text>
             </View>
 
             {/* Cholesterol Card */}
             <View style={styles.vitalCard}>
-              <Text style={styles.cardTitle}>Cholesterol</Text>
-              <Text style={styles.cardSubtitle}>Normal range: Below 5.2 mmol/L</Text>
+              <Text style={styles.cardTitle}>{t('vitals.cholesterol_card_title')}</Text>
+              <Text style={styles.cardSubtitle}>{t('vitals.cholesterol_normal_range')}</Text>
 
               <View style={styles.chartContainer}>
                 {DEMO_DATA.cholesterol.map((data, index) => (
@@ -271,7 +271,7 @@ export default function VitalsScreen() {
               </View>
 
               <Text style={styles.avgText}>
-                Avg: {cholesterolAvg} mmol/L — <Text style={styles.statusHealthy}>Healthy</Text>
+                {t('vitals.avg_cholesterol', { avg: cholesterolAvg })} — <Text style={styles.statusHealthy}>{t('vitals.healthy')}</Text>
               </Text>
             </View>
           </>
@@ -279,41 +279,41 @@ export default function VitalsScreen() {
           <>
             {/* Original real data view */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('quick_add')}</Text>
+              <Text style={styles.sectionTitle}>{t('home.quick_add')}</Text>
               <View style={styles.buttonRow}>
                 <TouchableOpacity
                   style={styles.vitalButton}
                   onPress={() => navigation.navigate('AddVital', { type: VitalType.BloodPressure })}
                 >
-                  <Text style={styles.vitalButtonText}>{t('blood_pressure')}</Text>
+                  <Text style={styles.vitalButtonText}>{t('add_vital.blood_pressure')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.vitalButton}
                   onPress={() => navigation.navigate('AddVital', { type: VitalType.Glucose })}
                 >
-                  <Text style={styles.vitalButtonText}>{t('glucose')}</Text>
+                  <Text style={styles.vitalButtonText}>{t('add_vital.glucose')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.vitalButton}
                   onPress={() => navigation.navigate('AddVital', { type: VitalType.Weight })}
                 >
-                  <Text style={styles.vitalButtonText}>{t('weight')}</Text>
+                  <Text style={styles.vitalButtonText}>{t('add_vital.weight')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {vitals.length === 0 && (
               <View style={styles.emptyState}>
-                <Text style={styles.emptyStateTitle}>{t('no_vitals_yet')}</Text>
+                <Text style={styles.emptyStateTitle}>{t('vitals.no_vitals_yet')}</Text>
                 <Text style={styles.emptyStateText}>
-                  {t('start_tracking_vitals')}
+                  {t('vitals.start_tracking_vitals')}
                 </Text>
               </View>
             )}
 
             {vitals.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('recent_readings')}</Text>
+                <Text style={styles.sectionTitle}>{t('vitals.recent_readings')}</Text>
                 {vitals.slice(0, 10).map((vital) => (
                   <View key={vital.id} style={styles.oldVitalCard}>
                     <Text style={styles.vitalType}>{vital.type.replace('_', ' ').toUpperCase()}</Text>

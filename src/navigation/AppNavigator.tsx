@@ -7,6 +7,7 @@ import { RootStackParamList } from '../types';
 import { CustomTabBar } from '../components/BottomNavBar';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Colors } from '../constants/theme';
+import { updateI18nLanguage } from '../services/i18n';
 
 // Screens
 import OnboardingScreen from '../screens/OnboardingScreen';
@@ -87,6 +88,8 @@ export default function AppNavigator() {
   useEffect(() => {
     async function init() {
       await loadSettings();
+      // Update i18n language after settings are loaded
+      await updateI18nLanguage();
       setIsLoading(false);
     }
     init();

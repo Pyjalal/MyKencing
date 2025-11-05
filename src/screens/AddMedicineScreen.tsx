@@ -39,22 +39,17 @@ export default function AddMedicineScreen() {
 
   const checkForInteractions = useCallback(async (newMimsId: string) => {
     try {
-      // Get the new medication details
       const newMed = await getMIMSMedicine(newMimsId);
       if (!newMed) {
         setInteractions([]);
         return;
       }
 
-      // Get active medications from store
       const activeMeds = medications.filter(m => m.isActive);
-
       const foundInteractions: string[] = [];
 
-      // Check if any active medication's drugInteractions field mentions the new medication
       for (const med of activeMeds) {
         if (med.mims?.drugInteractions) {
-          // Check if new medication interacts with existing medication
           if (med.mims.drugInteractions.toLowerCase().includes(newMed.genericName.toLowerCase())) {
             foundInteractions.push(
               `${newMed.brandName || newMed.genericName} may interact with ${med.mims.brandName || med.mims.genericName}`
@@ -63,13 +58,11 @@ export default function AddMedicineScreen() {
         }
       }
 
-      // Also check if the new medication's drugInteractions mention any existing medications
       if (newMed.drugInteractions) {
         for (const med of activeMeds) {
           const medName = med.mims?.genericName || '';
           if (newMed.drugInteractions.toLowerCase().includes(medName.toLowerCase())) {
             const interactionMsg = `${newMed.brandName || newMed.genericName} may interact with ${med.mims?.brandName || med.mims?.genericName}`;
-            // Avoid duplicates
             if (!foundInteractions.includes(interactionMsg)) {
               foundInteractions.push(interactionMsg);
             }
@@ -89,7 +82,6 @@ export default function AddMedicineScreen() {
       setIsSaving(true);
       setMessage(null);
 
-      // Collect all MIMS IDs to check for interactions
       const allNewMimsIds: string[] = [];
       for (const item of derivedItems) {
         const matches = await searchMIMS(item.name, 5);
@@ -98,24 +90,19 @@ export default function AddMedicineScreen() {
         }
       }
 
-      // Check for interactions with all new medications
       const allInteractions: string[] = [];
       for (const mimsId of allNewMimsIds) {
         await checkForInteractions(mimsId);
-        // Collect the interactions that were found
         if (interactions.length > 0) {
           allInteractions.push(...interactions);
         }
       }
 
-      // Show all interactions if found (informational, not blocking)
       if (allInteractions.length > 0) {
         setInteractions(allInteractions);
       }
 
-      // Proceed with adding all medications
       for (const item of derivedItems) {
-        // Match to MIMS (best single match)
         const matches = await searchMIMS(item.name, 5);
         if (!matches || matches.length === 0) continue;
         const best = matches[0];
@@ -140,7 +127,7 @@ export default function AddMedicineScreen() {
         await scheduleMedicationReminders({ ...(medInput as any), id: newId } as Medication);
       }
 
-      setMessage(t('saved_successfully'));
+      setMessage(t('add_medicine.saved_successfully'));
       setInteractions([]);
       navigation.goBack();
     } catch (e) {
@@ -167,8 +154,6 @@ export default function AddMedicineScreen() {
   const quickAdd = useCallback(async (mimsId: string, label: string) => {
     try {
       setIsSaving(true);
-
-      // Check for interactions before adding
       await checkForInteractions(mimsId);
 
       const times = MEDICATION_TIMING.onceDailyMorning;
@@ -188,9 +173,8 @@ export default function AddMedicineScreen() {
       const newId = await addMedication(medInput);
       await createDoseEntries(newId, times, now);
       await scheduleMedicationReminders({ ...(medInput as any), id: newId } as Medication);
-      setMessage(t('added_medication', { name: label }));
+      setMessage(t('add_medicine.added_medication', { name: label }));
 
-      // Clear interactions after successful add
       setInteractions([]);
     } catch (e) {
       setMessage((e as Error).message);
@@ -201,16 +185,16 @@ export default function AddMedicineScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('add_medicine')}</Text>
+      <Text style={styles.title}>{t('add_medicine.title')}</Text>
       {scannedData.length === 0 ? (
         <>
-          <Text style={styles.subtitle}>{t('scan_or_search')}</Text>
+          <Text style={styles.subtitle}>{t('add_medicine.scan_or_search')}</Text>
           <TouchableOpacity style={styles.action} onPress={() => navigation.navigate('ScanPrescription') }>
-            <Text style={styles.actionText}>{t('scan_prescription')}</Text>
+            <Text style={styles.actionText}>{t('add_medicine.scan_prescription')}</Text>
           </TouchableOpacity>
           <View style={styles.searchBox}>
             <TextInput
-              placeholder={t('search_mims')}
+              placeholder={t('add_medicine.search_mims')}
               placeholderTextColor={Colors.text.tertiary}
               style={styles.input}
               value={query}
@@ -219,7 +203,7 @@ export default function AddMedicineScreen() {
               onSubmitEditing={onSearch}
             />
             <TouchableOpacity style={[styles.smallBtn]} onPress={onSearch} disabled={searching}>
-              <Text style={styles.smallBtnText}>{searching ? '...' : t('search')}</Text>
+              <Text style={styles.smallBtnText}>{searching ? '...' : t('add_medicine.search')}</Text>
             </TouchableOpacity>
           </View>
           {interactions.length > 0 && (
@@ -237,7 +221,7 @@ export default function AddMedicineScreen() {
                 <Text style={styles.cardTitle}>{item.brandName || item.genericName}</Text>
                 <Text style={styles.cardLine}>{item.genericName} {item.strength || ''} {item.dosageForm || ''}</Text>
                 <TouchableOpacity style={[styles.smallBtn, styles.mt8]} onPress={() => quickAdd(item.id, item.brandName || item.genericName)}>
-                  <Text style={styles.smallBtnText}>{t('add')}</Text>
+                  <Text style={styles.smallBtnText}>{t('add_medicine.add')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -246,7 +230,7 @@ export default function AddMedicineScreen() {
         </>
       ) : (
         <>
-          <Text style={styles.subtitle}>{t('review_extracted')}</Text>
+          <Text style={styles.subtitle}>{t('add_medicine.review_extracted')}</Text>
           {interactions.length > 0 && (
             <DrugInteractionWarning
               interactions={interactions}
@@ -260,15 +244,15 @@ export default function AddMedicineScreen() {
             renderItem={({ item }) => (
               <View style={styles.card}>
                 <Text style={styles.cardTitle}>{item.name}</Text>
-                <Text style={styles.cardLine}>{t('strength_dosage')}: {item.strength || item.dosage || '-'}</Text>
-                <Text style={styles.cardLine}>{t('frequency')}: {item.frequency || '1'}x / {t('times_per_day')}</Text>
-                <Text style={styles.cardLine}>{t('confidence')}: {Math.round((item.confidence || 0) * 100)}%</Text>
+                <Text style={styles.cardLine}>{t('add_medicine.strength_dosage')}: {item.strength || item.dosage || '-'}</Text>
+                <Text style={styles.cardLine}>{t('add_medicine.frequency')}: {item.frequency || '1'}x / {t('add_medicine.times_per_day')}</Text>
+                <Text style={styles.cardLine}>{t('add_medicine.confidence')}: {Math.round((item.confidence || 0) * 100)}%</Text>
               </View>
             )}
             contentContainerStyle={{ paddingVertical: Spacing.md, gap: 8 }}
           />
           <TouchableOpacity style={[styles.action, isSaving && styles.disabled]} disabled={isSaving} onPress={saveAll}>
-            {isSaving ? <ActivityIndicator color={Colors.text.inverse} /> : <Text style={styles.actionText}>{t('save_all')}</Text>}
+            {isSaving ? <ActivityIndicator color={Colors.text.inverse} /> : <Text style={styles.actionText}>{t('add_medicine.save_all')}</Text>}
           </TouchableOpacity>
           {message && <Text style={styles.message}>{message}</Text>}
         </>

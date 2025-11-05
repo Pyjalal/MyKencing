@@ -8,8 +8,10 @@ import {
   ScrollView,
   Modal,
   Pressable,
+  Alert,
 } from 'react-native';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 interface OnboardingPersonalInfoScreenProps {
   onNext: (data: { age: number; gender: 'male' | 'female' | 'other'; weight: number }) => void;
@@ -24,23 +26,23 @@ export default function OnboardingPersonalInfoScreen({
   onSkip,
   initialData,
 }: OnboardingPersonalInfoScreenProps) {
+  const { t } = useTranslation();
   const [age, setAge] = useState(initialData?.age?.toString() || '');
   const [gender, setGender] = useState<'male' | 'female' | 'other'>(initialData?.gender || 'male');
   const [weight, setWeight] = useState(initialData?.weight?.toString() || '');
   const [showGenderPicker, setShowGenderPicker] = useState(false);
-  const [showWeightPicker, setShowWeightPicker] = useState(false);
 
   const handleNext = () => {
     const ageNum = parseInt(age, 10);
     const weightNum = parseFloat(weight);
 
     if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
-      alert('Please enter a valid age');
+      Alert.alert(t('onboarding.valid_age_alert'));
       return;
     }
 
     if (isNaN(weightNum) || weightNum < 1 || weightNum > 500) {
-      alert('Please enter a valid weight');
+      Alert.alert(t('onboarding.valid_weight_alert'));
       return;
     }
 
@@ -64,7 +66,7 @@ export default function OnboardingPersonalInfoScreen({
           <View style={styles.progressBarFill} />
         </View>
         <TouchableOpacity onPress={onSkip}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -74,7 +76,7 @@ export default function OnboardingPersonalInfoScreen({
         showsVerticalScrollIndicator={false}
       >
         {/* Title */}
-        <Text style={styles.title}>Tell us more about yourself</Text>
+        <Text style={styles.title}>{t('onboarding.tell_us_more')}</Text>
 
         {/* Age Input */}
         <TouchableOpacity style={styles.inputCard} activeOpacity={0.7}>
@@ -82,12 +84,12 @@ export default function OnboardingPersonalInfoScreen({
             style={styles.inputValue}
             value={age}
             onChangeText={setAge}
-            placeholder="Enter age"
+            placeholder={t('onboarding.enter_age')}
             placeholderTextColor={Colors.text.tertiary}
             keyboardType="numeric"
             maxLength={3}
           />
-          <Text style={styles.inputLabel}>Your Age</Text>
+          <Text style={styles.inputLabel}>{t('onboarding.your_age')}</Text>
         </TouchableOpacity>
 
         {/* Gender Selector */}
@@ -97,9 +99,9 @@ export default function OnboardingPersonalInfoScreen({
           onPress={() => setShowGenderPicker(true)}
         >
           <Text style={styles.inputValue}>
-            {gender === 'male' ? 'Male' : gender === 'female' ? 'Female' : 'Other'}
+            {t(`onboarding.${gender}`)}
           </Text>
-          <Text style={styles.inputLabel}>Your Gender</Text>
+          <Text style={styles.inputLabel}>{t('onboarding.your_gender')}</Text>
         </TouchableOpacity>
 
         {/* Weight Input */}
@@ -108,12 +110,12 @@ export default function OnboardingPersonalInfoScreen({
             style={styles.inputValue}
             value={weight}
             onChangeText={setWeight}
-            placeholder="Enter weight"
+            placeholder={t('onboarding.enter_weight')}
             placeholderTextColor={Colors.text.tertiary}
             keyboardType="decimal-pad"
             maxLength={5}
           />
-          <Text style={styles.inputLabel}>Your Weight (kg)</Text>
+          <Text style={styles.inputLabel}>{t('onboarding.your_weight')}</Text>
         </TouchableOpacity>
 
         {/* Progress Dots */}
@@ -129,7 +131,7 @@ export default function OnboardingPersonalInfoScreen({
           onPress={handleNext}
           disabled={!isFormValid()}
         >
-          <Text style={styles.nextButtonText}>Next</Text>
+          <Text style={styles.nextButtonText}>{t('onboarding.next')}</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -142,7 +144,7 @@ export default function OnboardingPersonalInfoScreen({
       >
         <Pressable style={styles.modalOverlay} onPress={() => setShowGenderPicker(false)}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Gender</Text>
+            <Text style={styles.modalTitle}>{t('onboarding.select_gender')}</Text>
             {(['male', 'female', 'other'] as const).map((g) => (
               <TouchableOpacity
                 key={g}
@@ -158,7 +160,7 @@ export default function OnboardingPersonalInfoScreen({
                     gender === g && styles.modalOptionTextSelected,
                   ]}
                 >
-                  {g === 'male' ? 'Male' : g === 'female' ? 'Female' : 'Other'}
+                  {t(`onboarding.${g}`)}
                 </Text>
               </TouchableOpacity>
             ))}

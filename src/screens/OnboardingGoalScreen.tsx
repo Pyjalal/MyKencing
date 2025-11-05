@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Colors, Typography, Spacing, Shadows } from '../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 interface OnboardingGoalScreenProps {
   onNext: (goal: 'get_fit' | 'be_active' | 'be_healthy' | 'find_balance') => void;
@@ -11,16 +12,9 @@ interface OnboardingGoalScreenProps {
 
 type GoalOption = {
   id: 'get_fit' | 'be_active' | 'be_healthy' | 'find_balance';
-  title: string;
+  titleKey: string;
   icon: string;
 };
-
-const GOALS: GoalOption[] = [
-  { id: 'get_fit', title: 'Get fit', icon: '💪' },
-  { id: 'be_active', title: 'Be active', icon: '❤️' },
-  { id: 'be_healthy', title: 'Be healthy', icon: '🩺' },
-  { id: 'find_balance', title: 'Find balance', icon: '⚖️' },
-];
 
 export default function OnboardingGoalScreen({
   onNext,
@@ -28,6 +22,13 @@ export default function OnboardingGoalScreen({
   onSkip,
   initialGoal,
 }: OnboardingGoalScreenProps) {
+  const { t } = useTranslation();
+  const GOALS: GoalOption[] = [
+    { id: 'get_fit', titleKey: 'onboarding.get_fit', icon: '💪' },
+    { id: 'be_active', titleKey: 'onboarding.be_active', icon: '❤️' },
+    { id: 'be_healthy', titleKey: 'onboarding.be_healthy', icon: '🩺' },
+    { id: 'find_balance', titleKey: 'onboarding.find_balance', icon: '⚖️' },
+  ];
   const [selectedGoal, setSelectedGoal] = useState<
     'get_fit' | 'be_active' | 'be_healthy' | 'find_balance' | null
   >(initialGoal || null);
@@ -49,7 +50,7 @@ export default function OnboardingGoalScreen({
           <View style={styles.progressBarFill} />
         </View>
         <TouchableOpacity onPress={onSkip}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -59,7 +60,7 @@ export default function OnboardingGoalScreen({
         showsVerticalScrollIndicator={false}
       >
         {/* Title */}
-        <Text style={styles.title}>What's your main goal?</Text>
+        <Text style={styles.title}>{t('onboarding.whats_your_main_goal')}</Text>
 
         {/* Goal Cards Grid */}
         <View style={styles.goalsGrid}>
@@ -80,7 +81,7 @@ export default function OnboardingGoalScreen({
                   selectedGoal === goal.id && styles.goalTitleSelected,
                 ]}
               >
-                {goal.title}
+                {t(goal.titleKey)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -99,7 +100,7 @@ export default function OnboardingGoalScreen({
           onPress={handleNext}
           disabled={!selectedGoal}
         >
-          <Text style={styles.nextButtonText}>Next</Text>
+          <Text style={styles.nextButtonText}>{t('onboarding.next')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

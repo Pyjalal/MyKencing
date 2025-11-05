@@ -1,19 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:www.figma.com)",
-      "mcp__figma-desktop__get_metadata",
-      "Bash(npm install:*)",
-      "WebSearch",
-      "WebFetch(domain:reactnativereusables.com)",
-      "WebFetch(domain:github.com)",
-      "Bash(npx tailwindcss init)",
-      "mcp__figma-desktop__get_design_context",
-      "Bash(test:*)",
-      "Bash(cat:*)",
-      "Bash(npx expo prebuild:*)",
-      "Bash(npm view:*)",
-      "Bash(./gradlew:*)"
+      "Bash(dir \"C:\\Users\\Shahjalal\\Documents\\medical_hack\\MyKencing\\node_modules\\@shopify\\react-native-skia\\lib\\module\\skia\" /b)",
+      "WebFetch(domain:docs.expo.dev)",
+      "Bash(npx expo install:*)",
+      "Bash(npx expo start --clear)",
+      "WebFetch(domain:www.nativewind.dev)",
+      "Bash(taskkill:*)",
+      "Bash(nul)",
+      "Bash(ping:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(npx expo start --clear --port 8082)"
     ],
     "deny": [],
     "ask": []

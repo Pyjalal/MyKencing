@@ -1,23 +1,27 @@
-/**
- * ProfileScreen - Profile & Settings
- * Matches Figma design: Profile.png
- */
-
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput } from 'react-native';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useNavigation } from '@react-navigation/native';
 import { Search } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import i18n from '../services/i18n';
 
 export default function SettingsScreen() {
   const { settings, loadSettings, updateSettings } = useSettingsStore();
   const navigation = useNavigation<any>();
   const [searchQuery, setSearchQuery] = useState('');
+  const { t } = useTranslation();
 
   useEffect(() => {
     loadSettings();
   }, []);
+
+  const handleLanguageChange = () => {
+    const newLang = i18n.language === 'en' ? 'ms' : 'en';
+    i18n.changeLanguage(newLang);
+    updateSettings({ language: newLang });
+  };
 
   return (
     <View style={styles.container}>
@@ -35,7 +39,7 @@ export default function SettingsScreen() {
           <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search here"
+            placeholder={t('settings.searchPlaceholder')}
             placeholderTextColor={Colors.text.tertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -43,15 +47,15 @@ export default function SettingsScreen() {
         </View>
 
         {/* Title */}
-        <Text style={styles.headerTitle}>Profile & Settings</Text>
+        <Text style={styles.headerTitle}>{t('settings.title')}</Text>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Reminders</Text>
+          <Text style={styles.sectionTitle}>{t('settings.remindersSection')}</Text>
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Enable Reminders</Text>
+            <Text style={styles.settingLabel}>{t('settings.enableReminders')}</Text>
             <Switch
               value={settings.reminderEnabled}
               onValueChange={(value) => updateSettings({ reminderEnabled: value })}
@@ -60,7 +64,7 @@ export default function SettingsScreen() {
             />
           </View>
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Sound</Text>
+            <Text style={styles.settingLabel}>{t('settings.sound')}</Text>
             <Switch
               value={settings.reminderSound}
               onValueChange={(value) => updateSettings({ reminderSound: value })}
@@ -70,7 +74,7 @@ export default function SettingsScreen() {
             />
           </View>
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Vibrate</Text>
+            <Text style={styles.settingLabel}>{t('settings.vibrate')}</Text>
             <Switch
               value={settings.reminderVibrate}
               onValueChange={(value) => updateSettings({ reminderVibrate: value })}
@@ -82,41 +86,49 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Units</Text>
+          <Text style={styles.sectionTitle}>{t('settings.unitsSection')}</Text>
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Glucose Unit</Text>
+            <Text style={styles.settingLabel}>{t('settings.glucoseUnit')}</Text>
             <Text style={styles.settingValue}>{settings.glucoseUnit}</Text>
           </View>
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Weight Unit</Text>
+            <Text style={styles.settingLabel}>{t('settings.weightUnit')}</Text>
             <Text style={styles.settingValue}>{settings.weightUnit}</Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data & Privacy</Text>
-          <TouchableOpacity style={styles.settingButton} onPress={() => navigation.navigate('Export')}>
-            <Text style={styles.settingButtonText}>Export Data</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.settingButton}>
-            <Text style={styles.settingButtonText}>View Privacy Policy</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.settingButton, styles.dangerButton]}>
-            <Text style={[styles.settingButtonText, styles.dangerButtonText]}>Delete All Data</Text>
+          <Text style={styles.sectionTitle}>{t('settings.languageSection')}</Text>
+          <TouchableOpacity style={styles.settingRow} onPress={handleLanguageChange}>
+            <Text style={styles.settingLabel}>{t('settings.appLanguage')}</Text>
+            <Text style={styles.settingValue}>{i18n.language === 'en' ? 'English' : 'Bahasa Melayu'}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>About</Text>
+          <Text style={styles.sectionTitle}>{t('settings.dataPrivacySection')}</Text>
+          <TouchableOpacity style={styles.settingButton} onPress={() => navigation.navigate('Export')}>
+            <Text style={styles.settingButtonText}>{t('settings.exportData')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.settingButton}>
+            <Text style={styles.settingButtonText}>{t('settings.viewPrivacyPolicy')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.settingButton, styles.dangerButton]}>
+            <Text style={[styles.settingButtonText, styles.dangerButtonText]}>{t('settings.deleteAllData')}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('settings.aboutSection')}</Text>
           <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>Version</Text>
+            <Text style={styles.settingLabel}>{t('settings.version')}</Text>
             <Text style={styles.settingValue}>1.0.0</Text>
           </View>
           <TouchableOpacity style={styles.settingButton} onPress={() => navigation.navigate('RamadanMode')}>
-            <Text style={styles.settingButtonText}>Ramadan Mode</Text>
+            <Text style={styles.settingButtonText}>{t('settings.ramadanMode')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.settingButton} onPress={() => navigation.navigate('Analytics')}>
-            <Text style={styles.settingButtonText}>Attributions</Text>
+            <Text style={styles.settingButtonText}>{t('settings.attributions')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

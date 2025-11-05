@@ -1,8 +1,3 @@
-/**
- * HomeScreen - Today's Dashboard
- * Redesigned to match new UI mockup
- */
-
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
@@ -18,12 +13,14 @@ import { useMedicationStore } from '../stores/medicationStore';
 import { useVitalsStore } from '../stores/vitalsStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { formatDistanceToNow } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
 };
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
+  const { t } = useTranslation();
   const { todayDoses, loadMedications, loadTodayDoses, markDose } = useMedicationStore();
   const { vitals, loadVitals } = useVitalsStore();
   const [refreshing, setRefreshing] = useState(false);
@@ -40,7 +37,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     setRefreshing(false);
   }, [loadMedications, loadTodayDoses, loadVitals]);
 
-  // Get next pending or upcoming dose
   const nextDose = useMemo(() => {
     const pending = todayDoses.find(
       (d) => d.status === DoseStatus.Pending || d.status === DoseStatus.Late
@@ -63,13 +59,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
   };
 
-  // Calculate time until next dose
   const timeUntilDose = useMemo(() => {
     if (!nextDose) return null;
     return formatDistanceToNow(new Date(nextDose.scheduledTime), { addSuffix: false });
   }, [nextDose]);
 
-  // Get today's vitals count
   const todayVitalsCount = useMemo(() => {
     const today = new Date().toDateString();
     return vitals.filter(v => new Date(v.measuredAt).toDateString() === today).length;
@@ -99,60 +93,56 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           />
         }
       >
-        {/* Back Button */}
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.canGoBack() && navigation.goBack()}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
 
-        {/* Today's Vitals Card */}
         <TouchableOpacity
           style={styles.vitalsCard}
           onPress={handleVitalsCardPress}
           activeOpacity={0.7}
         >
-          <Text style={styles.cardTitleVitals}>Today's Vitals</Text>
+          <Text style={styles.cardTitleVitals}>{t('home.todays_vitals')}</Text>
           {todayVitalsCount > 0 ? (
             <View style={styles.vitalsPlaceholder}>
-              <Text style={styles.vitalsCountText}>{todayVitalsCount} recorded today</Text>
-              <Text style={styles.tapHintText}>Tap to view details →</Text>
+              <Text style={styles.vitalsCountText}>{t('home.recorded_today', { count: todayVitalsCount })}</Text>
+              <Text style={styles.tapHintText}>{t('home.tap_to_view_details')}</Text>
             </View>
           ) : (
             <View style={styles.vitalsPlaceholder}>
-              <Text style={styles.emptyText}>No vitals recorded yet</Text>
-              <Text style={styles.tapHintText}>Tap to add vitals →</Text>
+              <Text style={styles.emptyText}>{t('home.no_vitals_recorded')}</Text>
+              <Text style={styles.tapHintText}>{t('home.tap_to_add_vitals')}</Text>
             </View>
           )}
 
-          {/* Quick Add Vitals */}
           <View style={styles.quickVitalsContainer}>
-            <Text style={styles.quickVitalsTitle}>Quick Add</Text>
+            <Text style={styles.quickVitalsTitle}>{t('home.quick_add')}</Text>
             <View style={styles.quickVitalsRow}>
               <TouchableOpacity
                 style={styles.quickVitalButton}
                 onPress={() => navigation.navigate('AddVital', { type: VitalType.BloodPressure })}
               >
-                <Text style={styles.quickVitalButtonText}>BP</Text>
+                <Text style={styles.quickVitalButtonText}>{t('home.bp')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.quickVitalButton}
                 onPress={() => navigation.navigate('AddVital', { type: VitalType.Glucose })}
               >
-                <Text style={styles.quickVitalButtonText}>Glucose</Text>
+                <Text style={styles.quickVitalButtonText}>{t('home.glucose')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.quickVitalButton}
                 onPress={() => navigation.navigate('AddVital', { type: VitalType.Weight })}
               >
-                <Text style={styles.quickVitalButtonText}>Weight</Text>
+                <Text style={styles.quickVitalButtonText}>{t('home.weight')}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>
 
-        {/* Next Dose Card */}
         {nextDose ? (
           <View style={styles.doseCard}>
-            <Text style={styles.cardTitleDose}>Next Dose:</Text>
+            <Text style={styles.cardTitleDose}>{t('home.next_dose')}</Text>
             <TouchableOpacity
               style={styles.doseBadge}
               onPress={handleDoseDetailsPress}
@@ -162,21 +152,21 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 {nextDose.medication.mims.brandName || nextDose.medication.mims.genericName}
               </Text>
             </TouchableOpacity>
-            <Text style={styles.doseTime}>in {timeUntilDose}</Text>
+            <Text style={styles.doseTime}>{t('home.in')} {timeUntilDose}</Text>
             <View style={styles.doseActions}>
               <TouchableOpacity style={styles.takeButton} onPress={handleTakeDose}>
-                <Text style={styles.takeButtonText}>Take</Text>
+                <Text style={styles.takeButtonText}>{t('home.take')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.skipButton} onPress={handleSkipDose}>
-                <Text style={styles.skipButtonText}>Skip</Text>
+                <Text style={styles.skipButtonText}>{t('home.skip')}</Text>
               </TouchableOpacity>
             </View>
           </View>
         ) : (
           <View style={styles.doseCard}>
-            <Text style={styles.cardTitleDose}>Next Dose:</Text>
+            <Text style={styles.cardTitleDose}>{t('home.next_dose')}</Text>
             <View style={styles.noDoseContainer}>
-              <Text style={styles.noDoseText}>No upcoming doses</Text>
+              <Text style={styles.noDoseText}>{t('home.no_upcoming_doses')}</Text>
             </View>
           </View>
         )}
