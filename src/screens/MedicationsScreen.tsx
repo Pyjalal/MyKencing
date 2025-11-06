@@ -71,18 +71,30 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
   }, [selectedDayDoses, searchQuery]);
 
   const handleTakeDose = async (doseId: string) => {
-    await markDose(doseId, DoseStatus.Taken);
-    // Reload doses after marking
-    if (weekDays.length > 0) {
-      await loadWeekDoses(weekDays[0], weekDays[weekDays.length - 1]);
+    try {
+      console.log('Marking dose as taken:', doseId);
+      await markDose(doseId, DoseStatus.Taken);
+      // Reload doses after marking
+      if (weekDays.length > 0) {
+        await loadWeekDoses(weekDays[0], weekDays[weekDays.length - 1]);
+      }
+      console.log('Dose marked and reloaded successfully');
+    } catch (error) {
+      console.error('Error marking dose as taken:', error);
     }
   };
 
   const handleSkipDose = async (doseId: string) => {
-    await markDose(doseId, DoseStatus.Skipped);
-    // Reload doses after marking
-    if (weekDays.length > 0) {
-      await loadWeekDoses(weekDays[0], weekDays[weekDays.length - 1]);
+    try {
+      console.log('Marking dose as skipped:', doseId);
+      await markDose(doseId, DoseStatus.Skipped);
+      // Reload doses after marking
+      if (weekDays.length > 0) {
+        await loadWeekDoses(weekDays[0], weekDays[weekDays.length - 1]);
+      }
+      console.log('Dose skipped and reloaded successfully');
+    } catch (error) {
+      console.error('Error marking dose as skipped:', error);
     }
   };
 

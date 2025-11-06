@@ -103,12 +103,32 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
 
       const doses = await db.getAllAsync<any>(`
         SELECT
-          d.*,
-          m.*,
+          d.id AS dose_id,
+          d.medication_id,
+          d.scheduled_time,
+          d.actual_time,
+          d.status,
+          d.notes AS dose_notes,
+          d.created_at AS dose_created_at,
+          m.id AS medication_id_real,
+          m.mims_id,
+          m.user_dosage,
+          m.frequency,
+          m.times,
+          m.with_food,
+          m.start_date,
+          m.end_date,
+          m.refill_date,
+          m.is_active,
+          m.notes AS medication_notes,
+          m.created_at AS medication_created_at,
+          m.updated_at AS medication_updated_at,
           mc.generic_name,
           mc.brand_name,
           mc.strength,
-          mc.dosage_form
+          mc.dosage_form,
+          mc.food_instructions,
+          mc.last_updated AS mims_last_updated
         FROM doses d
         JOIN medications m ON d.medication_id = m.id
         JOIN mims_cache mc ON m.mims_id = mc.id
@@ -117,13 +137,13 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       `, [today]);
 
       const formatted: DoseWithMedication[] = doses.map((row) => ({
-        id: row.id,
+        id: row.dose_id,
         medicationId: row.medication_id,
         scheduledTime: row.scheduled_time,
         actualTime: row.actual_time,
         status: row.status as DoseStatus,
-        notes: row.notes,
-        createdAt: row.created_at,
+        notes: row.dose_notes,
+        createdAt: row.dose_created_at,
         medication: {
           id: row.medication_id,
           mimsId: row.mims_id,
@@ -137,16 +157,17 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
           isActive: row.is_active === 1,
           notes: row.medication_notes,
           createdAt: row.medication_created_at,
-          updatedAt: row.updated_at,
+          updatedAt: row.medication_updated_at,
           mims: {
             id: row.mims_id,
             genericName: row.generic_name,
             brandName: row.brand_name,
             strength: row.strength,
             dosageForm: row.dosage_form,
+            foodInstructions: row.food_instructions,
             source: 'MIMS',
-            lastUpdated: new Date().toISOString(),
-            createdAt: row.created_at,
+            lastUpdated: row.mims_last_updated || new Date().toISOString(),
+            createdAt: row.medication_created_at,
           },
         },
       }));
@@ -167,13 +188,32 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
 
       const doses = await db.getAllAsync<any>(`
         SELECT
-          d.*,
-          m.*,
+          d.id AS dose_id,
+          d.medication_id,
+          d.scheduled_time,
+          d.actual_time,
+          d.status,
+          d.notes AS dose_notes,
+          d.created_at AS dose_created_at,
+          m.id AS medication_id_real,
+          m.mims_id,
+          m.user_dosage,
+          m.frequency,
+          m.times,
+          m.with_food,
+          m.start_date,
+          m.end_date,
+          m.refill_date,
+          m.is_active,
+          m.notes AS medication_notes,
+          m.created_at AS medication_created_at,
+          m.updated_at AS medication_updated_at,
           mc.generic_name,
           mc.brand_name,
           mc.strength,
           mc.dosage_form,
-          mc.food_instructions
+          mc.food_instructions,
+          mc.last_updated AS mims_last_updated
         FROM doses d
         JOIN medications m ON d.medication_id = m.id
         JOIN mims_cache mc ON m.mims_id = mc.id
@@ -182,13 +222,13 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       `, [start, end]);
 
       const formatted: DoseWithMedication[] = doses.map((row) => ({
-        id: row.id,
+        id: row.dose_id,
         medicationId: row.medication_id,
         scheduledTime: row.scheduled_time,
         actualTime: row.actual_time,
         status: row.status as DoseStatus,
-        notes: row.notes,
-        createdAt: row.created_at,
+        notes: row.dose_notes,
+        createdAt: row.dose_created_at,
         medication: {
           id: row.medication_id,
           mimsId: row.mims_id,
@@ -202,7 +242,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
           isActive: row.is_active === 1,
           notes: row.medication_notes,
           createdAt: row.medication_created_at,
-          updatedAt: row.updated_at,
+          updatedAt: row.medication_updated_at,
           mims: {
             id: row.mims_id,
             genericName: row.generic_name,
@@ -211,8 +251,8 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
             dosageForm: row.dosage_form,
             foodInstructions: row.food_instructions,
             source: 'MIMS',
-            lastUpdated: new Date().toISOString(),
-            createdAt: row.created_at,
+            lastUpdated: row.mims_last_updated || new Date().toISOString(),
+            createdAt: row.medication_created_at,
           },
         },
       }));
@@ -338,10 +378,14 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
   },
 
   markDose: async (doseId, status, actualTime) => {
+    console.log('medicationStore.markDose called:', { doseId, status, actualTime });
+    
     // Optimistically update the dose status in state immediately
     const currentDoses = get().todayDoses;
     const index = currentDoses.findIndex((dose) => dose.id === doseId);
     const time = actualTime || new Date().toISOString();
+
+    console.log('Current doses count:', currentDoses.length, 'Found index:', index);
 
     if (index !== -1) {
       const updatedDoses = [...currentDoses];
@@ -351,19 +395,24 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         actualTime: time,
       };
       set({ todayDoses: updatedDoses });
+      console.log('Optimistic update applied');
+    } else {
+      console.warn('Dose not found in current state:', doseId);
     }
 
     try {
       const db = getDatabase();
 
-      await db.runAsync(
+      const result = await db.runAsync(
         'UPDATE doses SET status = ?, actual_time = ? WHERE id = ?',
         [status, time, doseId]
       );
 
+      console.log('Database update result:', result);
+
       try { await logEvent(EventType.DoseLogged, { status }); } catch {}
     } catch (error) {
-      console.error('Error marking dose:', error);
+      console.error('Error marking dose in database:', error);
       set({ error: (error as Error).message });
       // Rollback: reload from database on error
       await get().loadTodayDoses();

@@ -49,13 +49,29 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const handleTakeDose = async () => {
     if (nextDose) {
-      await markDose(nextDose.id, DoseStatus.Taken);
+      try {
+        console.log('HomeScreen: Marking dose as taken:', nextDose.id);
+        await markDose(nextDose.id, DoseStatus.Taken);
+        // Reload doses to update UI
+        await loadTodayDoses();
+        console.log('HomeScreen: Dose marked and reloaded');
+      } catch (error) {
+        console.error('HomeScreen: Error marking dose:', error);
+      }
     }
   };
 
   const handleSkipDose = async () => {
     if (nextDose) {
-      await markDose(nextDose.id, DoseStatus.Skipped);
+      try {
+        console.log('HomeScreen: Marking dose as skipped:', nextDose.id);
+        await markDose(nextDose.id, DoseStatus.Skipped);
+        // Reload doses to update UI
+        await loadTodayDoses();
+        console.log('HomeScreen: Dose skipped and reloaded');
+      } catch (error) {
+        console.error('HomeScreen: Error skipping dose:', error);
+      }
     }
   };
 
