@@ -31,13 +31,17 @@ After generating the keystore, convert it to Base64 for GitHub Secrets:
 
 ### On Windows (PowerShell):
 ```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes(".\mykencing-release.keystore")) | Out-File -FilePath keystore-base64.txt
+# IMPORTANT: Use -NoNewline to prevent line breaks!
+[Convert]::ToBase64String([IO.File]::ReadAllBytes(".\mykencing-release.keystore")) | Out-File -NoNewline -FilePath keystore-base64.txt
 ```
 
 ### On Linux/Mac:
 ```bash
-base64 mykencing-release.keystore > keystore-base64.txt
+# IMPORTANT: Use -w 0 to prevent line wrapping!
+base64 -w 0 mykencing-release.keystore > keystore-base64.txt
 ```
+
+**Critical:** The `-NoNewline` (PowerShell) and `-w 0` (Linux/Mac) flags prevent newlines in the base64 string, which would corrupt the keystore during decode.
 
 ## Step 3: Configure GitHub Secrets
 

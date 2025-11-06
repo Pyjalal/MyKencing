@@ -10,7 +10,14 @@ cd scripts
 
 ### 2. Convert to Base64 (Windows PowerShell)
 ```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes(".\mykencing-release.keystore")) | Out-File keystore-base64.txt
+# IMPORTANT: -NoNewline prevents corruption!
+[Convert]::ToBase64String([IO.File]::ReadAllBytes(".\mykencing-release.keystore")) | Out-File -NoNewline keystore-base64.txt
+```
+
+**Linux/Mac:**
+```bash
+# IMPORTANT: -w 0 prevents line wrapping!
+base64 -w 0 mykencing-release.keystore > keystore-base64.txt
 ```
 
 ### 3. Add 4 GitHub Secrets

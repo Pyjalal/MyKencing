@@ -38,8 +38,8 @@ echo.
 echo File created: mykencing-release.keystore
 echo.
 echo NEXT STEPS:
-echo 1. Convert to base64 using PowerShell:
-echo    [Convert]::ToBase64String([IO.File]::ReadAllBytes(".\mykencing-release.keystore")) ^| Out-File -FilePath keystore-base64.txt
+echo 1. Convert to base64 using PowerShell (IMPORTANT: Include -NoNewline!):
+echo    [Convert]::ToBase64String([IO.File]::ReadAllBytes(".\mykencing-release.keystore")) ^| Out-File -NoNewline -FilePath keystore-base64.txt
 echo.
 echo 2. Add the following GitHub Secrets:
 echo    - ANDROID_KEYSTORE_BASE64 (contents of keystore-base64.txt)

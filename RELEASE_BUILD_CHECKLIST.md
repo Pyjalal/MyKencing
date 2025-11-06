@@ -28,13 +28,20 @@ keytool -genkeypair -v -storetype PKCS12 -keystore mykencing-release.keystore \
 
 **Windows PowerShell:**
 ```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes(".\mykencing-release.keystore")) | Out-File -FilePath keystore-base64.txt
+# CRITICAL: Include -NoNewline flag!
+[Convert]::ToBase64String([IO.File]::ReadAllBytes(".\mykencing-release.keystore")) | Out-File -NoNewline -FilePath keystore-base64.txt
 ```
 
 **Linux/Mac:**
 ```bash
-base64 mykencing-release.keystore > keystore-base64.txt
+# CRITICAL: Include -w 0 flag!
+base64 -w 0 mykencing-release.keystore > keystore-base64.txt
 ```
+
+**Why these flags matter:**
+- Without `-NoNewline` or `-w 0`, the base64 string contains newlines
+- Newlines corrupt the keystore during decode
+- Results in "Tag number over 30 is not supported" error
 
 - [ ] Base64 file created: `keystore-base64.txt`
 - [ ] Open `keystore-base64.txt` and copy ALL contents
