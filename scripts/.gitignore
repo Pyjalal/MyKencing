@@ -1,0 +1,9 @@
+# Keystore files - NEVER commit these!
+*.keystore
+*.jks
+keystore-base64.txt
+
+# Private keys
+*.pem
+*.key
+*.p12

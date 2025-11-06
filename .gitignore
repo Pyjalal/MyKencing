@@ -71,11 +71,15 @@ coverage/
 # Android signing (if present)
 *.keystore
 keystore.properties
+keystore-base64.txt
 
 # Linters & editors
 .eslintcache
 .history/
 *.swp
-# Ignore all .md files except README.md
+# Ignore all .md files except important documentation
 *.md
 !README.md
+!ANDROID_SIGNING_SETUP.md
+!RELEASE_BUILD_CHECKLIST.md
+!QUICK_START_RELEASE.md

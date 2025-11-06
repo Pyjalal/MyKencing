@@ -54,24 +54,57 @@ jobs:
       - name: Expo Prebuild
         run: npx expo prebuild --platform android --clean
 
-      - name: Configure ABI Filters and Gradle settings
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/mykencing-release.keystore
+
+      - name: Configure Gradle settings and signing
         working-directory: android
         run: |
+          # Performance settings for CI
           echo "# Limit ABIs to save disk space in CI" >> gradle.properties
           echo "reactNativeArchitectures=arm64-v8a,armeabi-v7a" >> gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m" >> gradle.properties
           echo "org.gradle.parallel=false" >> gradle.properties
 
+          # Release signing configuration
+          echo "" >> gradle.properties
+          echo "# Release signing configuration" >> gradle.properties
+          echo "MYAPP_UPLOAD_STORE_FILE=mykencing-release.keystore" >> gradle.properties
+          echo "MYAPP_UPLOAD_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}" >> gradle.properties
+          echo "MYAPP_UPLOAD_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> gradle.properties
+          echo "MYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> gradle.properties
+
+      - name: Configure app build.gradle for signing
+        working-directory: android/app
+        run: |
+          # Add signing configuration to build.gradle
+          sed -i '/android {/a\
+          \    signingConfigs {\
+          \        release {\
+          \            if (project.hasProperty("MYAPP_UPLOAD_STORE_FILE")) {\
+          \                storeFile file(MYAPP_UPLOAD_STORE_FILE)\
+          \                storePassword MYAPP_UPLOAD_STORE_PASSWORD\
+          \                keyAlias MYAPP_UPLOAD_KEY_ALIAS\
+          \                keyPassword MYAPP_UPLOAD_KEY_PASSWORD\
+          \            }\
+          \        }\
+          \    }' build.gradle
+
+          # Configure release build type to use signing config
+          sed -i '/release {/a\
+          \            signingConfig signingConfigs.release' build.gradle
+
       - name: Grant gradlew execute
         working-directory: android
         run: chmod +x ./gradlew
 
-      - name: Build Debug APK (ARM only)
+      - name: Build Release APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleRelease --no-daemon
 
-      - name: Upload Android artifacts
+      - name: Upload Android Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: android-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: android-release-apk
+          path: android/app/build/outputs/apk/release/*.apk
