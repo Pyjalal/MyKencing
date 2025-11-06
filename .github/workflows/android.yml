@@ -75,25 +75,15 @@ jobs:
           echo "MYAPP_UPLOAD_STORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> gradle.properties
           echo "MYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}" >> gradle.properties
 
-      - name: Configure app build.gradle for signing
-        working-directory: android/app
+      - name: Setup signing configuration
         run: |
-          # Add signing configuration to build.gradle
-          sed -i '/android {/a\
-          \    signingConfigs {\
-          \        release {\
-          \            if (project.hasProperty("MYAPP_UPLOAD_STORE_FILE")) {\
-          \                storeFile file(MYAPP_UPLOAD_STORE_FILE)\
-          \                storePassword MYAPP_UPLOAD_STORE_PASSWORD\
-          \                keyAlias MYAPP_UPLOAD_KEY_ALIAS\
-          \                keyPassword MYAPP_UPLOAD_KEY_PASSWORD\
-          \            }\
-          \        }\
-          \    }' build.gradle
+          # Copy signing configuration file
+          cp android-signing.gradle android/app/
 
-          # Configure release build type to use signing config
-          sed -i '/release {/a\
-          \            signingConfig signingConfigs.release' build.gradle
+          # Apply signing configuration to build.gradle
+          echo "" >> android/app/build.gradle
+          echo "// Apply release signing configuration" >> android/app/build.gradle
+          echo "apply from: './android-signing.gradle'" >> android/app/build.gradle
 
       - name: Grant gradlew execute
         working-directory: android
