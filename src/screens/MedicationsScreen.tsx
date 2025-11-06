@@ -54,7 +54,11 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
   const selectedDayDoses = useMemo(() => {
     return todayDoses.filter((dose) => {
       const doseDate = parseISO(dose.scheduledTime);
-      return isSameDay(doseDate, selectedDate);
+      if (!isSameDay(doseDate, selectedDate)) {
+        return false;
+      }
+
+      return ![DoseStatus.Taken, DoseStatus.Skipped].includes(dose.status);
     });
   }, [todayDoses, selectedDate]);
 
