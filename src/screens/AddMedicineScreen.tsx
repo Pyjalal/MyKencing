@@ -1,262 +1,443 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, TextInput } from 'react-native';
-import { Colors, Typography, Spacing } from '../constants/theme';
-import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
-import { RootStackParamList, ExtractedMedicine, Medication, FoodTiming } from '../types';
-import { searchMIMS, getMIMSMedicine } from '../services/mims';
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  Modal,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
+import { useNavigation } from '@react-navigation/native';
+import { Medication, FoodTiming } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { MEDICATION_TIMING } from '../constants/clinical';
 import { scheduleMedicationReminders, createDoseEntries } from '../services/notifications';
-import DrugInteractionWarning from '../components/DrugInteractionWarning';
+import { ChevronDown } from 'lucide-react-native';
+
+// Frequency options
+const FREQUENCY_OPTIONS = [
+  { label: 'Once daily', value: 'once', times: 1 },
+  { label: 'Twice daily', value: 'twice', times: 2 },
+  { label: 'Three times daily', value: 'three', times: 3 },
+  { label: 'Every 8 hours', value: 'every_8h', times: 3 },
+  { label: 'Every 6 hours', value: 'every_6h', times: 4 },
+  { label: 'Four times daily', value: 'four', times: 4 },
+];
+
+// Form options
+const FORM_OPTIONS = [
+  { label: 'Tablet', value: 'tablet' },
+  { label: 'Capsule', value: 'capsule' },
+  { label: 'Syrup', value: 'syrup' },
+  { label: 'Injection', value: 'injection' },
+  { label: 'Drops', value: 'drops' },
+  { label: 'Inhaler', value: 'inhaler' },
+  { label: 'Cream', value: 'cream' },
+  { label: 'Ointment', value: 'ointment' },
+];
+
+// Unit options
+const UNIT_OPTIONS = [
+  { label: 'tablet', value: 'tablet' },
+  { label: 'capsule', value: 'capsule' },
+  { label: 'mg', value: 'mg' },
+  { label: 'ml', value: 'ml' },
+  { label: 'drops', value: 'drops' },
+  { label: 'puff', value: 'puff' },
+];
 
 export default function AddMedicineScreen() {
-  const { t } = useTranslation();
   const navigation = useNavigation<any>();
-  const route = useRoute<RouteProp<RootStackParamList, 'AddMedicine'>>();
-  const scannedData = route.params?.scannedData || [];
-  const { addMedication, medications } = useMedicationStore();
+  const { addMedication } = useMedicationStore();
 
+  // Form state
+  const [medicationName, setMedicationName] = useState('');
+  const [dosage, setDosage] = useState('');
+  const [unit, setUnit] = useState('tablet');
+  const [form, setForm] = useState('');
+  const [startDate, setStartDate] = useState(new Date());
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [frequency, setFrequency] = useState('');
+  const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
+  const [notes, setNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<Array<{ id: string; genericName: string; brandName?: string; strength?: string; dosageForm?: string }>>([]);
-  const [searching, setSearching] = useState(false);
-  const [interactions, setInteractions] = useState<string[]>([]);
 
-  const derivedItems = useMemo(() => scannedData.map((m) => ({ ...m })), [scannedData]);
+  // Modal states
+  const [showUnitPicker, setShowUnitPicker] = useState(false);
+  const [showFormPicker, setShowFormPicker] = useState(false);
+  const [showFrequencyPicker, setShowFrequencyPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState<'start' | 'end' | null>(null);
 
-  const getTimesForFrequency = (freq: string | undefined): string[] => {
-    if (!freq) return MEDICATION_TIMING.onceDailyMorning;
-    if (freq === 'as needed') return MEDICATION_TIMING.onceDailyMorning;
-    const n = parseInt(freq, 10);
-    if (n === 1) return MEDICATION_TIMING.onceDailyMorning;
-    if (n === 2) return MEDICATION_TIMING.twiceDaily;
-    if (n === 3) return MEDICATION_TIMING.threeTimesDaily;
-    if (n >= 4) return MEDICATION_TIMING.fourTimesDaily;
-    return MEDICATION_TIMING.onceDailyMorning;
+  const getTimesForFrequency = (freqValue: string): string[] => {
+    switch (freqValue) {
+      case 'once':
+        return MEDICATION_TIMING.onceDailyMorning;
+      case 'twice':
+        return MEDICATION_TIMING.twiceDaily;
+      case 'three':
+      case 'every_8h':
+        return MEDICATION_TIMING.threeTimesDaily;
+      case 'four':
+      case 'every_6h':
+        return MEDICATION_TIMING.fourTimesDaily;
+      default:
+        return MEDICATION_TIMING.onceDailyMorning;
+    }
   };
 
-  const checkForInteractions = useCallback(async (newMimsId: string) => {
-    try {
-      const newMed = await getMIMSMedicine(newMimsId);
-      if (!newMed) {
-        setInteractions([]);
-        return;
+  const toggleTime = (time: string) => {
+    setSelectedTimes((prev) => {
+      if (prev.includes(time)) {
+        return prev.filter((t) => t !== time);
       }
+      return [...prev, time];
+    });
+  };
 
-      const activeMeds = medications.filter(m => m.isActive);
-      const foundInteractions: string[] = [];
-
-      for (const med of activeMeds) {
-        if (med.mims?.drugInteractions) {
-          if (med.mims.drugInteractions.toLowerCase().includes(newMed.genericName.toLowerCase())) {
-            foundInteractions.push(
-              `${newMed.brandName || newMed.genericName} may interact with ${med.mims.brandName || med.mims.genericName}`
-            );
-          }
-        }
-      }
-
-      if (newMed.drugInteractions) {
-        for (const med of activeMeds) {
-          const medName = med.mims?.genericName || '';
-          if (newMed.drugInteractions.toLowerCase().includes(medName.toLowerCase())) {
-            const interactionMsg = `${newMed.brandName || newMed.genericName} may interact with ${med.mims?.brandName || med.mims?.genericName}`;
-            if (!foundInteractions.includes(interactionMsg)) {
-              foundInteractions.push(interactionMsg);
-            }
-          }
-        }
-      }
-
-      setInteractions(foundInteractions);
-    } catch (error) {
-      console.error('Error checking interactions:', error);
-      setInteractions([]);
+  const addCustomTime = () => {
+    const newTime = new Date();
+    const timeString = `${newTime.getHours().toString().padStart(2, '0')}:${newTime
+      .getMinutes()
+      .toString()
+      .padStart(2, '0')}`;
+    if (!selectedTimes.includes(timeString)) {
+      setSelectedTimes([...selectedTimes, timeString]);
     }
-  }, [medications]);
+  };
 
-  const saveAll = useCallback(async () => {
-    try {
-      setIsSaving(true);
-      setMessage(null);
-
-      const allNewMimsIds: string[] = [];
-      for (const item of derivedItems) {
-        const matches = await searchMIMS(item.name, 5);
-        if (matches && matches.length > 0) {
-          allNewMimsIds.push(matches[0].id);
-        }
-      }
-
-      const allInteractions: string[] = [];
-      for (const mimsId of allNewMimsIds) {
-        await checkForInteractions(mimsId);
-        if (interactions.length > 0) {
-          allInteractions.push(...interactions);
-        }
-      }
-
-      if (allInteractions.length > 0) {
-        setInteractions(allInteractions);
-      }
-
-      for (const item of derivedItems) {
-        const matches = await searchMIMS(item.name, 5);
-        if (!matches || matches.length === 0) continue;
-        const best = matches[0];
-
-        const times = getTimesForFrequency(item.frequency);
-        const now = new Date().toISOString().slice(0, 10);
-        const medInput: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'> = {
-          mimsId: best.id,
-          userDosage: item.dosage || item.strength || '1 tablet',
-          frequency: parseInt(item.frequency || '1', 10) || 1,
-          times,
-          withFood: FoodTiming.NoPreference,
-          startDate: now,
-          endDate: undefined,
-          refillDate: undefined,
-          isActive: true,
-          notes: undefined,
-        } as any;
-
-        const newId = await addMedication(medInput);
-        await createDoseEntries(newId, times, now);
-        await scheduleMedicationReminders({ ...(medInput as any), id: newId } as Medication);
-      }
-
-      setMessage(t('add_medicine.saved_successfully'));
-      setInteractions([]);
-      navigation.goBack();
-    } catch (e) {
-      setMessage((e as Error).message);
-    } finally {
-      setIsSaving(false);
-    }
-  }, [derivedItems, addMedication, navigation, checkForInteractions, interactions]);
-
-  const onSearch = useCallback(async () => {
-    if (!query || query.trim().length < 2) {
-      setResults([]);
+  const handleSave = useCallback(async () => {
+    // Validation
+    if (!medicationName.trim()) {
+      alert('Please enter medication name');
       return;
     }
-    try {
-      setSearching(true);
-      const res = await searchMIMS(query.trim(), 20);
-      setResults(res as any);
-    } finally {
-      setSearching(false);
+    if (!dosage.trim()) {
+      alert('Please enter dosage');
+      return;
     }
-  }, [query]);
+    if (!form) {
+      alert('Please select medication form');
+      return;
+    }
+    if (!frequency) {
+      alert('Please select frequency');
+      return;
+    }
+    if (selectedTimes.length === 0) {
+      alert('Please add at least one time');
+      return;
+    }
 
-  const quickAdd = useCallback(async (mimsId: string, label: string) => {
     try {
       setIsSaving(true);
-      await checkForInteractions(mimsId);
 
-      const times = MEDICATION_TIMING.onceDailyMorning;
-      const now = new Date().toISOString().slice(0, 10);
+      const freqOption = FREQUENCY_OPTIONS.find((f) => f.value === frequency);
+      const times = selectedTimes.length > 0 ? selectedTimes : getTimesForFrequency(frequency);
+
       const medInput: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'> = {
-        mimsId,
-        userDosage: '1 tablet',
-        frequency: 1,
+        mimsId: `custom_${Date.now()}`,
+        userDosage: `${dosage} ${unit}`,
+        frequency: freqOption?.times || 1,
         times,
         withFood: FoodTiming.NoPreference,
-        startDate: now,
-        endDate: undefined,
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate ? endDate.toISOString().split('T')[0] : undefined,
         refillDate: undefined,
         isActive: true,
-        notes: undefined,
+        notes: notes || undefined,
       } as any;
-      const newId = await addMedication(medInput);
-      await createDoseEntries(newId, times, now);
-      await scheduleMedicationReminders({ ...(medInput as any), id: newId } as Medication);
-      setMessage(t('add_medicine.added_medication', { name: label }));
 
-      setInteractions([]);
+      const newId = await addMedication(medInput);
+      await createDoseEntries(newId, times, medInput.startDate);
+      await scheduleMedicationReminders({
+        ...(medInput as any),
+        id: newId,
+        mims: { genericName: medicationName },
+      } as any);
+
+      navigation.goBack();
     } catch (e) {
-      setMessage((e as Error).message);
+      alert((e as Error).message);
     } finally {
       setIsSaving(false);
     }
-  }, [addMedication, checkForInteractions]);
+  }, [
+    medicationName,
+    dosage,
+    unit,
+    form,
+    frequency,
+    selectedTimes,
+    startDate,
+    endDate,
+    notes,
+    addMedication,
+    navigation,
+    getTimesForFrequency,
+  ]);
+
+  const renderPickerModal = (
+    visible: boolean,
+    onClose: () => void,
+    options: Array<{ label: string; value: string }>,
+    onSelect: (value: string) => void,
+    title: string
+  ) => (
+    <Modal visible={visible} transparent animationType="fade">
+      <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>{title}</Text>
+          <ScrollView style={styles.modalScroll}>
+            {options.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={styles.modalOption}
+                onPress={() => {
+                  onSelect(option.value);
+                  onClose();
+                }}
+              >
+                <Text style={styles.modalOptionText}>{option.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
+  const renderDatePickerModal = () => {
+    if (!showDatePicker) return null;
+
+    const currentDate = showDatePicker === 'start' ? startDate : endDate || new Date();
+    const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i);
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    return (
+      <Modal visible={true} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowDatePicker(null)}
+        >
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {showDatePicker === 'start' ? 'Select Start Date' : 'Select End Date'}
+            </Text>
+            <View style={styles.datePickerContainer}>
+              <Text style={styles.dateDisplay}>{currentDate.toLocaleDateString()}</Text>
+              <TouchableOpacity
+                style={styles.dateButton}
+                onPress={() => {
+                  const newDate = new Date();
+                  if (showDatePicker === 'start') {
+                    setStartDate(newDate);
+                  } else {
+                    setEndDate(newDate);
+                  }
+                  setShowDatePicker(null);
+                }}
+              >
+                <Text style={styles.dateButtonText}>Select Today</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.dateButton, styles.dateButtonSecondary]}
+                onPress={() => setShowDatePicker(null)}
+              >
+                <Text style={styles.dateButtonTextSecondary}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{t('add_medicine.title')}</Text>
-      {scannedData.length === 0 ? (
-        <>
-          <Text style={styles.subtitle}>{t('add_medicine.scan_or_search')}</Text>
-          <TouchableOpacity style={styles.action} onPress={() => navigation.navigate('ScanPrescription') }>
-            <Text style={styles.actionText}>{t('add_medicine.scan_prescription')}</Text>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Medication Name */}
+        <View style={styles.section}>
+          <TextInput
+            style={styles.input}
+            placeholder="Medication Name"
+            placeholderTextColor={Colors.text.tertiary}
+            value={medicationName}
+            onChangeText={setMedicationName}
+          />
+        </View>
+
+        {/* Dosage and Unit */}
+        <View style={styles.rowSection}>
+          <TextInput
+            style={[styles.input, styles.flexInput]}
+            placeholder="Insert dosage"
+            placeholderTextColor={Colors.text.tertiary}
+            value={dosage}
+            onChangeText={setDosage}
+            keyboardType="numeric"
+          />
+          <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowUnitPicker(true)}>
+            <Text style={styles.dropdownButtonText}>{unit || 'Unit'}</Text>
+            <ChevronDown size={20} color={Colors.accent.main} />
           </TouchableOpacity>
-          <View style={styles.searchBox}>
-            <TextInput
-              placeholder={t('add_medicine.search_mims')}
-              placeholderTextColor={Colors.text.tertiary}
-              style={styles.input}
-              value={query}
-              onChangeText={setQuery}
-              returnKeyType="search"
-              onSubmitEditing={onSearch}
-            />
-            <TouchableOpacity style={[styles.smallBtn]} onPress={onSearch} disabled={searching}>
-              <Text style={styles.smallBtnText}>{searching ? '...' : t('add_medicine.search')}</Text>
+        </View>
+
+        {/* Form */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Form</Text>
+          <TouchableOpacity style={styles.dropdownInput} onPress={() => setShowFormPicker(true)}>
+            <Text style={[styles.dropdownInputText, !form && styles.placeholderText]}>
+              {form ? FORM_OPTIONS.find((f) => f.value === form)?.label : 'Choose one option'}
+            </Text>
+            <ChevronDown size={20} color={Colors.accent.main} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Duration */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Duration</Text>
+          <View style={styles.rowSection}>
+            <TouchableOpacity
+              style={[styles.input, styles.flexInput, styles.dateInput]}
+              onPress={() => setShowDatePicker('start')}
+            >
+              <Text style={styles.dateText}>
+                {startDate ? startDate.toLocaleDateString() : 'Start date'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.input, styles.flexInput, styles.dateInput]}
+              onPress={() => setShowDatePicker('end')}
+            >
+              <Text style={[styles.dateText, !endDate && styles.placeholderText]}>
+                {endDate ? endDate.toLocaleDateString() : 'End date'}
+              </Text>
             </TouchableOpacity>
           </View>
-          {interactions.length > 0 && (
-            <DrugInteractionWarning
-              interactions={interactions}
-              severity="high"
-              testID="drug-interaction-warning"
-            />
-          )}
-          <FlatList
-            data={results}
-            keyExtractor={(it) => it.id}
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>{item.brandName || item.genericName}</Text>
-                <Text style={styles.cardLine}>{item.genericName} {item.strength || ''} {item.dosageForm || ''}</Text>
-                <TouchableOpacity style={[styles.smallBtn, styles.mt8]} onPress={() => quickAdd(item.id, item.brandName || item.genericName)}>
-                  <Text style={styles.smallBtnText}>{t('add_medicine.add')}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            contentContainerStyle={{ paddingVertical: Spacing.md, gap: 8 }}
-          />
-        </>
-      ) : (
-        <>
-          <Text style={styles.subtitle}>{t('add_medicine.review_extracted')}</Text>
-          {interactions.length > 0 && (
-            <DrugInteractionWarning
-              interactions={interactions}
-              severity="high"
-              testID="drug-interaction-warning"
-            />
-          )}
-          <FlatList
-            data={derivedItems}
-            keyExtractor={(it, idx) => `${it.name}-${idx}`}
-            renderItem={({ item }) => (
-              <View style={styles.card}>
-                <Text style={styles.cardTitle}>{item.name}</Text>
-                <Text style={styles.cardLine}>{t('add_medicine.strength_dosage')}: {item.strength || item.dosage || '-'}</Text>
-                <Text style={styles.cardLine}>{t('add_medicine.frequency')}: {item.frequency || '1'}x / {t('add_medicine.times_per_day')}</Text>
-                <Text style={styles.cardLine}>{t('add_medicine.confidence')}: {Math.round((item.confidence || 0) * 100)}%</Text>
-              </View>
-            )}
-            contentContainerStyle={{ paddingVertical: Spacing.md, gap: 8 }}
-          />
-          <TouchableOpacity style={[styles.action, isSaving && styles.disabled]} disabled={isSaving} onPress={saveAll}>
-            {isSaving ? <ActivityIndicator color={Colors.text.inverse} /> : <Text style={styles.actionText}>{t('add_medicine.save_all')}</Text>}
+        </View>
+
+        {/* Frequency */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Frequency</Text>
+          <TouchableOpacity
+            style={styles.dropdownInput}
+            onPress={() => setShowFrequencyPicker(true)}
+          >
+            <Text style={[styles.dropdownInputText, !frequency && styles.placeholderText]}>
+              {frequency
+                ? FREQUENCY_OPTIONS.find((f) => f.value === frequency)?.label
+                : 'Choose one option'}
+            </Text>
+            <ChevronDown size={20} color={Colors.accent.main} />
           </TouchableOpacity>
-          {message && <Text style={styles.message}>{message}</Text>}
-        </>
+        </View>
+
+        {/* Time & Schedule */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Time & Schedule</Text>
+          <View style={styles.timeContainer}>
+            {[
+              { label: 'After Breakfast', value: '08:00' },
+              { label: 'After Lunch', value: '13:00' },
+              { label: 'After Dinner', value: '19:00' },
+              { label: 'Before Bed', value: '22:00' },
+            ].map((time) => {
+              const isSelected = selectedTimes.includes(time.value);
+
+              return (
+                <TouchableOpacity
+                  key={time.value}
+                  style={[styles.timePill, isSelected && styles.timePillSelected]}
+                  onPress={() => toggleTime(time.value)}
+                >
+                  <Text style={[styles.timePillText, isSelected && styles.timePillTextSelected]}>
+                    {time.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity style={styles.addTimeButton} onPress={addCustomTime}>
+              <Text style={styles.addTimeButtonText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Notes */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Notes</Text>
+          <TextInput
+            style={styles.notesInput}
+            placeholder="Insert notes"
+            placeholderTextColor={Colors.text.tertiary}
+            value={notes}
+            onChangeText={setNotes}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+        </View>
+
+        {/* Add Medication Button */}
+        <TouchableOpacity
+          style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+          onPress={handleSave}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <ActivityIndicator color={Colors.text.primary} />
+          ) : (
+            <Text style={styles.saveButtonText}>Add Medication</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Pickers */}
+      {renderPickerModal(
+        showUnitPicker,
+        () => setShowUnitPicker(false),
+        UNIT_OPTIONS,
+        setUnit,
+        'Select Unit'
       )}
+      {renderPickerModal(
+        showFormPicker,
+        () => setShowFormPicker(false),
+        FORM_OPTIONS,
+        setForm,
+        'Select Form'
+      )}
+      {renderPickerModal(
+        showFrequencyPicker,
+        () => setShowFrequencyPicker(false),
+        FREQUENCY_OPTIONS,
+        setFrequency,
+        'Select Frequency'
+      )}
+
+      {/* Date Picker */}
+      {renderDatePickerModal()}
     </View>
   );
 }
@@ -264,40 +445,201 @@ export default function AddMedicineScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary,
-    padding: Spacing.lg,
+    backgroundColor: '#D5D7E3',
   },
-  title: {
-    fontSize: Typography.fontSize['2xl'],
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: Spacing.lg,
+    paddingTop: Spacing['2xl'],
+    paddingBottom: 100,
+  },
+  section: {
+    marginBottom: Spacing.lg,
+  },
+  rowSection: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  label: {
+    fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
     marginBottom: Spacing.sm,
   },
-  subtitle: {
+  input: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md + 4,
     fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.md,
+    color: Colors.text.primary,
   },
-  action: {
-    marginTop: Spacing.md,
-    backgroundColor: Colors.primary.main,
+  flexInput: {
+    flex: 1,
+  },
+  dateInput: {
+    justifyContent: 'center',
+  },
+  dateText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+  },
+  dropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md + 4,
+    minWidth: 120,
+  },
+  dropdownButtonText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+    marginRight: Spacing.sm,
+  },
+  dropdownInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md + 4,
+  },
+  dropdownInputText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+    flex: 1,
+  },
+  placeholderText: {
+    color: Colors.text.tertiary,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  timePill: {
+    backgroundColor: Colors.background.card,
+    borderRadius: 20,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 4,
+  },
+  timePillSelected: {
+    backgroundColor: Colors.accent.main,
+  },
+  timePillText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+    fontWeight: Typography.fontWeight.medium,
+  },
+  timePillTextSelected: {
+    color: Colors.text.primary,
+  },
+  addTimeButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.accent.main,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addTimeButtonText: {
+    fontSize: 24,
+    color: Colors.text.primary,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  notesInput: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    borderRadius: 8,
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+    minHeight: 120,
+  },
+  saveButton: {
+    backgroundColor: Colors.accent.main,
+    borderRadius: BorderRadius.card,
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.lg,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  actionText: {
-    color: Colors.text.inverse,
+  modalContent: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    padding: Spacing.xl,
+    width: '80%',
+    maxHeight: '70%',
+  },
+  modalTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.lg,
+    textAlign: 'center',
+  },
+  modalScroll: {
+    maxHeight: 300,
+  },
+  modalOption: {
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  modalOptionText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+  },
+  datePickerContainer: {
+    gap: Spacing.md,
+  },
+  dateDisplay: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  dateButton: {
+    backgroundColor: Colors.accent.main,
+    borderRadius: BorderRadius.button,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+  },
+  dateButtonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: Colors.border.main,
+  },
+  dateButtonText: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
   },
-  disabled: { opacity: 0.6 },
-  message: { marginTop: Spacing.sm, color: Colors.text.secondary },
-  card: { backgroundColor: Colors.background.card, borderRadius: 8, padding: Spacing.md },
-  cardTitle: { color: Colors.text.primary, fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.semibold },
-  cardLine: { color: Colors.text.secondary, marginTop: 4 },
-  searchBox: { marginTop: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: { flex: 1, backgroundColor: Colors.background.card, borderWidth: 1, borderColor: Colors.border.light, borderRadius: 8, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, color: Colors.text.primary },
-  smallBtn: { paddingVertical: 10, paddingHorizontal: 14, backgroundColor: Colors.primary.main, borderRadius: 8 },
-  smallBtnText: { color: Colors.text.inverse, fontWeight: Typography.fontWeight.semibold },
-  mt8: { marginTop: 8 },
+  dateButtonTextSecondary: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.secondary,
+  },
 });
