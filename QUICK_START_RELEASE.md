@@ -40,16 +40,7 @@ git push
 
 ## What Changed?
 
-### Before (Problem)
-```yaml
-- name: Build Debug APK
-  run: ./gradlew assembleDebug
-```
-- ❌ Debug APK expects Metro bundler
-- ❌ Doesn't work standalone
-- ❌ "Unable to load script" error
 
-### After (Fixed)
 ```yaml
 - name: Decode Keystore
   run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/mykencing-release.keystore
