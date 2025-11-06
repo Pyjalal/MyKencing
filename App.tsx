@@ -8,7 +8,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { initDatabase } from './src/services/database';
 import { initializeEncryption } from './src/services/encryption';
 import { seedMIMSDatabase } from './src/services/mims';
-import { initializeNotifications } from './src/services/notifications';
+import { initializeNotifications, clearAllPresentedNotifications } from './src/services/notifications';
 import i18n from './src/services/i18n';
 import { Colors, Typography } from './src/constants/theme';
 import useNotifications from './src/hooks/useNotifications';
@@ -37,6 +37,10 @@ export default function App() {
         // Initialize notifications
         const notificationsEnabled = await initializeNotifications();
         console.log(`✓ Notifications ${notificationsEnabled ? 'enabled' : 'disabled'}`);
+
+        // Clear any lingering notifications from previous sessions
+        await clearAllPresentedNotifications();
+        console.log('✓ Cleared old notifications');
 
         // i18n is already initialized
         console.log(`✓ Language: ${i18n.language}`);

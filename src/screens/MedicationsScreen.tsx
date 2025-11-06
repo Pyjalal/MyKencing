@@ -72,10 +72,18 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
 
   const handleTakeDose = async (doseId: string) => {
     await markDose(doseId, DoseStatus.Taken);
+    // Reload doses after marking
+    if (weekDays.length > 0) {
+      await loadWeekDoses(weekDays[0], weekDays[weekDays.length - 1]);
+    }
   };
 
   const handleSkipDose = async (doseId: string) => {
     await markDose(doseId, DoseStatus.Skipped);
+    // Reload doses after marking
+    if (weekDays.length > 0) {
+      await loadWeekDoses(weekDays[0], weekDays[weekDays.length - 1]);
+    }
   };
 
   const handleScanPress = () => {

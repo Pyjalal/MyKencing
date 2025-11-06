@@ -50,6 +50,12 @@ export async function initializeNotifications(): Promise<boolean> {
     // Set up notification response listener
     setupNotificationResponseListener();
 
+    // Set up listener for when notification is tapped to open app
+    Notifications.addNotificationReceivedListener(async notification => {
+      // Dismiss notification when app is in foreground
+      await Notifications.dismissNotificationAsync(notification.request.identifier);
+    });
+
     console.log('Notifications initialized successfully');
     return true;
   } catch (error) {
@@ -101,6 +107,9 @@ function setupNotificationResponseListener(): void {
 
     try {
       const db = getDatabase();
+
+      // Dismiss the notification immediately
+      await Notifications.dismissNotificationAsync(response.notification.request.identifier);
 
       if (action === 'TAKEN') {
         // Mark dose as taken
@@ -326,6 +335,19 @@ export async function getScheduledNotifications(): Promise<
 }
 
 /**
+ * Clear all presented notifications from the notification tray
+ * Call this on app launch to clear any lingering notifications
+ */
+export async function clearAllPresentedNotifications(): Promise<void> {
+  try {
+    await Notifications.dismissAllNotificationsAsync();
+    console.log('Cleared all presented notifications');
+  } catch (error) {
+    console.error('Error clearing notifications:', error);
+  }
+}
+
+/**
  * Schedule a one-time notification (for testing or reminders)
  */
 export async function scheduleOneTimeNotification(
@@ -428,12 +450,16 @@ export function getMissedDoseGuidance(
 
 /**
  * Check for pending doses scheduled >30 minutes ago and send a follow-up notification
+ * This should be called sparingly to avoid spamming - typically once per app launch or manually
  */
 export async function checkForMissedDoses(): Promise<void> {
   const db = getDatabase();
   const now = new Date();
   const thirtyMinsAgo = new Date(now.getTime() - 30 * 60 * 1000).toISOString();
+  const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000).toISOString();
 
+  // Only check for doses that are pending and between 30 mins and 4 hours ago
+  // After 4 hours, they should be marked as missed by updateMissedDoses
   const pending = await db.getAllAsync<{
     id: string;
     medication_id: string;
@@ -447,21 +473,28 @@ export async function checkForMissedDoses(): Promise<void> {
      FROM doses d
      JOIN medications m ON d.medication_id = m.id
      JOIN mims_cache mc ON m.mims_id = mc.id
-     WHERE d.status = 'pending' AND d.scheduled_time <= ?`,
-    [thirtyMinsAgo]
+     WHERE d.status = 'pending' 
+     AND d.scheduled_time <= ? 
+     AND d.scheduled_time >= ?
+     LIMIT 5`,
+    [thirtyMinsAgo, fourHoursAgo]
   );
 
-  for (const row of pending) {
-    const medName = row.brand_name || row.generic_name;
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: `Did you take ${medName}?`,
-        body: 'Please confirm your dose to keep your adherence on track.',
-        data: { medicationId: row.medication_id, doseId: row.id, medicationName: medName },
-        categoryIdentifier: 'MEDICATION_REMINDER',
-      },
-      trigger: ({ seconds: 1, repeats: false } as unknown) as Notifications.NotificationTriggerInput,
-    });
+  // Only send follow-up if there are pending doses
+  if (pending.length > 0) {
+    for (const row of pending) {
+      const medName = row.brand_name || row.generic_name;
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `Did you take ${medName}?`,
+          body: 'Please confirm your dose to keep your adherence on track.',
+          data: { medicationId: row.medication_id, doseId: row.id, medicationName: medName },
+          categoryIdentifier: 'MEDICATION_REMINDER',
+        },
+        trigger: ({ seconds: 1, repeats: false } as unknown) as Notifications.NotificationTriggerInput,
+      });
+    }
+    console.log(`Sent follow-up notifications for ${pending.length} pending doses`);
   }
 }
 
