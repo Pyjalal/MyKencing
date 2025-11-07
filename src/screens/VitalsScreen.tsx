@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useVitalsStore } from '../stores/vitalsStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { VitalType } from '../types';
-import { Search, MessageSquare } from 'lucide-react-native';
+import { Search, BotMessageSquare } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 
 // Hard-coded demo data for 14 days
@@ -102,6 +102,10 @@ export default function VitalsScreen() {
   const glucoseAvg = (DEMO_DATA.glucose.reduce((sum, d) => sum + d.value, 0) / 14).toFixed(1);
   const cholesterolAvg = (DEMO_DATA.cholesterol.reduce((sum, d) => sum + d.value, 0) / 14).toFixed(2);
 
+  const handleChatPress = () => {
+    navigation.navigate('ChatBot');
+  };
+
   return (
     <View style={styles.container}>
       {/* Header with background */}
@@ -129,9 +133,9 @@ export default function VitalsScreen() {
         <Text style={styles.headerTitle}>{t('vitals.vitals_tracker')}</Text>
 
         {/* AI Chat Button */}
-        <TouchableOpacity style={styles.aiButton}>
+        <TouchableOpacity style={styles.aiButton} onPress={handleChatPress}>
           <View style={styles.aiIconContainer}>
-            <MessageSquare size={24} color={Colors.secondary.main} />
+            <BotMessageSquare size={24} color={Colors.secondary.main} />
           </View>
         </TouchableOpacity>
       </View>
