@@ -228,10 +228,11 @@ async function applyMigration3(database: SQLite.SQLiteDatabase): Promise<void> {
     console.warn('[database.native] Could not check table info:', error);
   }
 
-  // Disable foreign key checks temporarily
-  await database.execAsync('PRAGMA foreign_keys = OFF;');
-
   try {
+    await database.execAsync('BEGIN TRANSACTION;');
+    // Disable foreign key checks temporarily
+    await database.execAsync('PRAGMA foreign_keys = OFF;');
+
     // Create new table without foreign key
     await database.execAsync(`
       CREATE TABLE medications_new (
@@ -276,11 +277,18 @@ async function applyMigration3(database: SQLite.SQLiteDatabase): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_medications_start_date ON medications(start_date);
       CREATE INDEX IF NOT EXISTS idx_medications_registration_no ON medications(registration_no);
     `);
-
-    console.log('[database.native] Migration 3 completed successfully');
-  } finally {
+    
     // Re-enable foreign key checks
     await database.execAsync('PRAGMA foreign_keys = ON;');
+
+    await database.execAsync('COMMIT;');
+    console.log('[database.native] Migration 3 completed successfully');
+  } catch (error) {
+    await database.execAsync('ROLLBACK;');
+    console.error('[database.native] Migration 3 failed:', error);
+    // Re-enable foreign key checks even if migration fails
+    await database.execAsync('PRAGMA foreign_keys = ON;');
+    throw error;
   }
 
   // Insert migration record

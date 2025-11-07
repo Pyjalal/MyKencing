@@ -358,6 +358,7 @@ export type RootStackParamList = {
   Settings: undefined;
   Analytics: undefined;
   RamadanMode: undefined;
+  ChatBot: undefined;
 };
 
 // ----------------------------------------------------------------------------
@@ -387,3 +388,12 @@ export interface Threshold {
   maxCritical?: number;
   unit: string;
 }
+
+// ----------------------------------------------------------------------------
+// Chatbot Types
+// ----------------------------------------------------------------------------
+
+export type Message = {
+  role: "user" | "assistant";
+  content: string;
+};

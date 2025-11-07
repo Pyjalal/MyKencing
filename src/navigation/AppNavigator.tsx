@@ -24,6 +24,7 @@ import AnalyticsDashboardScreen from '../screens/AnalyticsDashboardScreen';
 import ExportReportScreen from '../screens/ExportReportScreen';
 import RamadanModeScreen from '../screens/RamadanModeScreen';
 import MedicationsScreen from '../screens/MedicationsScreen';
+import ChatBotScreen from '../screens/ChatBotScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -170,6 +171,11 @@ export default function AppNavigator() {
           name="AddVital"
           component={AddVitalScreen}
           options={{ title: 'Add Vital' }}
+        />
+        <Stack.Screen
+          name="ChatBot"
+          component={ChatBotScreen}
+          options={{ title: 'Chatbot' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
