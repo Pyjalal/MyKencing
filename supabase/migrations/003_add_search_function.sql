@@ -1,9 +1,7 @@
--- Create search function with intelligent ranking
--- Prioritizes: exact match > starts with > contains > fuzzy similarity
--- Returns similarity score for frontend use
+-- Precise medicine matching for OCR (no fuzzy matching)
+-- Features: Exact substring matches at word boundaries only
 CREATE OR REPLACE FUNCTION search_medicines_by_similarity(
   search_term TEXT,
-  match_threshold FLOAT DEFAULT 0.1,
   max_results INT DEFAULT 50
 )
 RETURNS TABLE (
@@ -12,32 +10,54 @@ RETURNS TABLE (
   active_ingredients TEXT[],
   similarity_score FLOAT
 ) AS $$
+DECLARE
+  search_len INT := LENGTH(search_term);
 BEGIN
+  -- Ignore very short search terms (< 3 chars) - too many false positives
+  IF search_len < 3 THEN
+    RETURN;
+  END IF;
+
   RETURN QUERY
-  SELECT 
+  SELECT
     mi.registration_no,
     mi.medicine_name,
     mi.active_ingredients,
-    -- Calculate match score: exact match = 0.99, prefix = 0.95, contains = 0.85, else trigram similarity
-    CASE 
-      WHEN LOWER(mi.medicine_name) = LOWER(search_term) THEN 0.99
-      WHEN LOWER(mi.medicine_name) LIKE LOWER(search_term) || '%' THEN 0.95
-      WHEN LOWER(mi.medicine_name) LIKE '%' || LOWER(search_term) || '%' THEN 0.85
-      ELSE similarity(mi.medicine_name, search_term)
+    CASE
+      -- TIER 1: Exact match = 100%
+      WHEN LOWER(mi.medicine_name) = LOWER(search_term) THEN 1.0::DOUBLE PRECISION
+
+      -- TIER 2: Prefix match with good coverage (>60%) = 95%
+      WHEN LOWER(mi.medicine_name) LIKE LOWER(search_term) || '%'
+           AND (search_len::FLOAT / LENGTH(mi.medicine_name)) > 0.6 THEN 0.95::DOUBLE PRECISION
+
+      -- TIER 3: Word-boundary substring match with strict requirements
+      -- - Search term must be >50% of medicine name length
+      -- - Must be at word boundary (space, start, or end)
+      -- - Score: 70% + coverage bonus (up to 85%)
+      WHEN LOWER(mi.medicine_name) LIKE '%' || LOWER(search_term) || '%'
+           AND (search_len::FLOAT / LENGTH(mi.medicine_name)) > 0.5
+           AND (
+             -- At start of medicine name
+             POSITION(LOWER(search_term) IN LOWER(mi.medicine_name)) = 1
+             -- OR at end of medicine name
+             OR POSITION(LOWER(search_term) IN LOWER(mi.medicine_name)) = LENGTH(mi.medicine_name) - search_len + 1
+             -- OR bounded by spaces (word boundary)
+             OR LOWER(mi.medicine_name) LIKE '% ' || LOWER(search_term) || ' %'
+             OR LOWER(mi.medicine_name) LIKE LOWER(search_term) || ' %'
+             OR LOWER(mi.medicine_name) LIKE '% ' || LOWER(search_term)
+           )
+      THEN (0.70 + (search_len::FLOAT / LENGTH(mi.medicine_name)) * 0.15)::DOUBLE PRECISION
+
+      ELSE 0.0::DOUBLE PRECISION
     END AS similarity_score
   FROM medicine_ingredients mi
-  WHERE 
+  WHERE
+    -- Must have exact substring match
     LOWER(mi.medicine_name) LIKE '%' || LOWER(search_term) || '%'
-    OR similarity(mi.medicine_name, search_term) > match_threshold
-  ORDER BY 
-    -- Prioritize exact matches
-    CASE WHEN LOWER(mi.medicine_name) = LOWER(search_term) THEN 0 ELSE 1 END,
-    -- Then words that start with the search term
-    CASE WHEN LOWER(mi.medicine_name) LIKE LOWER(search_term) || '%' THEN 0 ELSE 1 END,
-    -- Then similarity score for remaining results
-    similarity(mi.medicine_name, search_term) DESC,
-    -- Finally sort by length (shorter = more specific)
-    LENGTH(mi.medicine_name)
+  ORDER BY
+    similarity_score DESC,
+    LENGTH(mi.medicine_name) ASC  -- Prefer shorter, more specific names
   LIMIT max_results;
 END;
 $$ LANGUAGE plpgsql STABLE;

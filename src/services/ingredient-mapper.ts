@@ -60,7 +60,6 @@ export class IngredientMapper {
       // The pg_trgm extension handles typos and fuzzy matching automatically
       const { data, error } = await this.supabase.rpc('search_medicines_by_similarity', {
         search_term: searchTerm,
-        match_threshold: 0.2,
         max_results: 50
       });
 
