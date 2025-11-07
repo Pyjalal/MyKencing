@@ -75,7 +75,8 @@ export class IngredientMapper {
       return data.map((row: any) => ({
         id: row.registration_no,
         name: row.medicine_name,
-        activeIngredients: row.active_ingredients || []
+        activeIngredients: row.active_ingredients || [],
+        similarity: row.similarity_score || 0.5 // Include backend-calculated similarity score
       }));
     } catch (error) {
       throw new ScrapingError(

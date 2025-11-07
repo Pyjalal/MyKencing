@@ -2,6 +2,7 @@ export interface Medicine {
   id: string;
   name: string;
   activeIngredients: string[];
+  similarity?: number; // Backend-calculated similarity score (0-1)
 }
 
 export interface MedicineSearchResponse {

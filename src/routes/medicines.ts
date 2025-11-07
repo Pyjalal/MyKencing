@@ -12,7 +12,7 @@ const searchSchema = z.object({
 const batchSearchSchema = z.object({
   queries: z.array(z.string().min(1).max(100))
     .min(1, 'At least one query is required')
-    .max(20, 'Maximum 20 queries allowed per batch'),
+    .max(100, 'Maximum 100 queries allowed per batch'),
   limit: z.number().min(1).max(50).default(10).optional()
 });
 
