@@ -28,8 +28,27 @@ export default function SelectScannedMedicineScreen() {
   const route = useRoute();
   const { extractedMedicines } = (route.params as RouteParams) || {};
 
-  // Get all API matches from the first extracted medicine
-  const apiMatches = extractedMedicines?.[0]?.apiMatches || [];
+  // Merge and deduplicate API matches from ALL extracted medicines
+  const allMatches = React.useMemo(() => {
+    const matchMap = new Map<string, MIMSSearchResult>();
+
+    extractedMedicines?.forEach(extracted => {
+      extracted.apiMatches?.forEach(match => {
+        // Keep highest confidence if duplicate
+        const existing = matchMap.get(match.id);
+        if (!existing || (match.confidence || 0) > (existing.confidence || 0)) {
+          matchMap.set(match.id, match);
+        }
+      });
+    });
+
+    // Sort by confidence (highest first) and return top 5
+    return Array.from(matchMap.values())
+      .sort((a, b) => (b.confidence || 0) - (a.confidence || 0))
+      .slice(0, 5);
+  }, [extractedMedicines]);
+  
+  const apiMatches = allMatches;
   
   const [selectedMedicine, setSelectedMedicine] = useState<MIMSSearchResult | null>(null);
 

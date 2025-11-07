@@ -44,7 +44,8 @@ function convertApiMedicineToSearchResult(apiMedicine: ApiMedicine): MIMSSearchR
     brandName,
     strength,
     dosageForm,
-    confidence: 0.9, // High confidence from API
+    // Use backend-calculated similarity if available, otherwise default to high confidence
+    confidence: apiMedicine.similarity !== undefined ? apiMedicine.similarity : 0.9,
     activeIngredients: apiMedicine.activeIngredients || [],
   };
 }

@@ -7,7 +7,6 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import { ExtractedMedicine, MIMSSearchResult } from '../types';
 import { parsePrescriptionText } from './ner';
 import { batchSearchMedicines } from './mymedix-api';
-import { similarity } from '../utils/fuzzyMatch';
 import { logEvent, EventType } from './analytics';
 import { Platform } from 'react-native';
 
@@ -199,9 +198,52 @@ export async function scanPrescription(imageUri: string): Promise<ExtractedMedic
       return [];
     }
 
-    // Step 4: Batch search all extracted names via MyMedix API (single batch request)
+    // Step 4: Filter out junk/common words before API search
+    console.log('OCR: Filtering extracted medicines...');
+    
+    // Filter out short words (< 4 chars) and common words
+    const commonWords = new Set([
+      'the', 'and', 'are', 'for', 'with', 'from', 'pack', 'tablet', 'capsule',
+      'cream', 'syrup', 'dose', 'take', 'use', 'hcl', 'hci', 'push', 'pash',
+      'child', 'adult', 'daily', 'twice', 'once', 'oral', 'eye', 'ear', 'foot',
+      'hand', 'care', 'health', 'plus', 'extra', 'super', 'max', 'new'
+    ]);
+    
+    const filteredParsed = parsed.filter(item => {
+      const nameLower = item.name.toLowerCase().trim();
+      
+      // Skip very short words (likely OCR noise)
+      if (nameLower.length < 4) {
+        console.log(`  ⏭️  Skipping short word: "${item.name}" (${nameLower.length} chars)`);
+        return false;
+      }
+      
+      // Skip common/generic words
+      if (commonWords.has(nameLower)) {
+        console.log(`  ⏭️  Skipping common word: "${item.name}"`);
+        return false;
+      }
+      
+      // Skip if it looks like gibberish (too many consonants in a row)
+      const consonantRuns = nameLower.match(/[bcdfghjklmnpqrstvwxyz]{4,}/g);
+      if (consonantRuns && consonantRuns.length > 0) {
+        console.log(`  ⏭️  Skipping gibberish: "${item.name}" (too many consonants)`);
+        return false;
+      }
+      
+      return true;
+    });
+    
+    console.log(`OCR: Filtered ${parsed.length} → ${filteredParsed.length} medicines`);
+    
+    if (filteredParsed.length === 0) {
+      console.log('OCR: No valid medicines after filtering');
+      return [];
+    }
+    
+    // Step 5: Batch search all extracted names via MyMedix API (single batch request)
     console.log('OCR: Batch searching medicines via API...');
-    const medicineNames = parsed.map(item => item.name);
+    const medicineNames = filteredParsed.map(item => item.name);
 
     try {
       // Use batch search for efficiency - one request instead of N requests
@@ -210,27 +252,37 @@ export async function scanPrescription(imageUri: string): Promise<ExtractedMedic
       // Match extracted medicines with API results
       const results: ExtractedMedicine[] = [];
 
-      for (const item of parsed) {
+      for (const item of filteredParsed) {
         const candidates = searchResults.get(item.name) || [];
         const apiMatches: MIMSSearchResult[] = [];
 
-        console.log(`OCR: Found ${candidates.length} candidates for "${item.name}"`);
+        console.log(`\n🔍 OCR: Processing "${item.name}" - Found ${candidates.length} candidates from API`);
 
         // Add candidates as potential matches
+        // Backend calculates and returns similarity scores
         candidates.forEach(candidate => {
           // Only include medicines with valid IDs
           if (!candidate.id || candidate.id.trim() === '') {
+            console.log(`  ❌ Skipping candidate with no ID:`, candidate.brandName || candidate.genericName);
             return;
           }
 
-          const candName = candidate.brandName || candidate.genericName;
-          const score = similarity(item.name, candName || '');
+          // Use backend-calculated similarity score
+          const score = candidate.confidence || 0;
+          const medicineName = candidate.brandName || candidate.genericName;
+
+          console.log(`  📊 Candidate: "${medicineName}" - Similarity: ${(score * 100).toFixed(1)}%`, {
+            id: candidate.id,
+            score,
+            threshold: 0.7,
+            passes: score >= 0.7 ? '✅ PASS' : '❌ FAIL'
+          });
 
           // Only include matches with confidence >= 70%
           if (score >= 0.7) {
             apiMatches.push({
               ...candidate,
-              confidence: Math.min(0.99, score), // Override confidence with similarity score
+              confidence: Math.min(0.99, score),
             });
           }
         });
@@ -238,6 +290,13 @@ export async function scanPrescription(imageUri: string): Promise<ExtractedMedic
         // Sort matches by confidence (highest first) and limit to top 5
         apiMatches.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
         const top5Matches = apiMatches.slice(0, 5);
+
+        console.log(`  ✅ Passed threshold: ${apiMatches.length} medicines`);
+        if (top5Matches.length > 0) {
+          console.log(`  🏆 Top 5 for "${item.name}":`, top5Matches.map(m => `${m.brandName || m.genericName} (${(m.confidence! * 100).toFixed(1)}%)`).join(', '));
+        } else {
+          console.log(`  ❌ No matches passed 70% threshold for "${item.name}"`);
+        }
 
         // Only include extracted medicines that have at least one valid match
         if (top5Matches.length > 0) {
@@ -257,8 +316,8 @@ export async function scanPrescription(imageUri: string): Promise<ExtractedMedic
     } catch (searchError) {
       console.error('OCR: Batch search failed:', searchError);
       
-      // If batch search fails, return parsed results as-is
-      const results: ExtractedMedicine[] = parsed.map(item => ({
+      // If batch search fails, return filtered results as-is
+      const results: ExtractedMedicine[] = filteredParsed.map(item => ({
         name: item.name,
         strength: item.strength,
         dosageForm: item.dosageForm,
@@ -270,7 +329,7 @@ export async function scanPrescription(imageUri: string): Promise<ExtractedMedic
       return results;
     } finally {
       // Always log analytics
-      const finalResults = parsed.map(item => ({
+      const finalResults = filteredParsed.map(item => ({
         name: item.name,
         strength: item.strength,
         dosageForm: item.dosageForm,

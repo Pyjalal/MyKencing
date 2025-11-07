@@ -16,6 +16,7 @@ export interface ApiMedicine {
   id: string; // registration number
   name: string;
   activeIngredients: string[];
+  similarity?: number; // Backend-calculated similarity score (0-1)
 }
 
 /**
