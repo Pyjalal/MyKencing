@@ -186,7 +186,13 @@
     "grant_permission": "Beri Kebenaran",
     "processing_prescription": "Memproses preskripsi...",
     "retake": "Ambil Semula",
-    "position_prescription_within_frame": "Letakkan preskripsi di dalam bingkai"
+    "position_prescription_within_frame": "Letakkan preskripsi di dalam bingkai",
+    "select_medicine": "Pilih Ubat",
+    "select_best_match": "Pilih padanan terbaik daripada {{count}} keputusan",
+    "confirm_selection": "Sahkan Pilihan",
+    "skip_and_enter_manually": "Langkau dan Masukkan Secara Manual",
+    "select_medicine_title": "Tiada Pilihan",
+    "select_medicine_message": "Sila pilih ubat sebelum meneruskan."
   },
   "vitals": {
     "search_here": "Cari di sini...",

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Medication, MedicationWithDetails, Dose, DoseWithMedication, DoseStatus } from '../types';
 import { getDatabase } from '../services/database';
 import { logEvent, EventType } from '../services/analytics';
+import { getMedicineDetails } from '../services/mymedix-api';
 
 interface MedicationState {
   medications: MedicationWithDetails[];
@@ -32,61 +33,58 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       const db = getDatabase();
 
       const medications = await db.getAllAsync<any>(`
-        SELECT
-          m.*,
-          mc.generic_name,
-          mc.brand_name,
-          mc.strength,
-          mc.dosage_form,
-          mc.instructions,
-          mc.timing,
-          mc.food_instructions,
-          mc.warnings,
-          mc.side_effects,
-          mc.contraindications,
-          mc.drug_interactions,
-          mc.food_interactions,
-          mc.source,
-          mc.last_updated as mims_last_updated
+        SELECT m.*
         FROM medications m
-        JOIN mims_cache mc ON m.mims_id = mc.id
         WHERE m.is_active = 1
         ORDER BY m.created_at DESC
       `);
 
-      const formatted: MedicationWithDetails[] = medications.map((row) => ({
-        id: row.id,
-        mimsId: row.mims_id,
-        userDosage: row.user_dosage,
-        frequency: row.frequency,
-        times: JSON.parse(row.times),
-        withFood: row.with_food,
-        startDate: row.start_date,
-        endDate: row.end_date,
-        refillDate: row.refill_date,
-        isActive: row.is_active === 1,
-        notes: row.notes,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        mims: {
-          id: row.mims_id,
-          genericName: row.generic_name,
-          brandName: row.brand_name,
-          strength: row.strength,
-          dosageForm: row.dosage_form,
-          instructions: row.instructions,
-          timing: row.timing,
-          foodInstructions: row.food_instructions,
-          warnings: row.warnings,
-          sideEffects: row.side_effects,
-          contraindications: row.contraindications,
-          drugInteractions: row.drug_interactions,
-          foodInteractions: row.food_interactions,
-          source: row.source,
-          lastUpdated: row.mims_last_updated,
-          createdAt: row.created_at,
-        },
-      }));
+      // Fetch medicine details from API for each medication
+      const formatted: MedicationWithDetails[] = await Promise.all(
+        medications.map(async (row) => {
+          let mimsData: any = {
+            id: row.registration_no,
+            genericName: 'Loading...',
+            brandName: 'Unknown Medicine',
+            source: 'PNF',
+            lastUpdated: new Date().toISOString(),
+            createdAt: row.created_at,
+            activeIngredients: [],
+          };
+
+          // Try to fetch medicine details from API
+          if (row.registration_no) {
+            try {
+              const medicineDetails = await getMedicineDetails(row.registration_no);
+              if (medicineDetails) {
+                mimsData = medicineDetails;
+              }
+            } catch (apiError) {
+              console.warn(`Failed to fetch medicine details for ${row.registration_no}:`, apiError);
+              // Use fallback data
+              mimsData.genericName = row.registration_no;
+              mimsData.brandName = 'Medicine details unavailable';
+            }
+          }
+
+          return {
+            id: row.id,
+            registrationNo: row.registration_no,
+            userDosage: row.user_dosage,
+            frequency: row.frequency,
+            times: JSON.parse(row.times),
+            withFood: row.with_food,
+            startDate: row.start_date,
+            endDate: row.end_date,
+            refillDate: row.refill_date,
+            isActive: row.is_active === 1,
+            notes: row.notes,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            mims: mimsData,
+          };
+        })
+      );
 
       set({ medications: formatted, isLoading: false });
     } catch (error) {
@@ -111,7 +109,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
           d.notes AS dose_notes,
           d.created_at AS dose_created_at,
           m.id AS medication_id_real,
-          m.mims_id,
+          m.registration_no,
           m.user_dosage,
           m.frequency,
           m.times,
@@ -122,55 +120,67 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
           m.is_active,
           m.notes AS medication_notes,
           m.created_at AS medication_created_at,
-          m.updated_at AS medication_updated_at,
-          mc.generic_name,
-          mc.brand_name,
-          mc.strength,
-          mc.dosage_form,
-          mc.food_instructions,
-          mc.last_updated AS mims_last_updated
+          m.updated_at AS medication_updated_at
         FROM doses d
         JOIN medications m ON d.medication_id = m.id
-        JOIN mims_cache mc ON m.mims_id = mc.id
         WHERE DATE(d.scheduled_time) = ?
         ORDER BY d.scheduled_time ASC
       `, [today]);
 
-      const formatted: DoseWithMedication[] = doses.map((row) => ({
-        id: row.dose_id,
-        medicationId: row.medication_id,
-        scheduledTime: row.scheduled_time,
-        actualTime: row.actual_time,
-        status: row.status as DoseStatus,
-        notes: row.dose_notes,
-        createdAt: row.dose_created_at,
-        medication: {
-          id: row.medication_id,
-          mimsId: row.mims_id,
-          userDosage: row.user_dosage,
-          frequency: row.frequency,
-          times: JSON.parse(row.times),
-          withFood: row.with_food,
-          startDate: row.start_date,
-          endDate: row.end_date,
-          refillDate: row.refill_date,
-          isActive: row.is_active === 1,
-          notes: row.medication_notes,
+      // Fetch medicine details from API for each unique medication
+      const uniqueRegistrationNos = [...new Set(doses.map(d => d.registration_no).filter(Boolean))];
+      const medicineDetailsMap = new Map<string, any>();
+
+      await Promise.all(
+        uniqueRegistrationNos.map(async (regNo) => {
+          try {
+            const details = await getMedicineDetails(regNo);
+            if (details) {
+              medicineDetailsMap.set(regNo, details);
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch medicine details for ${regNo}:`, error);
+          }
+        })
+      );
+
+      const formatted: DoseWithMedication[] = doses.map((row) => {
+        const medicineDetails = medicineDetailsMap.get(row.registration_no) || {
+          id: row.registration_no,
+          genericName: row.registration_no || 'Unknown',
+          brandName: 'Medicine details unavailable',
+          source: 'PNF',
+          lastUpdated: new Date().toISOString(),
           createdAt: row.medication_created_at,
-          updatedAt: row.medication_updated_at,
-          mims: {
-            id: row.mims_id,
-            genericName: row.generic_name,
-            brandName: row.brand_name,
-            strength: row.strength,
-            dosageForm: row.dosage_form,
-            foodInstructions: row.food_instructions,
-            source: 'MIMS',
-            lastUpdated: row.mims_last_updated || new Date().toISOString(),
+          activeIngredients: [],
+        };
+
+        return {
+          id: row.dose_id,
+          medicationId: row.medication_id,
+          scheduledTime: row.scheduled_time,
+          actualTime: row.actual_time,
+          status: row.status as DoseStatus,
+          notes: row.dose_notes,
+          createdAt: row.dose_created_at,
+          medication: {
+            id: row.medication_id,
+            registrationNo: row.registration_no,
+            userDosage: row.user_dosage,
+            frequency: row.frequency,
+            times: JSON.parse(row.times),
+            withFood: row.with_food,
+            startDate: row.start_date,
+            endDate: row.end_date,
+            refillDate: row.refill_date,
+            isActive: row.is_active === 1,
+            notes: row.medication_notes,
             createdAt: row.medication_created_at,
+            updatedAt: row.medication_updated_at,
+            mims: medicineDetails,
           },
-        },
-      }));
+        };
+      });
 
       set({ todayDoses: formatted, isLoading: false });
     } catch (error) {
@@ -196,7 +206,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
           d.notes AS dose_notes,
           d.created_at AS dose_created_at,
           m.id AS medication_id_real,
-          m.mims_id,
+          m.registration_no,
           m.user_dosage,
           m.frequency,
           m.times,
@@ -207,55 +217,67 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
           m.is_active,
           m.notes AS medication_notes,
           m.created_at AS medication_created_at,
-          m.updated_at AS medication_updated_at,
-          mc.generic_name,
-          mc.brand_name,
-          mc.strength,
-          mc.dosage_form,
-          mc.food_instructions,
-          mc.last_updated AS mims_last_updated
+          m.updated_at AS medication_updated_at
         FROM doses d
         JOIN medications m ON d.medication_id = m.id
-        JOIN mims_cache mc ON m.mims_id = mc.id
         WHERE DATE(d.scheduled_time) BETWEEN ? AND ?
         ORDER BY d.scheduled_time ASC
       `, [start, end]);
 
-      const formatted: DoseWithMedication[] = doses.map((row) => ({
-        id: row.dose_id,
-        medicationId: row.medication_id,
-        scheduledTime: row.scheduled_time,
-        actualTime: row.actual_time,
-        status: row.status as DoseStatus,
-        notes: row.dose_notes,
-        createdAt: row.dose_created_at,
-        medication: {
-          id: row.medication_id,
-          mimsId: row.mims_id,
-          userDosage: row.user_dosage,
-          frequency: row.frequency,
-          times: JSON.parse(row.times),
-          withFood: row.with_food,
-          startDate: row.start_date,
-          endDate: row.end_date,
-          refillDate: row.refill_date,
-          isActive: row.is_active === 1,
-          notes: row.medication_notes,
+      // Fetch medicine details from API for each unique medication
+      const uniqueRegistrationNos = [...new Set(doses.map(d => d.registration_no).filter(Boolean))];
+      const medicineDetailsMap = new Map<string, any>();
+
+      await Promise.all(
+        uniqueRegistrationNos.map(async (regNo) => {
+          try {
+            const details = await getMedicineDetails(regNo);
+            if (details) {
+              medicineDetailsMap.set(regNo, details);
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch medicine details for ${regNo}:`, error);
+          }
+        })
+      );
+
+      const formatted: DoseWithMedication[] = doses.map((row) => {
+        const medicineDetails = medicineDetailsMap.get(row.registration_no) || {
+          id: row.registration_no,
+          genericName: row.registration_no || 'Unknown',
+          brandName: 'Medicine details unavailable',
+          source: 'PNF',
+          lastUpdated: new Date().toISOString(),
           createdAt: row.medication_created_at,
-          updatedAt: row.medication_updated_at,
-          mims: {
-            id: row.mims_id,
-            genericName: row.generic_name,
-            brandName: row.brand_name,
-            strength: row.strength,
-            dosageForm: row.dosage_form,
-            foodInstructions: row.food_instructions,
-            source: 'MIMS',
-            lastUpdated: row.mims_last_updated || new Date().toISOString(),
+          activeIngredients: [],
+        };
+
+        return {
+          id: row.dose_id,
+          medicationId: row.medication_id,
+          scheduledTime: row.scheduled_time,
+          actualTime: row.actual_time,
+          status: row.status as DoseStatus,
+          notes: row.dose_notes,
+          createdAt: row.dose_created_at,
+          medication: {
+            id: row.medication_id,
+            registrationNo: row.registration_no,
+            userDosage: row.user_dosage,
+            frequency: row.frequency,
+            times: JSON.parse(row.times),
+            withFood: row.with_food,
+            startDate: row.start_date,
+            endDate: row.end_date,
+            refillDate: row.refill_date,
+            isActive: row.is_active === 1,
+            notes: row.medication_notes,
             createdAt: row.medication_created_at,
+            updatedAt: row.medication_updated_at,
+            mims: medicineDetails,
           },
-        },
-      }));
+        };
+      });
 
       set({ todayDoses: formatted, isLoading: false });
     } catch (error) {
@@ -270,17 +292,16 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       const id = `med_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const now = new Date().toISOString();
 
-      // Optimistic update: reload from database to get MIMS data
-      // (We need the JOIN data, so a full reload is necessary here)
       await db.runAsync(
         `INSERT INTO medications (
-          id, mims_id, user_dosage, frequency, times, with_food,
+          id, mims_id, registration_no, user_dosage, frequency, times, with_food,
           start_date, end_date, refill_date, is_active, notes,
           created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
-          medication.mimsId,
+          (medication as any).registrationNo || `custom_${Date.now()}`, // For backward compatibility
+          (medication as any).registrationNo || `custom_${Date.now()}`,
           medication.userDosage,
           medication.frequency,
           JSON.stringify(medication.times),

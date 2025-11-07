@@ -1,7 +1,7 @@
 import initSqlJs, { Database } from 'sql.js';
 import { getDatabaseKey } from './encryption';
 
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const DB_NAME = 'mykencing_web';
 const INDEXED_DB_KEY = 'mykencing_encrypted_db';
 
@@ -241,6 +241,9 @@ async function runMigrations(database: Database): Promise<void> {
   if (currentVersion < 2) {
     await applyMigration2(database);
   }
+  if (currentVersion < 3) {
+    await applyMigration3(database);
+  }
 
   await persistDatabase();
 }
@@ -365,6 +368,80 @@ async function applyMigration2(database: Database): Promise<void> {
 }
 
 /**
+ * Migration 3: Change from mims_id to registration_no
+ * Move from local MIMS cache to API-only medicine data
+ */
+function applyMigration3(database: Database): void {
+  console.log('[database.web] Migration 3: Dropping FK constraint and adding registration_no');
+
+  // First, check if we already migrated
+  try {
+    const result = database.exec("PRAGMA table_info(medications)");
+    const columns = result[0]?.values || [];
+    const hasRegistrationNo = columns.some((col: any[]) => col[1] === 'registration_no');
+
+    if (hasRegistrationNo) {
+      console.log('[database.web] Migration 3 already applied');
+      return;
+    }
+  } catch (error) {
+    console.warn('[database.web] Could not check table info:', error);
+  }
+
+  // Create new table without foreign key
+  database.exec(`
+    CREATE TABLE medications_new (
+      id TEXT PRIMARY KEY,
+      mims_id TEXT, -- Nullable, no FK constraint
+      registration_no TEXT,
+      user_dosage TEXT NOT NULL,
+      frequency INTEGER NOT NULL,
+      times TEXT NOT NULL,
+      with_food INTEGER NOT NULL DEFAULT 0,
+      start_date TEXT NOT NULL,
+      end_date TEXT,
+      refill_date TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      notes TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+
+  // Copy all existing data, setting registration_no = mims_id for backward compatibility
+  database.exec(`
+    INSERT INTO medications_new (
+      id, mims_id, registration_no, user_dosage, frequency, times, with_food,
+      start_date, end_date, refill_date, is_active, notes, created_at, updated_at
+    )
+    SELECT
+      id, mims_id, mims_id, user_dosage, frequency, times, with_food,
+      start_date, end_date, refill_date, is_active, notes, created_at, updated_at
+    FROM medications;
+  `);
+
+  // Drop old table and rename new one
+  database.exec(`
+    DROP TABLE medications;
+    ALTER TABLE medications_new RENAME TO medications;
+
+    -- Recreate indexes
+    CREATE INDEX IF NOT EXISTS idx_medications_active ON medications(is_active);
+    CREATE INDEX IF NOT EXISTS idx_medications_start_date ON medications(start_date);
+    CREATE INDEX IF NOT EXISTS idx_medications_registration_no ON medications(registration_no);
+  `);
+
+  console.log('[database.web] Migration 3 completed successfully');
+
+  database.run(
+    'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+    [3, new Date().toISOString()]
+  );
+
+  console.log('[database.web] Migration 3 applied successfully');
+}
+
+/**
  * Clear all data (for testing or user data deletion)
  */
 export async function clearAllData(): Promise<void> {
@@ -377,6 +454,49 @@ export async function clearAllData(): Promise<void> {
     DELETE FROM mims_cache;
   `);
   console.log('[database.web] All data cleared');
+}
+
+/**
+ * Force database reset (for migration issues)
+ * Call this if you need to run migrations on existing data
+ */
+export async function forceDatabaseReset(): Promise<void> {
+  console.log('[database.web] Force resetting database...');
+
+  // Clear IndexedDB
+  try {
+    const idb = await openIndexedDB();
+    const transaction = idb.transaction(['database'], 'readwrite');
+    const store = transaction.objectStore('database');
+    await store.clear();
+    console.log('[database.web] IndexedDB cleared');
+  } catch (error) {
+    console.warn('[database.web] Could not clear IndexedDB:', error);
+  }
+
+  // Force re-run migrations by clearing db instance
+  db = null;
+
+  // Reinitialize
+  await initDatabase();
+  console.log('[database.web] Database reset complete');
+}
+
+/**
+ * Check if database needs migration 3
+ * Returns true if migration 3 hasn't run yet
+ */
+export async function needsMigration3(): Promise<boolean> {
+  try {
+    const database = getDatabase();
+    const result = database.exec("PRAGMA table_info(medications)");
+    const columns = result[0]?.values || [];
+    const hasRegistrationNo = columns.some((col: any[]) => col[1] === 'registration_no');
+    return !hasRegistrationNo;
+  } catch (error) {
+    console.warn('[database.web] Could not check migration status:', error);
+    return true; // Assume migration needed if we can't check
+  }
 }
 
 /**

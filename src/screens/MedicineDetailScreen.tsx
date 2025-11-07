@@ -27,8 +27,8 @@ export default function MedicineDetailScreen() {
   useEffect(() => {
     (async () => {
       if (!med) return;
-      const mimsIds = [med, ...coMeds].map(m => m.mimsId);
-      const res = await checkDrugInteractions(mimsIds);
+      const registrationNos = [med, ...coMeds].map(m => m.registrationNo).filter(Boolean);
+      const res = await checkDrugInteractions(registrationNos);
       setInteractions(res.interactions || []);
     })();
   }, [med, coMeds]);

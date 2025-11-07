@@ -270,8 +270,8 @@ export async function scheduleMedicationReminders(
 ): Promise<void> {
   await scheduleMedicationNotifications(
     medication.id,
-    // Use brand or generic if available via joined data; fallback to mimsId string
-    (medication as any)?.mims?.brandName || (medication as any)?.mims?.genericName || medication.mimsId,
+    // Use brand or generic if available via joined data; fallback to registration number
+    (medication as any)?.mims?.brandName || (medication as any)?.mims?.genericName || medication.registrationNo,
     medication.userDosage,
     medication.times,
     undefined
@@ -466,15 +466,13 @@ export async function checkForMissedDoses(): Promise<void> {
     scheduled_time: string;
     user_dosage: string;
     times: string;
-    brand_name: string;
-    generic_name: string;
+    registration_no: string;
   }>(
-    `SELECT d.id, d.medication_id, d.scheduled_time, m.user_dosage, m.times, mc.brand_name, mc.generic_name
+    `SELECT d.id, d.medication_id, d.scheduled_time, m.user_dosage, m.times, m.registration_no
      FROM doses d
      JOIN medications m ON d.medication_id = m.id
-     JOIN mims_cache mc ON m.mims_id = mc.id
-     WHERE d.status = 'pending' 
-     AND d.scheduled_time <= ? 
+     WHERE d.status = 'pending'
+     AND d.scheduled_time <= ?
      AND d.scheduled_time >= ?
      LIMIT 5`,
     [thirtyMinsAgo, fourHoursAgo]
@@ -483,7 +481,7 @@ export async function checkForMissedDoses(): Promise<void> {
   // Only send follow-up if there are pending doses
   if (pending.length > 0) {
     for (const row of pending) {
-      const medName = row.brand_name || row.generic_name;
+      const medName = row.registration_no || 'your medication';
       await Notifications.scheduleNotificationAsync({
         content: {
           title: `Did you take ${medName}?`,

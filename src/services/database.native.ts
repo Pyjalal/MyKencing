@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 
 // Database version for migrations
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const DB_NAME = 'mykencing.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -80,6 +80,9 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
   }
   if (currentVersion < 2) {
     await applyMigration2(database);
+  }
+  if (currentVersion < 3) {
+    await applyMigration3(database);
   }
 }
 
@@ -206,6 +209,90 @@ async function applyMigration2(database: SQLite.SQLiteDatabase): Promise<void> {
 }
 
 /**
+ * Migration 3: Change from mims_id to registration_no
+ * Move from local MIMS cache to API-only medicine data
+ */
+async function applyMigration3(database: SQLite.SQLiteDatabase): Promise<void> {
+  console.log('[database.native] Migration 3: Dropping FK constraint and adding registration_no');
+
+  // First, check if we already migrated
+  try {
+    const result = await database.getAllAsync(`PRAGMA table_info(medications)`);
+    const hasRegistrationNo = result.some((col: any) => col.name === 'registration_no');
+
+    if (hasRegistrationNo) {
+      console.log('[database.native] Migration 3 already applied');
+      return;
+    }
+  } catch (error) {
+    console.warn('[database.native] Could not check table info:', error);
+  }
+
+  // Disable foreign key checks temporarily
+  await database.execAsync('PRAGMA foreign_keys = OFF;');
+
+  try {
+    // Create new table without foreign key
+    await database.execAsync(`
+      CREATE TABLE medications_new (
+        id TEXT PRIMARY KEY,
+        mims_id TEXT, -- Nullable, no FK constraint
+        registration_no TEXT,
+        user_dosage TEXT NOT NULL,
+        frequency INTEGER NOT NULL,
+        times TEXT NOT NULL,
+        with_food INTEGER NOT NULL DEFAULT 0,
+        start_date TEXT NOT NULL,
+        end_date TEXT,
+        refill_date TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+
+    // Copy all existing data, setting registration_no = mims_id for backward compatibility
+    await database.execAsync(`
+      INSERT INTO medications_new (
+        id, mims_id, registration_no, user_dosage, frequency, times, with_food,
+        start_date, end_date, refill_date, is_active, notes, created_at, updated_at
+      )
+      SELECT
+        id, mims_id, mims_id, user_dosage, frequency, times, with_food,
+        start_date, end_date, refill_date, is_active, notes, created_at, updated_at
+      FROM medications;
+    `);
+
+    // Drop old table and rename new one
+    await database.execAsync(`
+      DROP TABLE medications;
+      ALTER TABLE medications_new RENAME TO medications;
+    `);
+
+    // Recreate indexes
+    await database.execAsync(`
+      CREATE INDEX IF NOT EXISTS idx_medications_active ON medications(is_active);
+      CREATE INDEX IF NOT EXISTS idx_medications_start_date ON medications(start_date);
+      CREATE INDEX IF NOT EXISTS idx_medications_registration_no ON medications(registration_no);
+    `);
+
+    console.log('[database.native] Migration 3 completed successfully');
+  } finally {
+    // Re-enable foreign key checks
+    await database.execAsync('PRAGMA foreign_keys = ON;');
+  }
+
+  // Insert migration record
+  await database.runAsync(
+    'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+    [3, new Date().toISOString()]
+  );
+
+  console.log('Migration 3 applied successfully');
+}
+
+/**
  * Clear all data (for testing or user data deletion)
  */
 export async function clearAllData(): Promise<void> {
@@ -218,6 +305,49 @@ export async function clearAllData(): Promise<void> {
     DELETE FROM mims_cache;
   `);
   console.log('All data cleared');
+}
+
+/**
+ * Force database reset (for migration issues)
+ * Call this if you need to run migrations on existing data
+ */
+export async function forceDatabaseReset(): Promise<void> {
+  console.log('[database.native] Force resetting database...');
+
+  // Close current connection
+  if (db) {
+    await db.closeAsync();
+    db = null;
+  }
+
+  // Delete database file (SQLite only)
+  const dbPath = `mykencing.db`;
+  try {
+    await SQLite.deleteDatabaseAsync(dbPath);
+    console.log('[database.native] Database file deleted');
+  } catch (error) {
+    console.warn('[database.native] Could not delete database file:', error);
+  }
+
+  // Reinitialize
+  await initDatabase();
+  console.log('[database.native] Database reset complete');
+}
+
+/**
+ * Check if database needs migration 3
+ * Returns true if migration 3 hasn't run yet
+ */
+export async function needsMigration3(): Promise<boolean> {
+  try {
+    const database = getDatabase();
+    const result = await database.getAllAsync(`PRAGMA table_info(medications)`);
+    const hasRegistrationNo = result.some((col: any) => col.name === 'registration_no');
+    return !hasRegistrationNo;
+  } catch (error) {
+    console.warn('[database.native] Could not check migration status:', error);
+    return true; // Assume migration needed if we can't check
+  }
 }
 
 /**

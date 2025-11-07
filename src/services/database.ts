@@ -31,6 +31,20 @@ export async function clearAllData(): Promise<void> {
 }
 
 /**
+ * Force database reset (for migration issues)
+ */
+export async function forceDatabaseReset(): Promise<void> {
+  return databaseModule.forceDatabaseReset();
+}
+
+/**
+ * Check if database needs migration 3
+ */
+export async function needsMigration3(): Promise<boolean> {
+  return databaseModule.needsMigration3();
+}
+
+/**
  * Export database for debugging
  */
 export async function exportDatabaseStats(): Promise<any> {

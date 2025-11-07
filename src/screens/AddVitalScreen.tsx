@@ -23,7 +23,7 @@ type AddVitalScreenProps = {
 
 export default function AddVitalScreen({ navigation, route }: AddVitalScreenProps) {
   const { t } = useTranslation();
-  const { type } = route.params;
+  const { type } = route.params || {};
   const { addBloodPressure, addGlucose, addWeight, isLoading } = useVitalsStore();
 
   // Blood Pressure fields

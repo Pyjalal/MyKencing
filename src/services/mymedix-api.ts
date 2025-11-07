@@ -45,7 +45,7 @@ function convertApiMedicineToSearchResult(apiMedicine: ApiMedicine): MIMSSearchR
     strength,
     dosageForm,
     confidence: 0.9, // High confidence from API
-    activeIngredients: apiMedicine.activeIngredients,
+    activeIngredients: apiMedicine.activeIngredients || [],
   };
 }
 
@@ -93,11 +93,11 @@ export async function batchSearchMedicines(
     // Convert results
     const resultMap = new Map<string, MIMSSearchResult[]>();
     
-    for (const [query, apiMedicines] of apiResultsMap.entries()) {
+    for (const [query, apiMedicines] of Array.from(apiResultsMap.entries())) {
       const results = apiMedicines
         .slice(0, limit)
         .map(convertApiMedicineToSearchResult);
-      
+
       resultMap.set(query, results);
     }
     
@@ -109,25 +109,39 @@ export async function batchSearchMedicines(
 }
 
 /**
- * Get medicine details by ID from MyMedix API
+ * Get medicine details by registration number from MyMedix API
  */
-export async function getMedicineDetails(id: string): Promise<MIMSMedicine | null> {
+export async function getMedicineDetails(registrationNo: string): Promise<MIMSMedicine | null> {
   try {
-    const apiMedicine = await apiClient.getMedicineDetails(id);
-    
+    const apiMedicine = await apiClient.getMedicineDetails(registrationNo);
+
     if (!apiMedicine) {
       return null;
     }
 
+    // Extract strength and dosage form from medicine name
+    let strength = '';
+    let dosageForm = '';
+
+    // Try to extract strength (ends with MG, ML, MCG, etc.)
+    const strengthMatch = apiMedicine.name.match(/(\d+(?:\.\d+)?(?:MG|ML|MCG|G|IU))/i);
+    if (strengthMatch) {
+      strength = strengthMatch[1];
+    }
+
+    // Try to extract dosage form
+    const dosageFormMatch = apiMedicine.name.match(/(TABLET|CAPSULE|SYRUP|INJECTION|CREAM|OINTMENT|SUSPENSION)/i);
+    if (dosageFormMatch) {
+      dosageForm = dosageFormMatch[1];
+    }
+
     // Convert API medicine to full medicine details
-    // Note: MyMedix API currently returns basic info, not full clinical data
-    // Full clinical data (warnings, side effects, etc.) would need additional API endpoints
     return {
-      id: apiMedicine.id,
+      id: apiMedicine.id, // Registration number
       genericName: apiMedicine.activeIngredients[0] || apiMedicine.name,
       brandName: apiMedicine.name,
-      strength: undefined, // Would come from API if available
-      dosageForm: undefined, // Would come from API if available
+      strength,
+      dosageForm,
       instructions: undefined, // Would need clinical data endpoint
       timing: undefined,
       foodInstructions: undefined,
@@ -139,6 +153,7 @@ export async function getMedicineDetails(id: string): Promise<MIMSMedicine | nul
       source: 'PNF', // Data from Malaysian pharmaceutical registry
       lastUpdated: new Date().toISOString(),
       createdAt: new Date().toISOString(),
+      activeIngredients: apiMedicine.activeIngredients,
     };
   } catch (error) {
     console.error('Error getting medicine details:', error);
@@ -199,3 +214,6 @@ export async function getMedicineRecommendations(
 // Legacy exports for backward compatibility with existing code
 export const searchMIMS = searchMedicines;
 export const getMIMSMedicine = getMedicineDetails;
+// Main exports with clear naming
+export const searchMyMedixMedicines = searchMedicines;
+export const getMyMedixMedicine = getMedicineDetails;

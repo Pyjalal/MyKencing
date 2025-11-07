@@ -4,7 +4,7 @@
  */
 
 import * as ImageManipulator from 'expo-image-manipulator';
-import { ExtractedMedicine } from '../types';
+import { ExtractedMedicine, MIMSSearchResult } from '../types';
 import { parsePrescriptionText } from './ner';
 import { batchSearchMedicines } from './mymedix-api';
 import { similarity } from '../utils/fuzzyMatch';
@@ -202,50 +202,57 @@ export async function scanPrescription(imageUri: string): Promise<ExtractedMedic
     // Step 4: Batch search all extracted names via MyMedix API (single batch request)
     console.log('OCR: Batch searching medicines via API...');
     const medicineNames = parsed.map(item => item.name);
-    
+
     try {
       // Use batch search for efficiency - one request instead of N requests
       const searchResults = await batchSearchMedicines(medicineNames, 10);
-      
+
       // Match extracted medicines with API results
       const results: ExtractedMedicine[] = [];
-      
+
       for (const item of parsed) {
         const candidates = searchResults.get(item.name) || [];
-        let bestConfidence = item.confidence;
-        let bestMatch = item.name;
-        
-        if (candidates.length > 0) {
-          console.log(`OCR: Found ${candidates.length} candidates for "${item.name}"`);
-          
-          // Find best match using fuzzy similarity
-          const best = candidates
-            .map(c => {
-              const candName = c.brandName || c.genericName;
-              const score = similarity(item.name, candName || '');
-              return { c, candName, score };
-            })
-            .sort((a, b) => b.score - a.score)[0];
-          
-          if (best && best.score > 0.5) { // Only use if similarity is decent
-            bestConfidence = Math.max(bestConfidence, best.score);
-            bestMatch = best.candName;
-            console.log(`OCR: Best match for "${item.name}": "${bestMatch}" (similarity: ${best.score.toFixed(2)})`);
+        const apiMatches: MIMSSearchResult[] = [];
+
+        console.log(`OCR: Found ${candidates.length} candidates for "${item.name}"`);
+
+        // Add candidates as potential matches
+        candidates.forEach(candidate => {
+          // Only include medicines with valid IDs
+          if (!candidate.id || candidate.id.trim() === '') {
+            return;
           }
-        } else {
-          console.warn(`OCR: No candidates found for "${item.name}", using extracted name`);
-        }
-        
-        results.push({
-          name: bestMatch,
-          strength: item.strength,
-          dosageForm: item.dosageForm,
-          dosage: item.dosage,
-          frequency: item.frequency,
-          confidence: Math.min(0.99, bestConfidence),
+
+          const candName = candidate.brandName || candidate.genericName;
+          const score = similarity(item.name, candName || '');
+
+          // Only include matches with confidence >= 70%
+          if (score >= 0.7) {
+            apiMatches.push({
+              ...candidate,
+              confidence: Math.min(0.99, score), // Override confidence with similarity score
+            });
+          }
         });
+
+        // Sort matches by confidence (highest first) and limit to top 5
+        apiMatches.sort((a, b) => (b.confidence || 0) - (a.confidence || 0));
+        const top5Matches = apiMatches.slice(0, 5);
+
+        // Only include extracted medicines that have at least one valid match
+        if (top5Matches.length > 0) {
+          results.push({
+            name: item.name,
+            strength: item.strength,
+            dosageForm: item.dosageForm,
+            dosage: item.dosage,
+            frequency: item.frequency,
+            confidence: item.confidence,
+            apiMatches: top5Matches,
+          });
+        }
       }
-      
+
       return results;
     } catch (searchError) {
       console.error('OCR: Batch search failed:', searchError);

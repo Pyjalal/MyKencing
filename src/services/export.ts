@@ -8,6 +8,7 @@ import * as Sharing from 'expo-sharing';
 import { VitalType } from '../types';
 import { getDatabase } from './database';
 import { ExportData } from '../types';
+import { getMedicineDetails } from './mymedix-api';
 
 /**
  * Generate HTML for PDF report
@@ -353,47 +354,55 @@ export async function gatherExportData(
   const periodStart = new Date();
   periodStart.setDate(periodStart.getDate() - periodDays);
 
-  // Get medications with MIMS details
+  // Get medications
   const medications = await db.getAllAsync(
-    `SELECT m.*, mims.*
+    `SELECT m.*
      FROM medications m
-     JOIN mims_cache mims ON m.mims_id = mims.id
      WHERE m.is_active = 1`
   );
 
-  const medicationsWithDetails = medications.map((med: any) => ({
-    id: med.id,
-    mimsId: med.mims_id,
-    userDosage: med.user_dosage,
-    frequency: med.frequency,
-    times: JSON.parse(med.times),
-    withFood: med.with_food,
-    startDate: med.start_date,
-    endDate: med.end_date,
-    refillDate: med.refill_date,
-    isActive: med.is_active === 1,
-    notes: med.notes,
-    createdAt: med.created_at,
-    updatedAt: med.updated_at,
-    mims: {
-      id: med.id,
-      genericName: med.generic_name,
-      brandName: med.brand_name,
-      strength: med.strength,
-      dosageForm: med.dosage_form,
-      instructions: med.instructions,
-      timing: med.timing,
-      foodInstructions: med.food_instructions,
-      warnings: med.warnings,
-      sideEffects: med.side_effects,
-      contraindications: med.contraindications,
-      drugInteractions: med.drug_interactions,
-      foodInteractions: med.food_interactions,
-      source: med.source as 'MIMS' | 'PNF',
-      lastUpdated: med.last_updated,
-      createdAt: med.created_at,
-    },
-  }));
+  // Fetch medicine details from API for each medication
+  const medicationsWithDetails = await Promise.all(
+    medications.map(async (med: any) => {
+      let mimsData: any = {
+        id: med.registration_no,
+        genericName: 'Unknown Medicine',
+        brandName: 'Medicine details unavailable',
+        source: 'PNF',
+        lastUpdated: new Date().toISOString(),
+        createdAt: med.created_at,
+        activeIngredients: [],
+      };
+
+      // Try to fetch medicine details from API
+      if (med.registration_no) {
+        try {
+          const medicineDetails = await getMedicineDetails(med.registration_no);
+          if (medicineDetails) {
+            mimsData = medicineDetails;
+          }
+        } catch (apiError) {
+          console.warn(`Failed to fetch medicine details for ${med.registration_no}:`, apiError);
+        }
+      }
+
+      return {
+        id: med.id,
+        registrationNo: med.registration_no,
+        userDosage: med.user_dosage,
+        frequency: med.frequency,
+        times: JSON.parse(med.times),
+        withFood: med.with_food,
+        startDate: med.start_date,
+        endDate: med.end_date,
+        refillDate: med.refill_date,
+        isActive: med.is_active === 1,
+        notes: med.notes,
+        createdAt: med.created_at,
+        updatedAt: med.updated_at,
+        mims: mimsData,
+      };
+    }));
 
   // Get adherence summaries
   const adherenceSummaries = await Promise.all(

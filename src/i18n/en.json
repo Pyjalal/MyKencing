@@ -186,7 +186,13 @@
     "grant_permission": "Grant Permission",
     "processing_prescription": "Processing prescription...",
     "retake": "Retake",
-    "position_prescription_within_frame": "Position prescription within the frame"
+    "position_prescription_within_frame": "Position prescription within the frame",
+    "select_medicine": "Select Medicine",
+    "select_best_match": "Select the best match from {{count}} results",
+    "confirm_selection": "Confirm Selection",
+    "skip_and_enter_manually": "Skip and Enter Manually",
+    "select_medicine_title": "No Selection",
+    "select_medicine_message": "Please select a medicine before continuing."
   },
   "vitals": {
     "search_here": "Search here...",

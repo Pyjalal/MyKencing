@@ -197,6 +197,15 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unable to read response');
+        console.error('API Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url,
+          method: 'POST',
+          body: JSON.stringify({ medicineIds, foodDrinkTobacco }),
+          response: errorText
+        });
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
 
