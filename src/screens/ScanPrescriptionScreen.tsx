@@ -60,7 +60,7 @@ export default function ScanPrescriptionScreen() {
             { text: t('add_vital.cancel'), style: 'cancel' },
             {
               text: t('scan.manual_entry'),
-              onPress: () => navigation.navigate('AddMedicine'),
+              onPress: () => navigation.navigate('Home', { screen: 'AddMedicine' }),
             },
           ]
         );
@@ -68,7 +68,26 @@ export default function ScanPrescriptionScreen() {
         return;
       }
 
-      navigation.navigate('AddMedicine', { scannedData: extracted });
+      // Check if we need user selection
+      const needsSelection = extracted.some(med =>
+        !med.apiMatches ||
+        med.apiMatches.length === 0 ||
+        med.apiMatches.length > 1 ||
+        (med.apiMatches.length === 1 && (med.apiMatches[0].confidence || 0) < 0.8)
+      );
+
+      if (needsSelection) {
+        // Navigate to selection screen for user to choose
+        navigation.navigate('SelectScannedMedicine', { extractedMedicines: extracted });
+      } else {
+        // Auto-fill with the single high-confidence match
+        const selectedMedicine = extracted[0].apiMatches![0];
+        navigation.navigate('Home', { 
+          screen: 'AddMedicine', 
+          params: { selectedMedicine } 
+        });
+      }
+
       setIsProcessing(false);
     } catch (error) {
       console.error('Error taking picture:', error);
@@ -151,7 +170,7 @@ export default function ScanPrescriptionScreen() {
 
         <TouchableOpacity
           style={styles.manualButton}
-          onPress={() => navigation.navigate('AddMedicine')}
+          onPress={() => navigation.navigate('Home', { screen: 'AddMedicine' })}
         >
           <Text style={styles.manualButtonText}>
             {t('scan.manual_entry')}

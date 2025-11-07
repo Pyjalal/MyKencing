@@ -7,12 +7,15 @@ This guide explains how to generate and configure Android signing for release bu
 Run this command on your local machine to generate a keystore file:
 
 ```bash
-keytool -genkeypair -v -storetype PKCS12 -keystore mykencing-release.keystore \
+keytool -genkeypair -v -storetype PKCS12 -J-Dkeystore.pkcs12.legacy=true \
+  -keystore mykencing-release.keystore \
   -alias mykencing-key-alias \
   -keyalg RSA \
   -keysize 2048 \
   -validity 10000
 ```
+
+**IMPORTANT NOTE:** The `-J-Dkeystore.pkcs12.legacy=true` flag is crucial for compatibility with the Android Gradle Plugin. It prevents a build failure with the error "Tag number over 30 is not supported".
 
 **When prompted, provide:**
 - Keystore password (save this securely!)

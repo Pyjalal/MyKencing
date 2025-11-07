@@ -7,15 +7,15 @@
 // ----------------------------------------------------------------------------
 
 /**
- * MIMS medicine data cached locally
- * Source: MIMS Malaysia or PNF
+ * Medicine data from MyMedix API
+ * Source: Malaysian Pharmaceutical Services Programme (via MyMedix API)
  */
 export interface MIMSMedicine {
-  id: string;
-  genericName: string;
-  brandName?: string;
-  strength?: string;
-  dosageForm?: string; // tablet, capsule, injection, etc.
+  id: string; // Registration number
+  genericName: string; // Primary active ingredient
+  brandName?: string; // Medicine name from API
+  strength?: string; // Extracted from medicine name
+  dosageForm?: string; // Extracted from medicine name (tablet, capsule, etc.)
   instructions?: string;
   timing?: string; // morning, evening, twice daily, etc.
   foodInstructions?: string; // with food, after food, empty stomach
@@ -24,21 +24,23 @@ export interface MIMSMedicine {
   contraindications?: string;
   drugInteractions?: string;
   foodInteractions?: string; // e.g., avoid alcohol, grapefruit
-  source: 'MIMS' | 'PNF';
+  source: 'PNF'; // All from MyMedix API (Malaysian Pharmaceutical Services)
   lastUpdated: string; // ISO date string
   createdAt: string;
+  activeIngredients: string[]; // From MyMedix API
 }
 
 /**
- * MIMS search result (for autocomplete/search)
+ * Medicine search result from API (for autocomplete/search)
  */
 export interface MIMSSearchResult {
-  id: string;
-  genericName: string;
-  brandName?: string;
-  strength?: string;
-  dosageForm?: string;
+  id: string; // Registration number
+  genericName: string; // Primary active ingredient
+  brandName?: string; // Medicine name from API
+  strength?: string; // Extracted from medicine name
+  dosageForm?: string; // Extracted from medicine name
   confidence?: number; // 0-1, for OCR matches
+  activeIngredients: string[]; // From MyMedix API
 }
 
 // ----------------------------------------------------------------------------
@@ -61,7 +63,7 @@ export enum FoodTiming {
  */
 export interface Medication {
   id: string;
-  mimsId: string;
+  registrationNo: string; // Malaysian medicine registration number (e.g., MAL12345678A)
   userDosage: string; // e.g., "1 tablet", "500mg"
   frequency: number; // times per day
   times: string[]; // array of time strings, e.g., ["08:00", "20:00"]
@@ -312,6 +314,7 @@ export interface ExtractedMedicine {
   dosage?: string;
   frequency?: string;
   confidence: number;
+  apiMatches?: MIMSSearchResult[]; // API search results that match this extracted medicine
 }
 
 // ----------------------------------------------------------------------------
@@ -342,11 +345,12 @@ export interface ExportData {
 export type RootStackParamList = {
   Onboarding: undefined;
   PrivacyConsent: undefined;
-  Home: undefined;
+  Home: undefined | { screen: string; params?: any };
   MedicationList: undefined;
-  AddMedicine: { scannedData?: ExtractedMedicine[] };
+  AddMedicine: { scannedData?: ExtractedMedicine[]; selectedMedicine?: MIMSSearchResult };
   MedicineDetail: { medicationId: string };
   ScanPrescription: undefined;
+  SelectScannedMedicine: { extractedMedicines: ExtractedMedicine[] };
   Vitals: undefined;
   AddVital: { type: VitalType };
   RiskAssessment: undefined;

@@ -1,0 +1,28 @@
+{
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": false,
+        "entitlements": {
+          "aps-environment": null
+        }
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      }
+    },
+    "production": {
+      "ios": {
+        "entitlements": {
+          "aps-environment": "production"
+        }
+      }
+    }
+  }
+}
+

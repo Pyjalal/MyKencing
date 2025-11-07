@@ -19,6 +19,7 @@ import VitalsScreen from '../screens/VitalsScreen';
 import AddVitalScreen from '../screens/AddVitalScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ScanPrescriptionScreen from '../screens/ScanPrescriptionScreen';
+import SelectScannedMedicineScreen from '../screens/SelectScannedMedicineScreen';
 import AnalyticsDashboardScreen from '../screens/AnalyticsDashboardScreen';
 import ExportReportScreen from '../screens/ExportReportScreen';
 import RamadanModeScreen from '../screens/RamadanModeScreen';
@@ -145,6 +146,11 @@ export default function AppNavigator() {
           name="ScanPrescription"
           component={ScanPrescriptionScreen}
           options={{ title: 'Scan Prescription' }}
+        />
+        <Stack.Screen
+          name="SelectScannedMedicine"
+          component={SelectScannedMedicineScreen}
+          options={{ title: 'Select Medicine' }}
         />
         <Stack.Screen
           name="Export"

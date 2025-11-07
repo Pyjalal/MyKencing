@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,14 +9,18 @@ import {
   Modal,
   ActivityIndicator,
   Platform,
+  FlatList,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { useNavigation } from '@react-navigation/native';
-import { Medication, FoodTiming } from '../types';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { Medication, FoodTiming, MIMSSearchResult } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { MEDICATION_TIMING } from '../constants/clinical';
 import { scheduleMedicationReminders, createDoseEntries } from '../services/notifications';
-import { ChevronDown } from 'lucide-react-native';
+import { searchMedicines } from '../services/mymedix-api';
+import { ChevronDown, Search, X } from 'lucide-react-native';
 
 // Frequency options
 const FREQUENCY_OPTIONS = [
@@ -50,8 +54,14 @@ const UNIT_OPTIONS = [
   { label: 'puff', value: 'puff' },
 ];
 
+interface RouteParams {
+  selectedMedicine?: MIMSSearchResult;
+}
+
 export default function AddMedicineScreen() {
   const navigation = useNavigation<any>();
+  const route = useRoute();
+  const { selectedMedicine } = (route.params as RouteParams) || {};
   const { addMedication } = useMedicationStore();
 
   // Form state
@@ -65,6 +75,142 @@ export default function AddMedicineScreen() {
   const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<MIMSSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedMedicineFromSearch, setSelectedMedicineFromSearch] = useState<MIMSSearchResult | null>(null);
+
+  // Search function
+  const handleSearch = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const results = await searchMedicines(query, 50);
+      setSearchResults(results);
+      setShowSearchResults(results.length > 0);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+      setShowSearchResults(false);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Handle medicine selection from search
+  const handleMedicineSelect = (medicine: MIMSSearchResult) => {
+    setSelectedMedicineFromSearch(medicine);
+    setSearchQuery(medicine.brandName || medicine.genericName);
+    setShowSearchResults(false);
+
+    // Pre-fill form fields
+    setMedicationName(medicine.brandName || medicine.genericName);
+
+    // Pre-fill dosage from strength (e.g., "500MG" -> "500")
+    if (medicine.strength) {
+      const dosageMatch = medicine.strength.match(/(\d+(?:\.\d+)?)/);
+      if (dosageMatch) {
+        setDosage(dosageMatch[1]);
+      }
+    }
+
+    // Pre-fill unit from strength (e.g., "500MG" -> "mg")
+    if (medicine.strength) {
+      const unitMatch = medicine.strength.match(/(MG|ML|MCG|G|IU)/i);
+      if (unitMatch) {
+        const unitValue = unitMatch[1].toLowerCase();
+        if (unitValue === 'mg') setUnit('mg');
+        else if (unitValue === 'ml') setUnit('ml');
+        else if (unitValue === 'mcg') setUnit('mcg');
+        else if (unitValue === 'g') setUnit('g');
+        else if (unitValue === 'iu') setUnit('iu');
+      }
+    }
+
+    // Pre-fill form from dosage form
+    if (medicine.dosageForm) {
+      const formValue = medicine.dosageForm.toLowerCase();
+      if (formValue.includes('tablet')) setForm('tablet');
+      else if (formValue.includes('capsule')) setForm('capsule');
+      else if (formValue.includes('syrup') || formValue.includes('liquid')) setForm('syrup');
+      else if (formValue.includes('injection')) setForm('injection');
+      else if (formValue.includes('cream') || formValue.includes('ointment')) setForm('cream');
+      else if (formValue.includes('drop')) setForm('drops');
+      else if (formValue.includes('inhaler') || formValue.includes('puff')) setForm('inhaler');
+    }
+
+    // Set default frequency to "once daily" for auto-filled medicines
+    setFrequency('once');
+    setSelectedTimes(MEDICATION_TIMING.onceDailyMorning);
+  };
+
+  // Clear selected medicine
+  const clearSelectedMedicine = () => {
+    setSelectedMedicineFromSearch(null);
+    setSearchQuery('');
+    setSearchResults([]);
+    setShowSearchResults(false);
+    setMedicationName('');
+  };
+
+  // Pre-fill form when medicine is selected from API (OCR)
+  useEffect(() => {
+    if (selectedMedicine) {
+      console.log('AddMedicineScreen: Pre-filling from selectedMedicine', selectedMedicine);
+      
+      // Set it as the selected medicine from search so the registration number is used
+      setSelectedMedicineFromSearch(selectedMedicine);
+      setSearchQuery(selectedMedicine.brandName || selectedMedicine.genericName);
+      
+      // Pre-fill medicine name
+      setMedicationName(selectedMedicine.brandName || selectedMedicine.genericName);
+
+      // Pre-fill dosage from strength (e.g., "500MG" -> "500")
+      if (selectedMedicine.strength) {
+        const dosageMatch = selectedMedicine.strength.match(/(\d+(?:\.\d+)?)/);
+        if (dosageMatch) {
+          setDosage(dosageMatch[1]);
+        }
+      }
+
+      // Pre-fill unit from strength (e.g., "500MG" -> "mg")
+      if (selectedMedicine.strength) {
+        const unitMatch = selectedMedicine.strength.match(/(MG|ML|MCG|G|IU)/i);
+        if (unitMatch) {
+          const unitValue = unitMatch[1].toLowerCase();
+          if (unitValue === 'mg') setUnit('mg');
+          else if (unitValue === 'ml') setUnit('ml');
+          else if (unitValue === 'mcg') setUnit('mcg');
+          else if (unitValue === 'g') setUnit('g');
+          else if (unitValue === 'iu') setUnit('iu');
+        }
+      }
+
+      // Pre-fill form from dosage form
+      if (selectedMedicine.dosageForm) {
+        const formValue = selectedMedicine.dosageForm.toLowerCase();
+        if (formValue.includes('tablet')) setForm('tablet');
+        else if (formValue.includes('capsule')) setForm('capsule');
+        else if (formValue.includes('syrup') || formValue.includes('liquid')) setForm('syrup');
+        else if (formValue.includes('injection')) setForm('injection');
+        else if (formValue.includes('cream') || formValue.includes('ointment')) setForm('cream');
+        else if (formValue.includes('drop')) setForm('drops');
+        else if (formValue.includes('inhaler') || formValue.includes('puff')) setForm('inhaler');
+      }
+
+      // Set default frequency to "once daily" for auto-filled medicines
+      setFrequency('once');
+      setSelectedTimes(MEDICATION_TIMING.onceDailyMorning);
+    }
+  }, [selectedMedicine]);
 
   // Modal states
   const [showUnitPicker, setShowUnitPicker] = useState(false);
@@ -139,7 +285,7 @@ export default function AddMedicineScreen() {
       const times = selectedTimes.length > 0 ? selectedTimes : getTimesForFrequency(frequency);
 
       const medInput: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'> = {
-        mimsId: `custom_${Date.now()}`,
+        registrationNo: selectedMedicineFromSearch?.id || selectedMedicine?.id || `custom_${Date.now()}`,
         userDosage: `${dosage} ${unit}`,
         frequency: freqOption?.times || 1,
         times,
@@ -149,7 +295,7 @@ export default function AddMedicineScreen() {
         refillDate: undefined,
         isActive: true,
         notes: notes || undefined,
-      } as any;
+      };
 
       const newId = await addMedication(medInput);
       await createDoseEntries(newId, times, medInput.startDate);
@@ -271,21 +417,101 @@ export default function AddMedicineScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Medication Name */}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="always"
+        >
+        {/* Medicine Search */}
         <View style={styles.section}>
-          <TextInput
-            style={styles.input}
-            placeholder="Medication Name"
-            placeholderTextColor={Colors.text.tertiary}
-            value={medicationName}
-            onChangeText={setMedicationName}
-          />
+          <Text style={styles.label}>Search Medicine</Text>
+          <View style={styles.searchContainer}>
+            <Search size={20} color={Colors.text.secondary} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Type medicine name..."
+              placeholderTextColor={Colors.text.tertiary}
+              value={searchQuery}
+              onChangeText={(text) => {
+                setSearchQuery(text);
+                handleSearch(text);
+              }}
+              autoCapitalize="words"
+              onFocus={() => {
+                // Don't auto-dismiss keyboard, but prepare for nested scrolling
+              }}
+            />
+            {(selectedMedicineFromSearch || searchQuery.length > 0) && (
+              <TouchableOpacity
+                onPress={clearSelectedMedicine}
+                style={styles.clearButton}
+              >
+                <X size={20} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Search Results */}
+          {showSearchResults && (
+            <View style={styles.searchResultsInline}>
+              {isSearching ? (
+                <View style={styles.searchingContainer}>
+                  <ActivityIndicator size="small" color={Colors.primary.main} />
+                  <Text style={styles.searchingText}>Searching...</Text>
+                </View>
+              ) : (
+                <ScrollView
+                  style={styles.searchResultsList}
+                  showsVerticalScrollIndicator={true}
+                  nestedScrollEnabled={true}
+                  keyboardShouldPersistTaps="always"
+                >
+                  {searchResults.map((item, index) => {
+                    console.log(`Rendering item ${index + 1}/${searchResults.length}: ${item.brandName || item.genericName}`);
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={styles.searchResultItem}
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          handleMedicineSelect(item);
+                        }}
+                      >
+                        <View style={styles.searchResultContent}>
+                          <Text style={styles.searchResultName}>
+                            {item.brandName || item.genericName}
+                          </Text>
+                          <Text style={styles.searchResultDetails}>
+                            {item.strength && `${item.strength} • `}
+                            {item.dosageForm && `${item.dosageForm} • `}
+                            {item.activeIngredients.slice(0, 2).join(', ')}
+                            {item.activeIngredients.length > 2 && '...'}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              )}
+            </View>
+          )}
+
+          {/* Selected Medicine Display */}
+          {selectedMedicineFromSearch && (
+            <View style={styles.selectedMedicineContainer}>
+              <Text style={styles.selectedMedicineLabel}>Selected Medicine:</Text>
+              <Text style={styles.selectedMedicineName}>
+                {selectedMedicineFromSearch.brandName || selectedMedicineFromSearch.genericName}
+              </Text>
+              <Text style={styles.selectedMedicineDetails}>
+                Registration: {selectedMedicineFromSearch.id}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* Dosage and Unit */}
@@ -438,7 +664,8 @@ export default function AddMedicineScreen() {
 
       {/* Date Picker */}
       {renderDatePickerModal()}
-    </View>
+      </View>
+    </TouchableWithoutFeedback>
   );
 }
 
@@ -640,6 +867,95 @@ const styles = StyleSheet.create({
   dateButtonTextSecondary: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.secondary,
+  },
+  // Search styles
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md + 4,
+  },
+  searchIcon: {
+    marginRight: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+  },
+  clearButton: {
+    marginLeft: Spacing.sm,
+    padding: Spacing.xs,
+  },
+  searchResultsContainer: {
+    backgroundColor: Colors.background.primary,
+    borderRadius: BorderRadius.card,
+    flex: 1,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  searchingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  searchingText: {
+    marginLeft: Spacing.sm,
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.secondary,
+  },
+  searchResultsInline: {
+    marginTop: Spacing.sm,
+    height: 300,
+    backgroundColor: Colors.background.primary,
+    borderRadius: BorderRadius.card,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+  },
+  searchResultsList: {
+    flex: 1,
+  },
+  searchResultItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border.light,
+  },
+  searchResultContent: {
+    padding: Spacing.lg,
+  },
+  searchResultName: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  searchResultDetails: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+  },
+  selectedMedicineContainer: {
+    backgroundColor: Colors.accent.light,
+    borderRadius: BorderRadius.card,
+    padding: Spacing.lg,
+    marginTop: Spacing.sm,
+  },
+  selectedMedicineLabel: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.accent.main,
+    marginBottom: Spacing.xs,
+  },
+  selectedMedicineName: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  selectedMedicineDetails: {
+    fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
   },
 });
