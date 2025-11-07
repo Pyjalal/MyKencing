@@ -9,6 +9,93 @@ const searchSchema = z.object({
   q: z.string().min(1, 'Search query is required').max(100, 'Search query too long')
 });
 
+const batchSearchSchema = z.object({
+  queries: z.array(z.string().min(1).max(100))
+    .min(1, 'At least one query is required')
+    .max(20, 'Maximum 20 queries allowed per batch'),
+  limit: z.number().min(1).max(50).default(10).optional()
+});
+
+medicines.post(
+  '/batch-search',
+  async (c: Context) => {
+    try {
+      const body = await c.req.json();
+      const validation = batchSearchSchema.safeParse(body);
+      
+      if (!validation.success) {
+        return c.json({ 
+          error: 'Validation error', 
+          details: validation.error.issues 
+        }, 400);
+      }
+      
+      const { queries, limit = 10 } = validation.data;
+      const ingredientMapper = new IngredientMapper();
+      
+      // Execute all searches in parallel
+      const searchPromises = queries.map(async (query) => {
+        try {
+          const results = await ingredientMapper.searchMedicines(query);
+          return {
+            query,
+            results: results.slice(0, limit)
+          };
+        } catch (error) {
+          // If one search fails, return empty results for that query
+          console.error(`Batch search failed for query "${query}":`, error);
+          return {
+            query,
+            results: []
+          };
+        }
+      });
+      
+      const searchResults = await Promise.all(searchPromises);
+      
+      // Convert array to object map for easier client-side lookup
+      const resultsMap: Record<string, any[]> = {};
+      searchResults.forEach(({ query, results }) => {
+        resultsMap[query] = results;
+      });
+      
+      return c.json({
+        results: resultsMap,
+        count: queries.length
+      });
+    } catch (error) {
+      if (error instanceof ScrapingError) {
+        return c.json(
+          { 
+            error: 'Failed to batch search medicines', 
+            message: error.message,
+            source: error.source 
+          },
+          500
+        );
+      }
+      
+      if (error instanceof ValidationError) {
+        return c.json(
+          { 
+            error: 'Validation error', 
+            message: error.message 
+          },
+          400
+        );
+      }
+      
+      return c.json(
+        { 
+          error: 'Internal server error', 
+          message: 'An unexpected error occurred' 
+        },
+        500
+      );
+    }
+  }
+);
+
 medicines.get(
   '/search',
   async (c: Context) => {
