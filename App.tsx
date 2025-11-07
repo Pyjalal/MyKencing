@@ -7,7 +7,6 @@ import { I18nextProvider } from 'react-i18next';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initDatabase } from './src/services/database';
 import { initializeEncryption } from './src/services/encryption';
-import { seedMIMSDatabase } from './src/services/mims';
 import { initializeNotifications, clearAllPresentedNotifications } from './src/services/notifications';
 import i18n from './src/services/i18n';
 import { Colors, Typography } from './src/constants/theme';
@@ -29,10 +28,6 @@ export default function App() {
         // Initialize database
         await initDatabase();
         console.log('✓ Database initialized');
-
-        // Seed MIMS database with sample medicines
-        await seedMIMSDatabase();
-        console.log('✓ MIMS database seeded');
 
         // Initialize notifications
         const notificationsEnabled = await initializeNotifications();

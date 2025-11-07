@@ -5,7 +5,7 @@ import { useRoute, RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
-import { checkDrugInteractions } from '../services/mims';
+import { checkDrugInteractions } from '../services/mymedix-api';
 import DrugInteractionWarning from '../components/DrugInteractionWarning';
 
 export default function MedicineDetailScreen() {

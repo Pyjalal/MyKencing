@@ -6,7 +6,7 @@
 import * as ImageManipulator from 'expo-image-manipulator';
 import { ExtractedMedicine } from '../types';
 import { parsePrescriptionText } from './ner';
-import { searchMIMS } from './mims';
+import { batchSearchMedicines } from './mymedix-api';
 import { similarity } from '../utils/fuzzyMatch';
 import { logEvent, EventType } from './analytics';
 import { Platform } from 'react-native';
@@ -171,53 +171,120 @@ async function performOCR(imageUri: string): Promise<string> {
 
 /**
  * Scan prescription image and extract medication information
- * Uses ML Kit Text Recognition for OCR
+ * Uses ML Kit Text Recognition for OCR and MyMedix API for medicine matching
  */
 export async function scanPrescription(imageUri: string): Promise<ExtractedMedicine[]> {
   try {
     // Step 1: Preprocess image
+    console.log('OCR: Preprocessing image...');
     const processedUri = await preprocessImage(imageUri);
 
     // Step 2: Perform OCR using ML Kit
+    console.log('OCR: Extracting text from image...');
     const ocrText = await performOCR(processedUri);
 
     if (!ocrText || ocrText.trim().length === 0) {
-      console.warn('No text extracted from image');
+      console.warn('OCR: No text extracted from image');
       return [];
     }
 
-    // Step 3: NER parsing
-    const parsed = parsePrescriptionText(ocrText);
+    console.log('OCR: Extracted text:', ocrText.substring(0, 100) + '...');
 
-    // Step 4: Fuzzy match against MIMS for each extracted name
-    const results: ExtractedMedicine[] = [];
-    for (const item of parsed) {
-      const candidates = await searchMIMS(item.name, 10);
-      let bestConfidence = item.confidence;
-      if (candidates.length > 0) {
-        const best = candidates
-          .map(c => {
-            const candName = c.brandName || c.genericName;
-            return { c, score: similarity(item.name, candName || '') };
-          })
-          .sort((a, b) => b.score - a.score)[0];
-        if (best && best.score > bestConfidence) bestConfidence = Math.max(bestConfidence, best.score);
+    // Step 3: NER parsing
+    console.log('OCR: Parsing prescription text...');
+    const parsed = parsePrescriptionText(ocrText);
+    console.log(`OCR: Found ${parsed.length} potential medicines`);
+
+    if (parsed.length === 0) {
+      return [];
+    }
+
+    // Step 4: Batch search all extracted names via MyMedix API (single batch request)
+    console.log('OCR: Batch searching medicines via API...');
+    const medicineNames = parsed.map(item => item.name);
+    
+    try {
+      // Use batch search for efficiency - one request instead of N requests
+      const searchResults = await batchSearchMedicines(medicineNames, 10);
+      
+      // Match extracted medicines with API results
+      const results: ExtractedMedicine[] = [];
+      
+      for (const item of parsed) {
+        const candidates = searchResults.get(item.name) || [];
+        let bestConfidence = item.confidence;
+        let bestMatch = item.name;
+        
+        if (candidates.length > 0) {
+          console.log(`OCR: Found ${candidates.length} candidates for "${item.name}"`);
+          
+          // Find best match using fuzzy similarity
+          const best = candidates
+            .map(c => {
+              const candName = c.brandName || c.genericName;
+              const score = similarity(item.name, candName || '');
+              return { c, candName, score };
+            })
+            .sort((a, b) => b.score - a.score)[0];
+          
+          if (best && best.score > 0.5) { // Only use if similarity is decent
+            bestConfidence = Math.max(bestConfidence, best.score);
+            bestMatch = best.candName;
+            console.log(`OCR: Best match for "${item.name}": "${bestMatch}" (similarity: ${best.score.toFixed(2)})`);
+          }
+        } else {
+          console.warn(`OCR: No candidates found for "${item.name}", using extracted name`);
+        }
+        
+        results.push({
+          name: bestMatch,
+          strength: item.strength,
+          dosageForm: item.dosageForm,
+          dosage: item.dosage,
+          frequency: item.frequency,
+          confidence: Math.min(0.99, bestConfidence),
+        });
       }
-      results.push({
+      
+      return results;
+    } catch (searchError) {
+      console.error('OCR: Batch search failed:', searchError);
+      
+      // If batch search fails, return parsed results as-is
+      const results: ExtractedMedicine[] = parsed.map(item => ({
         name: item.name,
         strength: item.strength,
         dosageForm: item.dosageForm,
         dosage: item.dosage,
         frequency: item.frequency,
-        confidence: Math.min(0.99, bestConfidence),
-      });
+        confidence: item.confidence,
+      }));
+      
+      return results;
+    } finally {
+      // Always log analytics
+      const finalResults = parsed.map(item => ({
+        name: item.name,
+        strength: item.strength,
+        dosageForm: item.dosageForm,
+        dosage: item.dosage,
+        frequency: item.frequency,
+        confidence: item.confidence,
+      }));
+      
+      console.log(`OCR: Successfully processed ${finalResults.length} medicines`);
+      try { 
+        await logEvent(EventType.OCRScanned, { 
+          count: finalResults.length,
+          avgConfidence: finalResults.reduce((sum, r) => sum + r.confidence, 0) / finalResults.length 
+        }); 
+      } catch {}
     }
 
-    try { await logEvent(EventType.OCRScanned, { count: results.length }); } catch {}
-    return results;
   } catch (error) {
     console.error('Error scanning prescription:', error);
-    throw new Error('Failed to scan prescription. Please try again or enter manually.');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to scan prescription: ${errorMessage}. Please try again or enter manually.`);
   }
 }
 

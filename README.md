@@ -26,10 +26,11 @@ MyKencing is a mobile application designed to help Malaysians manage their medic
 - **Charts**: Victory Native
 - **Forms**: React Hook Form + Zod
 
-### Backend (Future)
-- **API**: FastAPI or Cloudflare Workers
-- **RAG Service**: PostgreSQL + pgvector
-- **Auth**: Supabase or Clerk
+### Backend
+- **MyMedix API**: Hono + Supabase (Medicine search & drug interactions)
+- **Database**: Supabase PostgreSQL (50,000+ Malaysian medicines)
+- **Interaction Data**: Stockley's Drug Interactions Database
+- **Deployment**: Fly.io
 
 ## Project Structure
 
@@ -39,7 +40,12 @@ MyKencing/
 │   ├── components/        # Reusable UI components
 │   ├── screens/          # Screen components
 │   ├── navigation/       # Navigation configuration
-│   ├── services/         # Business logic (database, encryption, etc.)
+│   ├── services/         # Business logic
+│   │   ├── api-client.ts      # MyMedix API integration ⭐ NEW
+│   │   ├── mims.ts            # Medicine search (uses API)
+│   │   ├── ocr.ts             # OCR with API matching
+│   │   ├── database.ts        # SQLite + caching
+│   │   └── ...
 │   ├── stores/           # Zustand state management
 │   ├── types/            # TypeScript type definitions
 │   ├── constants/        # App constants (colors, clinical thresholds)
@@ -50,6 +56,34 @@ MyKencing/
 ├── app.json             # Expo configuration
 └── package.json         # Dependencies
 ```
+
+## MyMedix API Integration ⭐
+
+MyKencing now integrates with the **MyMedix API** for real Malaysian medicine data and drug interaction checking!
+
+### Features
+- ✅ **Real Medicine Search**: Search 50,000+ Malaysian medicines from official government data
+- ✅ **OCR Matching**: Automatically match scanned prescriptions against real medicines
+- ✅ **Drug Interactions**: Comprehensive Stockley's drug interaction database
+- ✅ **Offline Support**: Smart caching for offline functionality
+- ✅ **Auto-Fallback**: Seamlessly falls back to local database if API is unavailable
+
+### Quick Start
+1. **Start MyMedix API** (see `../mymedix_api/README.md`)
+2. **Run MyKencing** - it will automatically connect to the API
+3. **Test it**: Search for "Panadol" or scan a prescription
+
+### Documentation
+- **Quick Start**: See `MYMEDIX_QUICK_START.md`
+- **Summary**: See `IMPLEMENTATION_SUMMARY.md`
+
+### Configuration
+The API endpoint is hardcoded to production:
+- **URL**: `https://mymedix-api.fly.dev`
+
+To change, edit `API_BASE_URL` in `src/services/api-client.ts`
+
+---
 
 ## Getting Started
 

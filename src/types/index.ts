@@ -39,6 +39,7 @@ export interface MIMSSearchResult {
   strength?: string;
   dosageForm?: string;
   confidence?: number; // 0-1, for OCR matches
+  activeIngredients?: string[]; // From MyMedix API
 }
 
 // ----------------------------------------------------------------------------
