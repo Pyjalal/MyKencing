@@ -268,6 +268,30 @@ The app uses SQLite with the following main tables:
 - `vitals` - Health metrics (BP, glucose, weight)
 - `settings` - User preferences
 
+### Android Release Keystore
+
+To build a release version of the Android app, you need to generate a signing keystore.
+
+**1. Generate the Keystore:**
+
+Run the following script from the `scripts` directory:
+
+```bash
+./generate-keystore.sh
+```
+
+This will create a `mykencing-release.keystore` file.
+
+**2. Follow the script's instructions:**
+
+The script will guide you on how to:
+- Convert the keystore to a base64 string.
+- Set up the necessary GitHub Secrets for the Android CI/CD workflow.
+
+**IMPORTANT:**
+
+The `generate-keystore.sh` script includes the `-J-Dkeystore.pkcs12.legacy=true` flag. This is crucial for compatibility with the Android Gradle Plugin and prevents build failures.
+
 ### State Management
 
 Zustand stores are organized by domain:

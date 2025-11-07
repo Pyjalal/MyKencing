@@ -69,7 +69,7 @@ jobs:
           # Performance settings for CI
           echo "# Limit ABIs to save disk space in CI" >> gradle.properties
           echo "reactNativeArchitectures=arm64-v8a,armeabi-v7a" >> gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m" >> gradle.properties
+          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -Dkeystore.pkcs12.legacy=true" >> gradle.properties
           echo "org.gradle.parallel=false" >> gradle.properties
 
           # Release signing configuration

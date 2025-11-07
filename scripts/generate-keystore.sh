@@ -20,7 +20,7 @@ echo ""
 echo "Generating keystore..."
 echo ""
 
-keytool -genkeypair -v -storetype PKCS12 \
+keytool -genkeypair -v -storetype PKCS12 -J-Dkeystore.pkcs12.legacy=true \
   -keystore mykencing-release.keystore \
   -alias mykencing-key-alias \
   -keyalg RSA \
