@@ -116,24 +116,44 @@ class ApiClient {
       return new Map();
     }
 
+    const requestBody = {
+      queries,
+      limit,
+    };
+
     try {
       const url = `${this.baseUrl}/api/medicines/batch-search`;
+      console.log('Batch search request:', {
+        url,
+        queries: queries.length,
+        queriesList: queries,
+        limit,
+      });
+
       const response = await this.fetchWithTimeout(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          queries,
-          limit,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
+      console.log('Batch search response status:', response.status, response.statusText);
+
       if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error('Batch search API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText,
+          url,
+          requestBody,
+        });
+        throw new Error(`API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Batch search response data:', data);
       
       // Convert object map to Map
       const resultMap = new Map<string, ApiMedicine[]>();
@@ -141,9 +161,16 @@ class ApiClient {
         resultMap.set(query, medicines as ApiMedicine[]);
       });
 
+      console.log(`Batch search successful: ${resultMap.size} queries processed`);
       return resultMap;
     } catch (error) {
-      console.error('Error in batch search:', error);
+      console.error('Error in batch search:', {
+        error,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        queries,
+        limit,
+      });
       throw new Error('Failed to batch search medicines.');
     }
   }

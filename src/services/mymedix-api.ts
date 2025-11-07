@@ -87,7 +87,7 @@ export async function batchSearchMedicines(
   }
 
   try {
-    console.log(`Batch searching ${queries.length} medicines via API...`);
+    console.log(`Batch searching ${queries.length} medicines via API...`, queries);
     const apiResultsMap = await apiClient.batchSearchMedicines(queries);
     
     // Convert results
@@ -99,11 +99,19 @@ export async function batchSearchMedicines(
         .map(convertApiMedicineToSearchResult);
 
       resultMap.set(query, results);
+      console.log(`Query "${query}" returned ${results.length} results`);
     }
     
+    console.log(`Batch search completed: ${resultMap.size} queries processed`);
     return resultMap;
   } catch (error) {
-    console.error('Batch medicine search failed:', error);
+    console.error('Batch medicine search failed:', {
+      error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      queries,
+      limit,
+    });
     throw error; // Let the caller handle the error
   }
 }
