@@ -361,6 +361,8 @@ export type RootStackParamList = {
   PrivacyConsent: undefined;
   Home: undefined | { screen: string; params?: any };
   MedicationList: undefined;
+  MedicationManagement: undefined;
+  MedicationInteractions: undefined;
   AddMedicine: { scannedData?: ExtractedMedicine[]; selectedMedicine?: MIMSSearchResult };
   MedicineDetail: { medicationId: string };
   ScanPrescription: undefined;

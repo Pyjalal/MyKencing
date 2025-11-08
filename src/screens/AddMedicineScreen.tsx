@@ -10,8 +10,9 @@ import {
   ActivityIndicator,
   Keyboard,
   TouchableWithoutFeedback,
+  Platform,
 } from 'react-native';
-import DatePicker from 'react-native-date-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Medication, FoodTiming, MIMSSearchResult } from '../types';
@@ -322,25 +323,36 @@ export default function AddMedicineScreen() {
     const minimumDate = showDatePicker === 'end' ? startDate : undefined;
 
     return (
-      <DatePicker
-        modal
-        open={true}
-        date={currentDate}
+      <DateTimePicker
+        value={currentDate}
         mode="date"
+        display="default"
         minimumDate={minimumDate}
-        onConfirm={(date) => {
-          if (showDatePicker === 'start') {
-            setStartDate(date);
-          } else {
-            setEndDate(date);
+        onChange={(event, selectedDate) => {
+          // Android dismisses immediately
+          if (Platform.OS === 'android') {
+            setShowDatePicker(null);
           }
-          setShowDatePicker(null);
+
+          // Handle date selection
+          if (event.type === 'set' && selectedDate) {
+            if (showDatePicker === 'start') {
+              setStartDate(selectedDate);
+            } else {
+              setEndDate(selectedDate);
+            }
+
+            // iOS needs manual dismissal
+            if (Platform.OS === 'ios') {
+              setShowDatePicker(null);
+            }
+          }
+
+          // Handle cancellation
+          if (event.type === 'dismissed') {
+            setShowDatePicker(null);
+          }
         }}
-        onCancel={() => setShowDatePicker(null)}
-        title={showDatePicker === 'start' ? 'Select Start Date' : 'Select End Date'}
-        confirmText="Confirm"
-        cancelText="Cancel"
-        theme="light"
       />
     );
   };

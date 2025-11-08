@@ -106,6 +106,10 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
     navigation.navigate('ScanPrescription');
   };
 
+  const handleManagePress = () => {
+    navigation.navigate('MedicationInteractions');
+  };
+
   return (
     <View style={styles.container}>
       {/* Header with yellow/gold background */}
@@ -131,6 +135,11 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
 
         {/* Title */}
         <Text style={styles.title}>Medications</Text>
+
+        {/* View Interactions Button */}
+        <TouchableOpacity style={styles.manageButton} onPress={handleManagePress}>
+          <Text style={styles.manageButtonText}>View Interactions</Text>
+        </TouchableOpacity>
 
         {/* Scan Button */}
         <TouchableOpacity style={styles.scanButton} onPress={handleScanPress}>
@@ -290,6 +299,20 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.inverse,
     marginBottom: Spacing.md,
+  },
+  manageButton: {
+    backgroundColor: Colors.background.card,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.button,
+    marginBottom: Spacing.sm,
+    ...Shadows.sm,
+  },
+  manageButtonText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    textAlign: 'center',
   },
   scanButton: {
     position: 'absolute',

@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { I18nextProvider } from 'react-i18next';
 import AppNavigator from './src/navigation/AppNavigator';
-import { initDatabase } from './src/services/database';
+import { initDatabase, cleanupInvalidMedications } from './src/services/database';
 import { initializeEncryption } from './src/services/encryption';
 import { initializeNotifications, clearAllPresentedNotifications } from './src/services/notifications';
 import i18n from './src/services/i18n';
@@ -28,6 +28,12 @@ export default function App() {
         // Initialize database
         await initDatabase();
         console.log('✓ Database initialized');
+
+        // Clean up any invalid medications to prevent API errors
+        const cleanedCount = await cleanupInvalidMedications();
+        if (cleanedCount > 0) {
+          console.log(`✓ Cleaned up ${cleanedCount} invalid medication(s)`);
+        }
 
         // Initialize notifications
         const notificationsEnabled = await initializeNotifications();
