@@ -27,16 +27,15 @@ BEGIN
       -- TIER 1: Exact match = 100%
       WHEN LOWER(mi.medicine_name) = LOWER(search_term) THEN 1.0::DOUBLE PRECISION
 
-      -- TIER 2: Prefix match with good coverage (>60%) = 95%
-      WHEN LOWER(mi.medicine_name) LIKE LOWER(search_term) || '%'
-           AND (search_len::FLOAT / LENGTH(mi.medicine_name)) > 0.6 THEN 0.95::DOUBLE PRECISION
+      -- TIER 2: Prefix match (starts with search term) = 95%
+      WHEN LOWER(mi.medicine_name) LIKE LOWER(search_term) || '%' THEN 0.95::DOUBLE PRECISION
 
-      -- TIER 3: Word-boundary substring match with strict requirements
-      -- - Search term must be >50% of medicine name length
+      -- TIER 3: Word-boundary substring match with reasonable requirements
+      -- - Search term must be >40% of medicine name length (relaxed)
       -- - Must be at word boundary (space, start, or end)
       -- - Score: 70% + coverage bonus (up to 85%)
       WHEN LOWER(mi.medicine_name) LIKE '%' || LOWER(search_term) || '%'
-           AND (search_len::FLOAT / LENGTH(mi.medicine_name)) > 0.5
+           AND (search_len::FLOAT / LENGTH(mi.medicine_name)) > 0.4
            AND (
              -- At start of medicine name
              POSITION(LOWER(search_term) IN LOWER(mi.medicine_name)) = 1
