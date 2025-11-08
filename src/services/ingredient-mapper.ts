@@ -1,10 +1,58 @@
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config.js';
 import type { Medicine, MedicineIngredient } from '../types.js';
-import { ScrapingError } from '../types.js';
+import { DosageForm, ScrapingError } from '../types.js';
 
 export class IngredientMapper {
   private supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+
+  // Helper function to parse dosage from medicine name
+  private parseDosageFromName(medicineName: string): string {
+    const match = medicineName.match(/(\d+(?:\.\d+)?)/);
+    return match ? match[1] : '';
+  }
+
+  // Helper function to parse unit from medicine name
+  private parseUnitFromName(medicineName: string): string {
+    const match = medicineName.match(/(MG|ML|MCG|G|IU)/i);
+    if (match) {
+      const unitValue = match[1].toLowerCase();
+      return ['mg', 'ml', 'mcg', 'g', 'iu'].includes(unitValue) ? unitValue : '';
+    }
+    return '';
+  }
+
+  // Helper function to parse form from medicine name
+  private parseFormFromName(medicineName: string): DosageForm | undefined {
+    const match = medicineName.match(/(tablet|capsule|syrup|liquid|injection|cream|ointment|drop|inhaler|puff)/i);
+    if (match) {
+      const formValue = match[1].toLowerCase();
+      // Normalize some variations and return enum values
+      switch (formValue) {
+        case 'tablet':
+          return DosageForm.TABLET;
+        case 'capsule':
+          return DosageForm.CAPSULE;
+        case 'syrup':
+        case 'liquid':
+          return DosageForm.SYRUP;
+        case 'injection':
+          return DosageForm.INJECTION;
+        case 'cream':
+          return DosageForm.CREAM;
+        case 'ointment':
+          return DosageForm.OINTMENT;
+        case 'drop':
+          return DosageForm.DROPS;
+        case 'inhaler':
+        case 'puff':
+          return DosageForm.INHALER;
+        default:
+          return undefined;
+      }
+    }
+    return undefined;
+  }
 
   async getIngredientsForMedicines(registrationNumbers: string[]): Promise<Medicine[]> {
     const medicines: Medicine[] = [];
@@ -71,13 +119,19 @@ export class IngredientMapper {
         return [];
       }
 
-      return data.map((row: any) => ({
-        id: row.registration_no,
-        name: row.medicine_name,
-        activeIngredients: row.active_ingredients || [],
-        similarity: row.similarity_score || 0.5 // Include backend-calculated similarity score
-      }));
+      return data.map((row: any) => {
+        const medicineName = row.medicine_name;
+        return {
+          id: row.registration_no,
+          name: medicineName,
+          activeIngredients: row.active_ingredients || [],
+          strength: this.parseDosageFromName(medicineName) + (this.parseUnitFromName(medicineName) ? ' ' + this.parseUnitFromName(medicineName).toUpperCase() : ''),
+          dosageForm: this.parseFormFromName(medicineName),
+          similarity: row.similarity_score || 0.5 // Include backend-calculated similarity score
+        };
+      });
     } catch (error) {
+      console.error('Failed to search medicines:', error);
       throw new ScrapingError(
         `Failed to search medicines: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'quest'

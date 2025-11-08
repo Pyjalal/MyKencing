@@ -1,7 +1,20 @@
+export enum DosageForm {
+  TABLET = 'tablet',
+  CAPSULE = 'capsule',
+  SYRUP = 'syrup',
+  INJECTION = 'injection',
+  CREAM = 'cream',
+  OINTMENT = 'ointment',
+  DROPS = 'drops',
+  INHALER = 'inhaler'
+}
+
 export interface Medicine {
   id: string;
   name: string;
   activeIngredients: string[];
+  strength?: string; // Parsed dosage with unit (e.g., "20 MG")
+  dosageForm?: DosageForm; // Parsed form enum
   similarity?: number; // Backend-calculated similarity score (0-1)
 }
 
