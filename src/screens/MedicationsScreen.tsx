@@ -2,19 +2,22 @@ import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, DoseStatus } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { Search, MessageSquare, Scan } from 'lucide-react-native';
+import { Colors } from '../constants/theme';
+import { Scan } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { addDays, startOfWeek, format, isSameDay, parseISO } from 'date-fns';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/card';
+import { Skeleton } from '../components/ui/skeleton';
 
 type MedicationsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -22,7 +25,7 @@ type MedicationsScreenProps = {
 
 export default function MedicationsScreen({ navigation }: MedicationsScreenProps) {
   const { t } = useTranslation();
-  const { weekDoses, loadMedications, loadWeekDoses, markDose } = useMedicationStore();
+  const { weekDoses, loadMedications, loadWeekDoses, markDose, isLoading } = useMedicationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -76,29 +79,25 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
 
   const handleTakeDose = async (doseId: string) => {
     try {
-      console.log('Marking dose as taken:', doseId);
       await markDose(doseId, DoseStatus.Taken);
-      // Reload doses after marking
+      Alert.alert('Success', 'Dose marked as taken.');
       if (weekDays.length > 0) {
         await loadWeekDoses(weekDays[0], weekDays[weekDays.length - 1]);
       }
-      console.log('Dose marked and reloaded successfully');
     } catch (error) {
-      console.error('Error marking dose as taken:', error);
+      Alert.alert('Error', 'Failed to mark dose as taken.');
     }
   };
 
   const handleSkipDose = async (doseId: string) => {
     try {
-      console.log('Marking dose as skipped:', doseId);
       await markDose(doseId, DoseStatus.Skipped);
-      // Reload doses after marking
+      Alert.alert('Success', 'Dose marked as skipped.');
       if (weekDays.length > 0) {
         await loadWeekDoses(weekDays[0], weekDays[weekDays.length - 1]);
       }
-      console.log('Dose skipped and reloaded successfully');
     } catch (error) {
-      console.error('Error marking dose as skipped:', error);
+      Alert.alert('Error', 'Failed to mark dose as skipped.');
     }
   };
 
@@ -111,48 +110,40 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header with yellow/gold background */}
-      <View style={styles.header}>
+    <View className="flex-1 bg-gray-100">
+      {/* Header */}
+      <View className="bg-yellow-400 p-4 pt-12">
         <TouchableOpacity
-          style={styles.backButton}
+          className="w-10 h-10 items-center justify-center mb-4"
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backIcon}>←</Text>
+          <Text className="text-2xl text-white">←</Text>
         </TouchableOpacity>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search here"
-            placeholderTextColor={Colors.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
+        <Input
+          placeholder="Search here"
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          className="bg-white rounded-full px-4 py-3 text-base mb-4"
+        />
 
-        {/* Title */}
-        <Text style={styles.title}>Medications</Text>
+        <Text className="text-3xl font-bold text-white mb-4">Medications</Text>
 
-        {/* View Interactions Button */}
-        <TouchableOpacity style={styles.manageButton} onPress={handleManagePress}>
-          <Text style={styles.manageButtonText}>View Interactions</Text>
-        </TouchableOpacity>
+        <Button onPress={handleManagePress} className="bg-white mb-2">
+          <Text className="text-black">View Interactions</Text>
+        </Button>
 
-        {/* Scan Button */}
-        <TouchableOpacity style={styles.scanButton} onPress={handleScanPress}>
-          <View style={styles.scanIconContainer}>
+        <View className="absolute right-4 top-32">
+          <Button onPress={handleScanPress} className="bg-white rounded-full w-14 h-14 items-center justify-center">
             <Scan size={24} color={Colors.accent.main} />
-          </View>
-        </TouchableOpacity>
+          </Button>
+        </View>
       </View>
 
-      {/* Content with light purple background */}
+      {/* Content */}
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -162,90 +153,92 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
           />
         }
       >
-        {/* Reminders Card with Calendar */}
-        <View style={styles.remindersCard}>
-          <Text style={styles.cardTitle}>Reminders</Text>
+        <Card className="m-4">
+          <CardHeader>
+            <CardTitle>Reminders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <View className="flex-row justify-between pt-2">
+              {weekDays.map((day, index) => {
+                const isSelected = isSameDay(day, selectedDate);
+                const dayName = format(day, 'EEE');
+                const dayNumber = format(day, 'd');
 
-          {/* Week Calendar */}
-          <View style={styles.weekCalendar}>
-            {weekDays.map((day, index) => {
-              const isSelected = isSameDay(day, selectedDate);
-              const dayName = format(day, 'EEE');
-              const dayNumber = format(day, 'd');
-
-              return (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.dayContainer}
-                  onPress={() => setSelectedDate(day)}
-                >
-                  <Text style={styles.dayName}>{dayName}</Text>
-                  <View style={[styles.dayNumberContainer, isSelected && styles.dayNumberSelected]}>
-                    <Text style={[styles.dayNumber, isSelected && styles.dayNumberTextSelected]}>
-                      {dayNumber}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    className="items-center flex-1"
+                    onPress={() => setSelectedDate(day)}
+                  >
+                    <Text className="text-sm text-gray-500 mb-1">{dayName}</Text>
+                    <View
+                      className={`w-9 h-9 rounded-full items-center justify-center ${
+                        isSelected ? 'bg-blue-500' : 'bg-transparent'
+                      }`}
+                    >
+                      <Text
+                        className={`text-base font-semibold ${
+                          isSelected ? 'text-white' : 'text-black'
+                        }`}
+                      >
+                        {dayNumber}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </CardContent>
+        </Card>
 
         {/* Medication List */}
-        {filteredDoses.length > 0 ? (
+        {isLoading ? (
+          <View className="m-4 space-y-4">
+            <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+          </View>
+        ) : filteredDoses.length > 0 ? (
           filteredDoses.map((dose) => (
-            <TouchableOpacity
+            <Card
               key={dose.id}
-              style={styles.medicationCard}
-              activeOpacity={0.95}
+              className="m-4"
               onPress={() => navigation.navigate('MedicineDetail', { medicationId: dose.medicationId })}
             >
-              <View style={styles.medicationInfo}>
-                <Text style={styles.medicationName}>
-                  {dose.medication.mims.brandName || dose.medication.mims.genericName}
-                </Text>
-                <Text style={styles.medicationDetails}>
+              <CardHeader>
+                <CardTitle>{dose.medication.mims.brandName || dose.medication.mims.genericName}</CardTitle>
+                <Text className="text-base text-gray-500">
                   {format(parseISO(dose.scheduledTime), 'h:mm a')}, {dose.medication.userDosage}
                 </Text>
-              </View>
-
-              <View style={styles.medicationActions}>
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton,
-                    styles.takeButton,
-                    dose.status === DoseStatus.Taken && styles.takeButtonDisabled,
-                  ]}
+              </CardHeader>
+              <CardFooter className="flex-row gap-4">
+                <Button
                   onPress={(e) => {
                     e.stopPropagation();
                     handleTakeDose(dose.id);
                   }}
                   disabled={dose.status === DoseStatus.Taken}
+                  className="flex-1"
                 >
-                  <Text style={styles.takeButtonText}>
-                    {dose.status === DoseStatus.Taken ? 'Taken' : 'Take'}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton,
-                    styles.skipButton,
-                    dose.status === DoseStatus.Skipped && styles.skipButtonDisabled,
-                  ]}
+                  <Text>{dose.status === DoseStatus.Taken ? 'Taken' : 'Take'}</Text>
+                </Button>
+                <Button
+                  variant="outline"
                   onPress={(e) => {
                     e.stopPropagation();
                     handleSkipDose(dose.id);
                   }}
                   disabled={dose.status === DoseStatus.Skipped}
+                  className="flex-1"
                 >
-                  <Text style={styles.skipButtonText}>Skip</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
+                  <Text>Skip</Text>
+                </Button>
+              </CardFooter>
+            </Card>
           ))
         ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>
+          <View className="p-10 items-center">
+            <Text className="text-base text-gray-500 text-center">
               {searchQuery ? 'No medications found' : 'No medications scheduled for this day'}
             </Text>
           </View>
@@ -254,200 +247,3 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#D5D7E3', // Light purple/lavender background
-  },
-  header: {
-    backgroundColor: Colors.background.meds, // Yellow/gold #F5B800
-    paddingTop: Spacing['2xl'] + 10,
-    paddingBottom: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  backIcon: {
-    fontSize: 28,
-    color: Colors.text.inverse,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background.card,
-    borderRadius: 25,
-    paddingHorizontal: Spacing.md + 4,
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  searchIcon: {
-    marginRight: Spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.inverse,
-    marginBottom: Spacing.md,
-  },
-  manageButton: {
-    backgroundColor: Colors.background.card,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.button,
-    marginBottom: Spacing.sm,
-    ...Shadows.sm,
-  },
-  manageButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    textAlign: 'center',
-  },
-  scanButton: {
-    position: 'absolute',
-    right: Spacing.lg,
-    top: Spacing['2xl'] + 80,
-  },
-  scanIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.md,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingHorizontal: 0,
-    paddingTop: Spacing.lg,
-    paddingBottom: 100,
-  },
-  remindersCard: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-    ...Shadows.sm,
-  },
-  cardTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.md,
-  },
-  weekCalendar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: Spacing.sm,
-  },
-  dayContainer: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  dayName: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
-  },
-  dayNumberContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-  },
-  dayNumberSelected: {
-    backgroundColor: Colors.accent.main,
-  },
-  dayNumber: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  dayNumberTextSelected: {
-    color: Colors.text.inverse,
-  },
-  medicationCard: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-    ...Shadows.sm,
-  },
-  medicationInfo: {
-    marginBottom: Spacing.md,
-  },
-  medicationName: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  medicationDetails: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-  },
-  medicationActions: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.button,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  takeButton: {
-    backgroundColor: Colors.accent.main,
-  },
-  takeButtonDisabled: {
-    backgroundColor: Colors.neutral[300],
-    opacity: 0.6,
-  },
-  takeButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-  },
-  skipButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.border.main,
-  },
-  skipButtonDisabled: {
-    opacity: 0.5,
-  },
-  skipButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-  },
-  emptyState: {
-    paddingVertical: Spacing['2xl'],
-    paddingHorizontal: Spacing.lg,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.tertiary,
-    textAlign: 'center',
-  },
-});

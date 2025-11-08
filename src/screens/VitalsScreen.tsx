@@ -1,17 +1,14 @@
-/**
- * VitalsScreen - Vitals Tracker
- * Matches Figma design: Vitals 1.png, Vitals 2.png, Vitals 3.png
- * Features hard-coded demo data for presentations
- */
-
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useVitalsStore } from '../stores/vitalsStore';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
+import { Colors } from '../constants/theme';
 import { VitalType } from '../types';
 import { Search, BotMessageSquare } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
 
 // Hard-coded demo data for 14 days
 const DEMO_DATA = {
@@ -107,513 +104,181 @@ export default function VitalsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header with background */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.canGoBack() && navigation.goBack()}
-        >
-          <Text style={styles.backIcon}>←</Text>
+    <View className="flex-1 bg-gray-100">
+      {/* Header */}
+      <View className="bg-blue-500 p-4 pt-12">
+        <TouchableOpacity className="w-10 h-10 items-center justify-center mb-4" onPress={() => navigation.canGoBack() && navigation.goBack()}>
+          <Text className="text-2xl text-white">←</Text>
         </TouchableOpacity>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
+        <View className="flex-row items-center bg-white rounded-full px-4 py-2 mb-4">
+          <Search size={20} color="gray" className="mr-2" />
           <TextInput
-            style={styles.searchInput}
             placeholder={t('vitals.search_here')}
-            placeholderTextColor={Colors.text.tertiary}
+            placeholderTextColor="gray"
             value={searchQuery}
             onChangeText={setSearchQuery}
+            className="flex-1 text-base"
           />
         </View>
-
-        {/* Title */}
-        <Text style={styles.headerTitle}>{t('vitals.vitals_tracker')}</Text>
-
-        {/* AI Chat Button */}
-        <TouchableOpacity style={styles.aiButton} onPress={handleChatPress}>
-          <View style={styles.aiIconContainer}>
-            <BotMessageSquare size={24} color={Colors.secondary.main} />
-          </View>
-        </TouchableOpacity>
+        <Text className="text-3xl font-bold text-white mb-2">{t('vitals.vitals_tracker')}</Text>
+        <Button variant="ghost" className="absolute right-4 top-32 bg-white rounded-full w-14 h-14 items-center justify-center" onPress={handleChatPress}>
+          <BotMessageSquare size={24} color={Colors.secondary.main} />
+        </Button>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        {/* Demo Mode Toggle */}
-        <TouchableOpacity
-          style={styles.demoToggle}
-          onPress={() => setIsDemoMode(!isDemoMode)}
-        >
-          <Text style={styles.demoToggleText}>
-            {isDemoMode ? t('vitals.demo_mode_on') : t('vitals.real_data')}
-          </Text>
-        </TouchableOpacity>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }}>
+        <View className="p-4">
+          <Button variant={isDemoMode ? 'default' : 'outline'} onPress={() => setIsDemoMode(!isDemoMode)}>
+            <Text>{isDemoMode ? t('vitals.demo_mode_on') : t('vitals.real_data')}</Text>
+          </Button>
+        </View>
 
         {isDemoMode ? (
-          <>
-            {/* 14-Day Summary Header */}
-            <View style={styles.summaryHeader}>
-              <Text style={styles.summaryTitle}>{t('vitals.summary_title')}</Text>
-            </View>
+          <View className="p-4">
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>{t('vitals.summary_title')}</CardTitle>
+              </CardHeader>
+            </Card>
 
-            {/* Blood Pressure Card */}
-            <View style={styles.vitalCard}>
-              <Text style={styles.cardTitle}>{t('vitals.blood_pressure_card_title')}</Text>
-              <Text style={styles.cardSubtitle}>{t('vitals.bp_normal_range')}</Text>
-              
-              {/* Simple bar chart visualization */}
-              <View style={styles.chartContainer}>
-                {DEMO_DATA.bloodPressure.map((data, index) => (
-                  <View key={index} style={styles.barGroup}>
-                    <View style={[styles.bar, { 
-                      height: (data.systolic - 60) * 1.5, 
-                      backgroundColor: data.systolic > 130 ? '#FF9999' : '#E0E0E0' 
-                    }]} />
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>{t('vitals.blood_pressure_card_title')}</CardTitle>
+                <Text className="text-sm text-gray-500">{t('vitals.bp_normal_range')}</Text>
+              </CardHeader>
+              <CardContent>
+                <View className="flex-row items-end h-32 gap-1">
+                  {DEMO_DATA.bloodPressure.map((data, index) => (
+                    <View key={index} className="flex-1 items-center justify-end">
+                      <View className={`w-full rounded ${data.systolic > 130 ? 'bg-red-400' : 'bg-gray-300'}`} style={{ height: (data.systolic - 60) * 1.5 }} />
+                    </View>
+                  ))}
+                </View>
+                <View className="flex-row justify-center gap-4 mt-2">
+                  <View className="flex-row items-center gap-1">
+                    <View className="w-3 h-3 rounded-full bg-blue-800" />
+                    <Text className="text-sm text-gray-500">{t('vitals.systolic')}</Text>
                   </View>
-                ))}
-              </View>
-
-              {/* Chart lines (simplified) */}
-              <View style={styles.chartLinesContainer}>
-                <View style={styles.chartLine} />
-                <View style={styles.chartLine} />
-              </View>
-
-              {/* Legend */}
-              <View style={styles.legend}>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: '#2C5F8D' }]} />
-                  <Text style={styles.legendText}>{t('vitals.systolic')}</Text>
-                </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: '#5B9BD5' }]} />
-                  <Text style={styles.legendText}>{t('vitals.diastolic')}</Text>
-                </View>
-              </View>
-
-              <Text style={styles.avgText}>
-                {t('vitals.avg_bp', { systolic: bpAvg.systolic, diastolic: bpAvg.diastolic })} — <Text style={styles.statusStable}>{t('vitals.stable')}</Text>
-              </Text>
-            </View>
-
-            {/* Weight Card */}
-            <View style={styles.vitalCard}>
-              <Text style={styles.cardTitle}>{t('vitals.weight_card_title')}</Text>
-              <View style={styles.weightHeader}>
-                <Text style={styles.weightValue}>{weightAvg} kg</Text>
-                <View style={styles.bmiBadge}>
-                  <Text style={styles.bmiText}>{t('vitals.bmi', { bmi: bmiAvg })}</Text>
-                </View>
-              </View>
-              <Text style={styles.changeText}>{t('vitals.weight_change_since_last_week')}</Text>
-
-              {/* Bar chart for weight */}
-              <View style={styles.chartContainer}>
-                {DEMO_DATA.weight.map((data, index) => (
-                  <View key={index} style={styles.barGroup}>
-                    <View style={[styles.weightBar, { 
-                      height: (data.weight - 40) * 3,
-                      backgroundColor: index % 2 === 0 ? '#2C5F8D' : '#5B9BD5'
-                    }]} />
+                  <View className="flex-row items-center gap-1">
+                    <View className="w-3 h-3 rounded-full bg-blue-400" />
+                    <Text className="text-sm text-gray-500">{t('vitals.diastolic')}</Text>
                   </View>
-                ))}
-              </View>
-
-              <View style={styles.legend}>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: '#2C5F8D' }]} />
-                  <Text style={styles.legendText}>{t('add_vital.weight')}</Text>
                 </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: '#5B9BD5' }]} />
-                  <Text style={styles.legendText}>{t('vitals.bmi', { bmi: '' })}</Text>
+                <Text className="text-base text-gray-500 mt-2 text-center">
+                  {t('vitals.avg_bp', { systolic: bpAvg.systolic, diastolic: bpAvg.diastolic })} — <Text className="text-green-500 font-semibold">{t('vitals.stable')}</Text>
+                </Text>
+              </CardContent>
+            </Card>
+
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>{t('vitals.weight_card_title')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <View className="flex-row items-center gap-4 mb-1">
+                  <Text className="text-5xl font-bold">{weightAvg} kg</Text>
+                  <Badge className="bg-green-500"><Text className="text-white font-bold">{t('vitals.bmi', { bmi: bmiAvg })}</Text></Badge>
                 </View>
-              </View>
-            </View>
+                <Text className="text-sm text-gray-500 mb-2">{t('vitals.weight_change_since_last_week')}</Text>
+                <View className="flex-row items-end h-32 gap-1">
+                  {DEMO_DATA.weight.map((data, index) => (
+                    <View key={index} className="flex-1 items-center justify-end">
+                      <View className={`w-full rounded ${index % 2 === 0 ? 'bg-blue-800' : 'bg-blue-400'}`} style={{ height: (data.weight - 40) * 3 }} />
+                    </View>
+                  ))}
+                </View>
+              </CardContent>
+            </Card>
 
-            {/* Glucose Levels Card */}
-            <View style={styles.vitalCard}>
-              <Text style={styles.cardTitle}>{t('vitals.glucose_card_title')}</Text>
-              <Text style={styles.cardSubtitle}>{t('vitals.glucose_normal_range')}</Text>
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>{t('vitals.glucose_card_title')}</CardTitle>
+                <Text className="text-sm text-gray-500">{t('vitals.glucose_normal_range')}</Text>
+              </CardHeader>
+              <CardContent>
+                <View className="flex-row items-end h-32 gap-1">
+                  {DEMO_DATA.glucose.map((data, index) => (
+                    <View key={index} className="flex-1 items-center justify-end">
+                      <View className={`w-full rounded ${data.value > 7 ? 'bg-red-400' : 'bg-gray-300'}`} style={{ height: data.value * 15 }} />
+                    </View>
+                  ))}
+                </View>
+                <Text className="text-base text-gray-500 mt-2 text-center">
+                  {t('vitals.avg_glucose', { avg: glucoseAvg })} — <Text className="text-yellow-500 font-semibold">{t('vitals.slightly_elevated')}</Text>
+                </Text>
+              </CardContent>
+            </Card>
 
-              <View style={styles.chartContainer}>
-                {DEMO_DATA.glucose.map((data, index) => (
-                  <View key={index} style={styles.barGroup}>
-                    <View style={[styles.bar, { 
-                      height: data.value * 15, 
-                      backgroundColor: data.value > 7 ? '#FF9999' : '#E0E0E0' 
-                    }]} />
-                  </View>
-                ))}
-              </View>
-
-              <View style={styles.chartLinesContainer}>
-                <View style={styles.chartLine} />
-              </View>
-
-              <Text style={styles.avgText}>
-                {t('vitals.avg_glucose', { avg: glucoseAvg })} — <Text style={styles.statusElevated}>{t('vitals.slightly_elevated')}</Text>
-              </Text>
-            </View>
-
-            {/* Cholesterol Card */}
-            <View style={styles.vitalCard}>
-              <Text style={styles.cardTitle}>{t('vitals.cholesterol_card_title')}</Text>
-              <Text style={styles.cardSubtitle}>{t('vitals.cholesterol_normal_range')}</Text>
-
-              <View style={styles.chartContainer}>
-                {DEMO_DATA.cholesterol.map((data, index) => (
-                  <View key={index} style={styles.barGroup}>
-                    <View style={[styles.weightBar, { 
-                      height: data.value * 15,
-                      backgroundColor: index % 2 === 0 ? '#2C5F8D' : '#5B9BD5'
-                    }]} />
-                  </View>
-                ))}
-              </View>
-
-              <Text style={styles.avgText}>
-                {t('vitals.avg_cholesterol', { avg: cholesterolAvg })} — <Text style={styles.statusHealthy}>{t('vitals.healthy')}</Text>
-              </Text>
-            </View>
-          </>
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>{t('vitals.cholesterol_card_title')}</CardTitle>
+                <Text className="text-sm text-gray-500">{t('vitals.cholesterol_normal_range')}</Text>
+              </CardHeader>
+              <CardContent>
+                <View className="flex-row items-end h-32 gap-1">
+                  {DEMO_DATA.cholesterol.map((data, index) => (
+                    <View key={index} className="flex-1 items-center justify-end">
+                      <View className={`w-full rounded ${index % 2 === 0 ? 'bg-blue-800' : 'bg-blue-400'}`} style={{ height: data.value * 15 }} />
+                    </View>
+                  ))}
+                </View>
+                <Text className="text-base text-gray-500 mt-2 text-center">
+                  {t('vitals.avg_cholesterol', { avg: cholesterolAvg })} — <Text className="text-green-500 font-semibold">{t('vitals.healthy')}</Text>
+                </Text>
+              </CardContent>
+            </Card>
+          </View>
         ) : (
-          <>
-            {/* Original real data view */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('home.quick_add')}</Text>
-              <View style={styles.buttonRow}>
-                <TouchableOpacity
-                  style={styles.vitalButton}
-                  onPress={() => navigation.navigate('AddVital', { type: VitalType.BloodPressure })}
-                >
-                  <Text style={styles.vitalButtonText}>{t('add_vital.blood_pressure')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.vitalButton}
-                  onPress={() => navigation.navigate('AddVital', { type: VitalType.Glucose })}
-                >
-                  <Text style={styles.vitalButtonText}>{t('add_vital.glucose')}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.vitalButton}
-                  onPress={() => navigation.navigate('AddVital', { type: VitalType.Weight })}
-                >
-                  <Text style={styles.vitalButtonText}>{t('add_vital.weight')}</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+          <View className="p-4">
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle>{t('home.quick_add')}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex-row gap-2">
+                <Button className="flex-1" onPress={() => navigation.navigate('AddVital', { type: VitalType.BloodPressure })}>
+                  <Text className="text-white">{t('add_vital.blood_pressure')}</Text>
+                </Button>
+                <Button className="flex-1" onPress={() => navigation.navigate('AddVital', { type: VitalType.Glucose })}>
+                  <Text className="text-white">{t('add_vital.glucose')}</Text>
+                </Button>
+                <Button className="flex-1" onPress={() => navigation.navigate('AddVital', { type: VitalType.Weight })}>
+                  <Text className="text-white">{t('add_vital.weight')}</Text>
+                </Button>
+              </CardContent>
+            </Card>
 
             {vitals.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateTitle}>{t('vitals.no_vitals_yet')}</Text>
-                <Text style={styles.emptyStateText}>
-                  {t('vitals.start_tracking_vitals')}
-                </Text>
-              </View>
+              <Card>
+                <CardContent className="p-10 items-center">
+                  <Text className="text-xl font-semibold mb-2">{t('vitals.no_vitals_yet')}</Text>
+                  <Text className="text-base text-gray-500 text-center">{t('vitals.start_tracking_vitals')}</Text>
+                </CardContent>
+              </Card>
             )}
 
             {vitals.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>{t('vitals.recent_readings')}</Text>
-                {vitals.slice(0, 10).map((vital) => (
-                  <View key={vital.id} style={styles.oldVitalCard}>
-                    <Text style={styles.vitalType}>{vital.type.replace('_', ' ').toUpperCase()}</Text>
-                    <Text style={styles.vitalValue}>
-                      {vital.type === VitalType.BloodPressure
-                        ? `${vital.systolic}/${vital.diastolic} ${vital.unit}`
-                        : `${vital.value} ${vital.unit}`}
-                    </Text>
-                    <Text style={styles.vitalDate}>
-                      {new Date(vital.measuredAt).toLocaleDateString()}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t('vitals.recent_readings')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {vitals.slice(0, 10).map((vital) => (
+                    <View key={vital.id} className="p-4 border-b border-gray-200">
+                      <Text className="text-xs font-semibold text-gray-400 uppercase">{vital.type.replace('_', ' ')}</Text>
+                      <Text className="text-xl font-bold text-black">
+                        {vital.type === VitalType.BloodPressure
+                          ? `${vital.systolic}/${vital.diastolic} ${vital.unit}`
+                          : `${vital.value} ${vital.unit}`}
+                      </Text>
+                      <Text className="text-sm text-gray-500">{new Date(vital.measuredAt).toLocaleDateString()}</Text>
+                    </View>
+                  ))}
+                </CardContent>
+              </Card>
             )}
-          </>
+          </View>
         )}
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background.primary,
-  },
-  header: {
-    backgroundColor: Colors.background.vitals,
-    paddingTop: Spacing['2xl'] + 10,
-    paddingBottom: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  backIcon: {
-    fontSize: 28,
-    color: Colors.text.inverse,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-    marginBottom: Spacing.lg,
-  },
-  searchIcon: {
-    marginRight: Spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.inverse,
-    marginBottom: Spacing.sm,
-  },
-  aiButton: {
-    position: 'absolute',
-    right: Spacing.lg,
-    top: Spacing['2xl'] + 80,
-  },
-  aiIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.md,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  section: {
-    padding: Spacing.md,
-  },
-  sectionTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.md,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  vitalButton: {
-    flex: 1,
-    backgroundColor: Colors.background.card,
-    padding: Spacing.md,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  vitalButtonText: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.primary.main,
-  },
-  emptyState: {
-    padding: Spacing.xl,
-    alignItems: 'center',
-    marginTop: Spacing.xl,
-  },
-  emptyStateTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.sm,
-  },
-  emptyStateText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-  },
-  // Demo Mode Styles
-  demoToggle: {
-    backgroundColor: '#4A6FA5',
-    padding: Spacing.md,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-  },
-  demoToggleText: {
-    color: Colors.text.inverse,
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-  },
-  summaryHeader: {
-    backgroundColor: '#E8E5F2',
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.card,
-  },
-  summaryTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-  },
-  vitalCard: {
-    backgroundColor: Colors.background.card,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.card,
-    ...Shadows.sm,
-  },
-  cardTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  cardSubtitle: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.md,
-  },
-  chartContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: 120,
-    marginVertical: Spacing.md,
-    gap: 4,
-  },
-  barGroup: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  bar: {
-    width: '100%',
-    borderRadius: 4,
-    minHeight: 4,
-  },
-  weightBar: {
-    width: '100%',
-    borderRadius: 4,
-    minHeight: 8,
-  },
-  chartLinesContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-    justifyContent: 'space-around',
-    marginVertical: Spacing.md,
-  },
-  chartLine: {
-    height: 1,
-    backgroundColor: '#5B9BD5',
-    opacity: 0.3,
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: Spacing.lg,
-    marginTop: Spacing.sm,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  legendText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-  },
-  avgText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-    marginTop: Spacing.sm,
-    textAlign: 'center',
-  },
-  statusStable: {
-    color: '#4CAF50',
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  statusElevated: {
-    color: '#F5B800',
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  statusHealthy: {
-    color: '#4CAF50',
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  weightHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.xs,
-  },
-  weightValue: {
-    fontSize: 48,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-  },
-  bmiBadge: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.lg,
-  },
-  bmiText: {
-    color: Colors.text.inverse,
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-  },
-  changeText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.sm,
-  },
-  // Original data view styles
-  oldVitalCard: {
-    backgroundColor: Colors.background.card,
-    padding: Spacing.md,
-    borderRadius: 8,
-    marginBottom: Spacing.sm,
-  },
-  vitalType: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.tertiary,
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  vitalValue: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: 4,
-  },
-  vitalDate: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-  },
-});
