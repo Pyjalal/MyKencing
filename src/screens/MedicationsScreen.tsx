@@ -22,7 +22,7 @@ type MedicationsScreenProps = {
 
 export default function MedicationsScreen({ navigation }: MedicationsScreenProps) {
   const { t } = useTranslation();
-  const { todayDoses, loadMedications, loadWeekDoses, markDose } = useMedicationStore();
+  const { weekDoses, loadMedications, loadWeekDoses, markDose } = useMedicationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -52,7 +52,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
 
   // Filter doses for selected day
   const selectedDayDoses = useMemo(() => {
-    return todayDoses.filter((dose) => {
+    return weekDoses.filter((dose) => {
       const doseDate = parseISO(dose.scheduledTime);
       if (!isSameDay(doseDate, selectedDate)) {
         return false;
@@ -60,7 +60,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
 
       return ![DoseStatus.Taken, DoseStatus.Skipped].includes(dose.status);
     });
-  }, [todayDoses, selectedDate]);
+  }, [weekDoses, selectedDate]);
 
   // Filter by search query
   const filteredDoses = useMemo(() => {

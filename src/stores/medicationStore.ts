@@ -7,6 +7,7 @@ import { getMedicineDetails } from '../services/mymedix-api';
 interface MedicationState {
   medications: MedicationWithDetails[];
   todayDoses: DoseWithMedication[];
+  weekDoses: DoseWithMedication[];
   isLoading: boolean;
   error: string | null;
 
@@ -24,6 +25,7 @@ interface MedicationState {
 export const useMedicationStore = create<MedicationState>((set, get) => ({
   medications: [],
   todayDoses: [],
+  weekDoses: [],
   isLoading: false,
   error: null,
 
@@ -279,7 +281,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         };
       });
 
-      set({ todayDoses: formatted, isLoading: false });
+      set({ weekDoses: formatted, isLoading: false });
     } catch (error) {
       console.error('Error loading week doses:', error);
       set({ error: (error as Error).message, isLoading: false });
