@@ -2,7 +2,48 @@ import { create } from 'zustand';
 import { Medication, MedicationWithDetails, Dose, DoseWithMedication, DoseStatus } from '../types';
 import { getDatabase } from '../services/database';
 import { logEvent, EventType } from '../services/analytics';
-import { getMedicineDetails } from '../services/mymedix-api';
+import { getCachedMedicineDetails } from '../services/medicineCache';
+
+// Database row types
+interface MedicationRow {
+  id: string;
+  mims_id: string;
+  registration_no: string;
+  user_dosage: string;
+  frequency: number;
+  times: string;
+  with_food: number;
+  start_date: string;
+  end_date?: string;
+  refill_date?: string;
+  is_active: number;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DoseRow {
+  dose_id: string;
+  dose_created_at: string;
+  medication_id: string;
+  medication_id_real: string;
+  scheduled_time: string;
+  actual_time?: string;
+  status: string;
+  dose_notes?: string;
+  registration_no: string;
+  user_dosage: string;
+  frequency: number;
+  times: string;
+  with_food: number;
+  start_date: string;
+  end_date?: string;
+  refill_date?: string;
+  is_active: number;
+  medication_notes?: string;
+  medication_created_at: string;
+  medication_updated_at: string;
+}
 
 interface MedicationState {
   medications: MedicationWithDetails[];
@@ -34,12 +75,12 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
     try {
       const db = getDatabase();
 
-      const medications = await db.getAllAsync<any>(`
+      const medications = await db.getAllAsync(`
         SELECT m.*
         FROM medications m
         WHERE m.is_active = 1
         ORDER BY m.created_at DESC
-      `);
+      `) as MedicationRow[];
 
       // Fetch medicine details from API for each medication
       const formatted: MedicationWithDetails[] = await Promise.all(
@@ -57,7 +98,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
           // Try to fetch medicine details from API
           if (row.registration_no) {
             try {
-              const medicineDetails = await getMedicineDetails(row.registration_no);
+              const medicineDetails = await getCachedMedicineDetails(row.registration_no);
               if (medicineDetails) {
                 mimsData = medicineDetails;
               }
@@ -101,7 +142,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       const db = getDatabase();
       const today = new Date().toISOString().split('T')[0];
 
-      const doses = await db.getAllAsync<any>(`
+      const doses = await db.getAllAsync(`
         SELECT
           d.id AS dose_id,
           d.medication_id,
@@ -127,7 +168,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         JOIN medications m ON d.medication_id = m.id
         WHERE DATE(d.scheduled_time) = ?
         ORDER BY d.scheduled_time ASC
-      `, [today]);
+      `, [today]) as DoseRow[];
 
       // Fetch medicine details from API for each unique medication
       const uniqueRegistrationNos = [...new Set(doses.map(d => d.registration_no).filter(Boolean))];
@@ -136,7 +177,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       await Promise.all(
         uniqueRegistrationNos.map(async (regNo) => {
           try {
-            const details = await getMedicineDetails(regNo);
+            const details = await getCachedMedicineDetails(regNo);
             if (details) {
               medicineDetailsMap.set(regNo, details);
             }
@@ -198,7 +239,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       const start = startDate.toISOString().split('T')[0];
       const end = endDate.toISOString().split('T')[0];
 
-      const doses = await db.getAllAsync<any>(`
+      const doses = await db.getAllAsync(`
         SELECT
           d.id AS dose_id,
           d.medication_id,
@@ -224,7 +265,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         JOIN medications m ON d.medication_id = m.id
         WHERE DATE(d.scheduled_time) BETWEEN ? AND ?
         ORDER BY d.scheduled_time ASC
-      `, [start, end]);
+      `, [start, end]) as DoseRow[];
 
       // Fetch medicine details from API for each unique medication
       const uniqueRegistrationNos = [...new Set(doses.map(d => d.registration_no).filter(Boolean))];
@@ -233,7 +274,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       await Promise.all(
         uniqueRegistrationNos.map(async (regNo) => {
           try {
-            const details = await getMedicineDetails(regNo);
+            const details = await getCachedMedicineDetails(regNo);
             if (details) {
               medicineDetailsMap.set(regNo, details);
             }

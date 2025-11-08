@@ -9,6 +9,27 @@ import { getDatabase } from './database';
 import { DoseStatus, DoseGuidance } from '../types';
 import { MISSED_DOSE_WINDOW } from '../constants/clinical';
 import type { Medication } from '../types';
+import { getCachedMedicineDetails } from './medicineCache';
+
+/**
+ * Get medicine name from cache or fallback to registration number
+ */
+async function getMedicineName(registrationNo: string): Promise<string> {
+  if (!registrationNo) {
+    return 'Unknown Medicine';
+  }
+
+  try {
+    const details = await getCachedMedicineDetails(registrationNo);
+    if (details) {
+      return details.brandName || details.genericName || registrationNo;
+    }
+  } catch (error) {
+    console.warn(`Failed to get medicine name for ${registrationNo}:`, error);
+  }
+
+  return registrationNo;
+}
 
 // Configure notification handler
 Notifications.setNotificationHandler({
@@ -268,10 +289,11 @@ export async function scheduleMedicationNotifications(
 export async function scheduleMedicationReminders(
   medication: Medication
 ): Promise<void> {
+  const medicineName = await getMedicineName(medication.registrationNo);
+
   await scheduleMedicationNotifications(
     medication.id,
-    // Use brand or generic if available via joined data; fallback to registration number
-    (medication as any)?.mims?.brandName || (medication as any)?.mims?.genericName || medication.registrationNo,
+    medicineName,
     medication.userDosage,
     medication.times,
     undefined
@@ -460,28 +482,27 @@ export async function checkForMissedDoses(): Promise<void> {
 
   // Only check for doses that are pending and between 30 mins and 4 hours ago
   // After 4 hours, they should be marked as missed by updateMissedDoses
-  const pending = await db.getAllAsync<{
+  const pending = await db.getAllAsync(`
+    SELECT d.id, d.medication_id, d.scheduled_time, m.user_dosage, m.times, m.registration_no
+    FROM doses d
+    JOIN medications m ON d.medication_id = m.id
+    WHERE d.status = 'pending'
+    AND d.scheduled_time <= ?
+    AND d.scheduled_time >= ?
+    LIMIT 5
+  `, [thirtyMinsAgo, fourHoursAgo]) as {
     id: string;
     medication_id: string;
     scheduled_time: string;
     user_dosage: string;
     times: string;
     registration_no: string;
-  }>(
-    `SELECT d.id, d.medication_id, d.scheduled_time, m.user_dosage, m.times, m.registration_no
-     FROM doses d
-     JOIN medications m ON d.medication_id = m.id
-     WHERE d.status = 'pending'
-     AND d.scheduled_time <= ?
-     AND d.scheduled_time >= ?
-     LIMIT 5`,
-    [thirtyMinsAgo, fourHoursAgo]
-  );
+  }[];
 
   // Only send follow-up if there are pending doses
   if (pending.length > 0) {
     for (const row of pending) {
-      const medName = row.registration_no || 'your medication';
+      const medName = await getMedicineName(row.registration_no || '');
       await Notifications.scheduleNotificationAsync({
         content: {
           title: `Did you take ${medName}?`,
@@ -513,22 +534,21 @@ export async function getAdherenceStats(
   const sinceDate = new Date();
   sinceDate.setDate(sinceDate.getDate() - days);
 
-  const stats = await db.getFirstAsync<{
+  const stats = await db.getFirstAsync(`
+    SELECT
+      COUNT(*) as total,
+      SUM(CASE WHEN status = 'taken' THEN 1 ELSE 0 END) as taken,
+      SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as skipped,
+      SUM(CASE WHEN status = 'missed' THEN 1 ELSE 0 END) as missed
+    FROM doses
+    WHERE medication_id = ?
+    AND scheduled_time >= ?
+  `, [medicationId, sinceDate.toISOString()]) as {
     total: number;
     taken: number;
     skipped: number;
     missed: number;
-  }>(
-    `SELECT
-       COUNT(*) as total,
-       SUM(CASE WHEN status = 'taken' THEN 1 ELSE 0 END) as taken,
-       SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as skipped,
-       SUM(CASE WHEN status = 'missed' THEN 1 ELSE 0 END) as missed
-     FROM doses
-     WHERE medication_id = ?
-     AND scheduled_time >= ?`,
-    [medicationId, sinceDate.toISOString()]
-  );
+  } | null;
 
   const total = stats?.total || 0;
   const taken = stats?.taken || 0;

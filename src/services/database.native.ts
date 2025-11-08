@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 
 // Database version for migrations
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const DB_NAME = 'mykencing.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -84,6 +84,9 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
   if (currentVersion < 3) {
     await applyMigration3(database);
   }
+  if (currentVersion < 4) {
+    await applyMigration4(database);
+  }
 }
 
 /**
@@ -106,9 +109,10 @@ async function applyMigration1(database: SQLite.SQLiteDatabase): Promise<void> {
       contraindications TEXT,
       drug_interactions TEXT,
       food_interactions TEXT,
-      source TEXT NOT NULL DEFAULT 'MIMS',
+      source TEXT NOT NULL DEFAULT 'PNF',
       last_updated TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      active_ingredients TEXT
     );
 
     -- Medications table (user's active prescriptions)
@@ -298,6 +302,40 @@ async function applyMigration3(database: SQLite.SQLiteDatabase): Promise<void> {
   );
 
   console.log('Migration 3 applied successfully');
+}
+
+/**
+ * Migration 4: Add active_ingredients column to mims_cache table
+ */
+async function applyMigration4(database: SQLite.SQLiteDatabase): Promise<void> {
+  console.log('[database.native] Migration 4: Adding active_ingredients column to mims_cache');
+
+  try {
+    // Check if column already exists
+    const result = await database.getAllAsync(`PRAGMA table_info(mims_cache)`);
+    const hasActiveIngredients = result.some((col: any) => col.name === 'active_ingredients');
+
+    if (hasActiveIngredients) {
+      console.log('[database.native] Migration 4 already applied');
+      return;
+    }
+
+    // Add the column
+    await database.execAsync(`
+      ALTER TABLE mims_cache ADD COLUMN active_ingredients TEXT;
+    `);
+
+    // Insert migration record
+    await database.runAsync(
+      'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+      [4, new Date().toISOString()]
+    );
+
+    console.log('Migration 4 applied successfully');
+  } catch (error) {
+    console.error('[database.native] Migration 4 failed:', error);
+    throw error;
+  }
 }
 
 /**
