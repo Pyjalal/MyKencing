@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput, Alert } from 'react-native';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useNavigation } from '@react-navigation/native';
 import { Search } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import i18n from '../services/i18n';
+import { clearAllData } from '../services/database';
+import { clearAllSecureData } from '../services/encryption';
 
 export default function SettingsScreen() {
   const { settings, loadSettings, updateSettings } = useSettingsStore();
@@ -21,6 +23,40 @@ export default function SettingsScreen() {
     const newLang = i18n.language === 'en' ? 'ms' : 'en';
     i18n.changeLanguage(newLang);
     updateSettings({ language: newLang });
+  };
+
+  const handleDeleteAllData = () => {
+    Alert.alert(
+      t('settings.deleteAllData'),
+      t('settings.deleteAllDataConfirm', 'This will permanently delete all your medications, doses, vitals, and settings. This action cannot be undone.'),
+      [
+        {
+          text: t('settings.cancel', 'Cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('settings.delete', 'Delete'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Clear all database data
+              await clearAllData();
+              // Clear secure storage
+              await clearAllSecureData();
+              // Navigate back to home or restart app
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Home' }],
+              });
+              Alert.alert(t('settings.dataDeleted', 'All data has been deleted'));
+            } catch (error) {
+              console.error('Error deleting all data:', error);
+              Alert.alert(t('settings.deleteError', 'Failed to delete data. Please try again.'));
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -113,7 +149,7 @@ export default function SettingsScreen() {
           <TouchableOpacity style={styles.settingButton}>
             <Text style={styles.settingButtonText}>{t('settings.viewPrivacyPolicy')}</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.settingButton, styles.dangerButton]}>
+          <TouchableOpacity style={[styles.settingButton, styles.dangerButton]} onPress={handleDeleteAllData}>
             <Text style={[styles.settingButtonText, styles.dangerButtonText]}>{t('settings.deleteAllData')}</Text>
           </TouchableOpacity>
         </View>

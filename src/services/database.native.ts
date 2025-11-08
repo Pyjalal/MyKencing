@@ -310,7 +310,7 @@ export async function clearAllData(): Promise<void> {
     DELETE FROM medications;
     DELETE FROM vitals;
     DELETE FROM settings;
-    DELETE FROM mims_cache;
+    DELETE FROM events;
   `);
   console.log('All data cleared');
 }
