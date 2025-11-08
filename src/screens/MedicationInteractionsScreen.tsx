@@ -6,12 +6,14 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, MedicationWithDetails } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { format, parseISO, differenceInDays } from 'date-fns';
+import { checkDrugInteractions as checkDrugInteractionsAPI } from '../services/mymedix-api';
 
 type MedicationInteractionsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MedicationInteractions'>;
@@ -34,97 +36,119 @@ interface FoodInteraction {
 export default function MedicationInteractionsScreen({ navigation }: MedicationInteractionsScreenProps) {
   const { medications, loadMedications } = useMedicationStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [drugInteractions, setDrugInteractions] = useState<DrugInteraction[]>([]);
+  const [foodInteractions, setFoodInteractions] = useState<FoodInteraction[]>([]);
+  const [isCheckingInteractions, setIsCheckingInteractions] = useState(false);
+  const [interactionError, setInteractionError] = useState<string | null>(null);
 
   useEffect(() => {
     loadMedications();
   }, []);
+
+  // Check for interactions when medications load or change
+  useEffect(() => {
+    async function checkInteractions() {
+      const activeMeds = medications.filter(m => m.isActive);
+
+      // Need at least 1 medication to check interactions
+      if (activeMeds.length === 0) {
+        setDrugInteractions([]);
+        setFoodInteractions([]);
+        return;
+      }
+
+      setIsCheckingInteractions(true);
+      setInteractionError(null);
+
+      try {
+        // Get registration numbers for API call
+        const medIds = activeMeds
+          .map(m => m.registrationNo)
+          .filter(Boolean) as string[];
+
+        if (medIds.length === 0) {
+          console.warn('No valid registration numbers found for interaction checking');
+          setDrugInteractions([]);
+          setFoodInteractions([]);
+          setIsCheckingInteractions(false);
+          return;
+        }
+
+        console.log('Checking interactions for medications:', medIds);
+
+        // Call the MyMedix API for comprehensive interaction data
+        const result = await checkDrugInteractionsAPI(medIds);
+
+        console.log('Interaction check result:', result);
+
+        if (result.hasInteractions && result.interactions.length > 0) {
+          // Parse the interaction strings and categorize them
+          const drugDrugInteractions: DrugInteraction[] = [];
+          const foodDrugInteractions: FoodInteraction[] = [];
+
+          result.interactions.forEach((interactionText) => {
+            // Parse interaction text format: "Drug1 and Drug2 (severity): explanation"
+            const match = interactionText.match(/^(.+?) and (.+?) \((.+?) severity\)(?:: (.+))?$/);
+
+            if (match) {
+              const [, drug1, drug2, severity, explanation] = match;
+
+              // Check if it's a food interaction by looking for food keywords
+              const foodKeywords = ['food', 'alcohol', 'grapefruit', 'milk', 'dairy', 'tyramine', 'caffeine'];
+              const isFoodInteraction = foodKeywords.some(keyword =>
+                drug2.toLowerCase().includes(keyword) || drug1.toLowerCase().includes(keyword)
+              );
+
+              if (isFoodInteraction) {
+                // This is a food-drug interaction
+                const medication = foodKeywords.some(k => drug2.toLowerCase().includes(k)) ? drug1 : drug2;
+                const food = foodKeywords.some(k => drug2.toLowerCase().includes(k)) ? drug2 : drug1;
+
+                foodDrugInteractions.push({
+                  medication,
+                  food,
+                  recommendation: explanation || 'Consult your healthcare provider',
+                  severity: (severity.toLowerCase() as 'low' | 'moderate' | 'high') || 'moderate',
+                });
+              } else {
+                // This is a drug-drug interaction
+                drugDrugInteractions.push({
+                  drug1,
+                  drug2,
+                  risk: explanation || 'Potential interaction detected',
+                  severity: (severity.toLowerCase() as 'low' | 'moderate' | 'high') || 'moderate',
+                });
+              }
+            } else {
+              // Fallback: treat as general drug interaction
+              console.warn('Could not parse interaction:', interactionText);
+            }
+          });
+
+          setDrugInteractions(drugDrugInteractions);
+          setFoodInteractions(foodDrugInteractions);
+        } else {
+          setDrugInteractions([]);
+          setFoodInteractions([]);
+        }
+      } catch (error) {
+        console.error('Failed to check interactions:', error);
+        setInteractionError('Unable to check interactions. Please try again later.');
+        setDrugInteractions([]);
+        setFoodInteractions([]);
+      } finally {
+        setIsCheckingInteractions(false);
+      }
+    }
+
+    checkInteractions();
+  }, [medications]);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await loadMedications();
     setRefreshing(false);
   }, [loadMedications]);
-
-  // Check for drug-drug interactions (simplified logic)
-  const checkDrugInteractions = (): DrugInteraction[] => {
-    const interactions: DrugInteraction[] = [];
-    
-    // Check for common interactions
-    const meds = medications.filter(m => m.isActive);
-    
-    for (let i = 0; i < meds.length; i++) {
-      for (let j = i + 1; j < meds.length; j++) {
-        const med1Name = (meds[i].mims.brandName || meds[i].mims.genericName).toLowerCase();
-        const med2Name = (meds[j].mims.brandName || meds[j].mims.genericName).toLowerCase();
-        
-        // Check for known interactions (simplified)
-        if ((med1Name.includes('amlodipine') && med2Name.includes('simvastatin')) ||
-            (med2Name.includes('amlodipine') && med1Name.includes('simvastatin'))) {
-          interactions.push({
-            drug1: meds[i].mims.brandName || meds[i].mims.genericName,
-            drug2: meds[j].mims.brandName || meds[j].mims.genericName,
-            risk: 'May increase muscle pain',
-            severity: 'moderate',
-          });
-        }
-        
-        // Add other common interactions as needed
-        if ((med1Name.includes('warfarin') && med2Name.includes('aspirin')) ||
-            (med2Name.includes('warfarin') && med1Name.includes('aspirin'))) {
-          interactions.push({
-            drug1: meds[i].mims.brandName || meds[i].mims.genericName,
-            drug2: meds[j].mims.brandName || meds[j].mims.genericName,
-            risk: 'May increase bleeding risk',
-            severity: 'high',
-          });
-        }
-      }
-    }
-    
-    return interactions;
-  };
-
-  // Check for food-drug interactions (simplified logic)
-  const checkFoodInteractions = (): FoodInteraction[] => {
-    const interactions: FoodInteraction[] = [];
-    
-    medications.filter(m => m.isActive).forEach(med => {
-      const medName = (med.mims.brandName || med.mims.genericName).toLowerCase();
-      
-      // Check for known food interactions
-      if (medName.includes('amlodipine')) {
-        interactions.push({
-          medication: med.mims.brandName || med.mims.genericName,
-          food: 'Grapefruit juice',
-          recommendation: 'Avoid consuming grapefruit juice while on this medication',
-          severity: 'high',
-        });
-      }
-      
-      if (medName.includes('simvastatin')) {
-        interactions.push({
-          medication: med.mims.brandName || med.mims.genericName,
-          food: 'Grapefruit juice',
-          recommendation: 'Avoid consuming grapefruit juice while on this medication',
-          severity: 'high',
-        });
-      }
-      
-      if (medName.includes('metformin')) {
-        interactions.push({
-          medication: med.mims.brandName || med.mims.genericName,
-          food: 'Alcohol',
-          recommendation: 'Limit alcohol consumption to avoid lactic acidosis',
-          severity: 'moderate',
-        });
-      }
-    });
-    
-    return interactions;
-  };
-
-  const drugInteractions = checkDrugInteractions();
-  const foodInteractions = checkFoodInteractions();
 
   const calculateDaysLeft = (medication: MedicationWithDetails): number | null => {
     if (!medication.endDate) return null;
@@ -214,11 +238,24 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
         {/* Drug-Drug Interactions Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Drug-Drug Interaction</Text>
-          
-          {drugInteractions.length > 0 ? (
+
+          {isCheckingInteractions ? (
+            <View style={styles.emptyCard}>
+              <ActivityIndicator size="large" color={Colors.accent.main} />
+              <Text style={[styles.emptyText, { marginTop: Spacing.md }]}>
+                Checking for interactions...
+              </Text>
+            </View>
+          ) : interactionError ? (
+            <View style={styles.emptyCard}>
+              <Text style={[styles.emptyText, { color: Colors.status.error }]}>
+                {interactionError}
+              </Text>
+            </View>
+          ) : drugInteractions.length > 0 ? (
             <View style={styles.interactionCard}>
               <Text style={styles.interactionWarning}>Possible interactions detected</Text>
-              
+
               {drugInteractions.map((interaction, index) => (
                 <View key={index} style={styles.interactionDetails}>
                   <View style={styles.drugBadgesContainer}>
@@ -245,13 +282,26 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
         {/* Food-Drug Interactions Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Food-Drug Interaction</Text>
-          
-          {foodInteractions.length > 0 ? (
+
+          {isCheckingInteractions ? (
+            <View style={styles.emptyCard}>
+              <ActivityIndicator size="large" color={Colors.accent.main} />
+              <Text style={[styles.emptyText, { marginTop: Spacing.md }]}>
+                Checking for interactions...
+              </Text>
+            </View>
+          ) : interactionError ? (
+            <View style={styles.emptyCard}>
+              <Text style={[styles.emptyText, { color: Colors.status.error }]}>
+                {interactionError}
+              </Text>
+            </View>
+          ) : foodInteractions.length > 0 ? (
             <>
               {foodInteractions.map((interaction, index) => (
                 <View key={index} style={styles.foodInteractionCard}>
                   <Text style={styles.foodWarning}>
-                    {interaction.food} may increase {interaction.medication} levels
+                    {interaction.food} may interact with {interaction.medication}
                   </Text>
                   <Text style={styles.recommendationLabel}>Recommendation:</Text>
                   <Text style={styles.recommendationText}>{interaction.recommendation}</Text>

@@ -21,6 +21,7 @@ interface MedicationState {
   deleteMedication: (id: string) => Promise<void>;
   markDose: (doseId: string, status: DoseStatus, actualTime?: string) => Promise<void>;
   getMedicationById: (id: string) => MedicationWithDetails | undefined;
+  generateDosesForMedication: (medicationId: string, times: string[], startDateStr: string, endDateStr?: string) => Promise<void>;
 }
 
 // API response cache to prevent duplicate requests
@@ -351,13 +352,83 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         ]
       );
 
-      // Reload only medications (no loading state flicker)
+      // Generate doses for the next 30 days
+      await get().generateDosesForMedication(id, medication.times, medication.startDate, medication.endDate);
+
+      // Reload medications and doses
       await get().loadMedications();
+      
+      // Reload week doses for current view
+      const today = new Date();
+      const startOfWeekDate = new Date(today);
+      startOfWeekDate.setDate(today.getDate() - today.getDay());
+      const endOfWeekDate = new Date(startOfWeekDate);
+      endOfWeekDate.setDate(startOfWeekDate.getDate() + 6);
+      await get().loadWeekDoses(startOfWeekDate, endOfWeekDate);
+      
       try { await logEvent(EventType.MedicationAdded); } catch {}
       return id;
     } catch (error) {
       console.error('Error adding medication:', error);
       set({ error: (error as Error).message });
+      throw error;
+    }
+  },
+
+  generateDosesForMedication: async (medicationId: string, times: string[], startDateStr: string, endDateStr?: string) => {
+    try {
+      const db = getDatabase();
+      const startDate = new Date(startDateStr);
+      const endDate = endDateStr ? new Date(endDateStr) : new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days default
+      
+      const dosesToInsert: any[] = [];
+      
+      // Generate doses for each day
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        // For each scheduled time
+        for (const time of times) {
+          const [hours, minutes] = time.split(':').map(Number);
+          const scheduledDateTime = new Date(currentDate);
+          scheduledDateTime.setHours(hours, minutes, 0, 0);
+          
+          // Only create doses for future or today
+          const now = new Date();
+          now.setHours(0, 0, 0, 0);
+          if (scheduledDateTime >= now) {
+            const doseId = `dose_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            // Determine status
+            let status = 'upcoming';
+            const nowTime = new Date();
+            if (scheduledDateTime < nowTime) {
+              status = 'pending';
+            }
+            
+            dosesToInsert.push({
+              id: doseId,
+              medicationId,
+              scheduledTime: scheduledDateTime.toISOString(),
+              status,
+            });
+          }
+        }
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      // Insert all doses
+      for (const dose of dosesToInsert) {
+        await db.runAsync(
+          `INSERT INTO doses (id, medication_id, scheduled_time, status, created_at)
+           VALUES (?, ?, ?, ?, ?)`,
+          [dose.id, dose.medicationId, dose.scheduledTime, dose.status, new Date().toISOString()]
+        );
+      }
+      
+      console.log(`Generated ${dosesToInsert.length} doses for medication ${medicationId}`);
+    } catch (error) {
+      console.error('Error generating doses:', error);
       throw error;
     }
   },
