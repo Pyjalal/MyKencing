@@ -378,3 +378,53 @@ export async function exportDatabaseStats(): Promise<any> {
     mimsCache: mimsCount?.count || 0,
   };
 }
+
+/**
+ * Clean up medications with invalid registration numbers
+ * This removes test/mock data that causes API errors
+ * @returns Number of medications deactivated
+ */
+export async function cleanupInvalidMedications(): Promise<number> {
+  const database = getDatabase();
+
+  try {
+    // Deactivate (don't delete) medications with invalid registration numbers
+    // This preserves historical data while preventing API errors
+    const result = await database.runAsync(`
+      UPDATE medications
+      SET is_active = 0,
+          notes = CASE
+            WHEN notes IS NULL OR notes = '' THEN 'Auto-disabled: Invalid registration number'
+            ELSE notes || ' [Auto-disabled: Invalid registration number]'
+          END,
+          updated_at = datetime('now')
+      WHERE is_active = 1
+        AND (
+          registration_no LIKE 'mims-%'
+          OR registration_no LIKE 'custom_%'
+          OR registration_no LIKE 'med_%'
+          OR registration_no LIKE '%sample%'
+          OR registration_no LIKE '%test%'
+          OR registration_no LIKE '%mock%'
+          OR registration_no = 'Loading...'
+          OR registration_no = 'Unknown'
+          OR registration_no = ''
+          OR registration_no IS NULL
+          OR LENGTH(registration_no) < 6
+        )
+    `);
+
+    const changedCount = result.changes;
+
+    if (changedCount > 0) {
+      console.log(`✓ Cleaned up ${changedCount} invalid medication(s)`);
+    } else {
+      console.log('✓ No invalid medications found');
+    }
+
+    return changedCount;
+  } catch (error) {
+    console.error('Error cleaning up invalid medications:', error);
+    return 0;
+  }
+}

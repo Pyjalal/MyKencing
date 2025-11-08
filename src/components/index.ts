@@ -12,5 +12,12 @@ export { default as DoseStatusBadge } from './DoseStatusBadge';
 export { PillButton } from './PillButton';
 export { CustomTabBar } from './BottomNavBar';
 
+// Medication carousel and interaction components
+export { default as MedicationCarousel } from './MedicationCarousel';
+export { default as DrugDrugInteractionAlert } from './DrugDrugInteractionAlert';
+export { default as FoodDrugInteractionAlert } from './FoodDrugInteractionAlert';
+
 // Export types
 export type { DoseStatus } from './DoseStatusBadge';
+export type { DrugInteraction } from './DrugDrugInteractionAlert';
+export type { FoodInteraction } from './FoodDrugInteractionAlert';

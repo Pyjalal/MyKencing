@@ -107,9 +107,46 @@ export async function batchSearchMedicines(
 }
 
 /**
+ * Validate if a registration number is valid before making API calls
+ * Filters out test/mock data and obviously invalid formats
+ */
+function isValidRegistrationNumber(regNo: string): boolean {
+  if (!regNo || regNo.trim().length === 0) return false;
+
+  // Filter out obvious test/mock data patterns
+  const invalidPatterns = [
+    'mims-',      // Test data like "mims-001"
+    'med_',       // Custom IDs
+    'custom_',    // Custom IDs
+    'sample',     // Sample data
+    'test',       // Test data
+    'mock',       // Mock data
+    'Loading',    // Loading placeholder
+    'Unknown',    // Unknown placeholder
+  ];
+
+  const lowerRegNo = regNo.toLowerCase();
+  for (const pattern of invalidPatterns) {
+    if (lowerRegNo.includes(pattern.toLowerCase())) {
+      return false;
+    }
+  }
+
+  // Malaysian registration numbers are typically longer than 5 characters
+  // and follow patterns like MAL########AZ
+  return regNo.length > 5;
+}
+
+/**
  * Get medicine details by registration number from MyMedix API
  */
 export async function getMedicineDetails(registrationNo: string): Promise<MIMSMedicine | null> {
+  // Validate registration number format before making API call
+  if (!isValidRegistrationNumber(registrationNo)) {
+    console.warn(`Skipping API call for invalid registration number: ${registrationNo}`);
+    return null;
+  }
+
   try {
     const apiMedicine = await apiClient.getMedicineDetails(registrationNo);
 
@@ -155,7 +192,9 @@ export async function getMedicineDetails(registrationNo: string): Promise<MIMSMe
     };
   } catch (error) {
     console.error('Error getting medicine details:', error);
-    throw error;
+    // Return null instead of throwing to prevent error cascades
+    // The caller can handle missing data gracefully
+    return null;
   }
 }
 

@@ -25,6 +25,8 @@ import ExportReportScreen from '../screens/ExportReportScreen';
 import RamadanModeScreen from '../screens/RamadanModeScreen';
 import MedicationsScreen from '../screens/MedicationsScreen';
 import ChatBotScreen from '../screens/ChatBotScreen';
+import MedicationManagementScreen from '../screens/MedicationManagementScreen';
+import MedicationInteractionsScreen from '../screens/MedicationInteractionsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -176,6 +178,16 @@ export default function AppNavigator() {
           name="ChatBot"
           component={ChatBotScreen}
           options={{ title: 'Chatbot' }}
+        />
+        <Stack.Screen
+          name="MedicationManagement"
+          component={MedicationManagementScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="MedicationInteractions"
+          component={MedicationInteractionsScreen}
+          options={{ title: 'Medication Interactions' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

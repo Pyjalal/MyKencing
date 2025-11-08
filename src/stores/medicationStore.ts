@@ -10,6 +10,7 @@ interface MedicationState {
   weekDoses: DoseWithMedication[];
   isLoading: boolean;
   error: string | null;
+  lastLoadTime: number | null;
 
   // Actions
   loadMedications: () => Promise<void>;
@@ -22,14 +23,34 @@ interface MedicationState {
   getMedicationById: (id: string) => MedicationWithDetails | undefined;
 }
 
+// API response cache to prevent duplicate requests
+const apiCache = new Map<string, any>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export const useMedicationStore = create<MedicationState>((set, get) => ({
   medications: [],
   todayDoses: [],
   weekDoses: [],
   isLoading: false,
   error: null,
+  lastLoadTime: null,
 
   loadMedications: async () => {
+    const state = get();
+    const now = Date.now();
+
+    // Prevent duplicate simultaneous calls
+    if (state.isLoading) {
+      console.log('[medicationStore] Load already in progress, skipping duplicate call');
+      return;
+    }
+
+    // Use cached data if loaded recently (within 5 seconds)
+    if (state.lastLoadTime && now - state.lastLoadTime < 5000) {
+      console.log('[medicationStore] Using recently loaded data from cache');
+      return;
+    }
+
     set({ isLoading: true, error: null });
     try {
       const db = getDatabase();
@@ -54,18 +75,30 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
             activeIngredients: [],
           };
 
-          // Try to fetch medicine details from API
+          // Try to fetch medicine details from API with caching
           if (row.registration_no) {
-            try {
-              const medicineDetails = await getMedicineDetails(row.registration_no);
-              if (medicineDetails) {
-                mimsData = medicineDetails;
+            // Check cache first
+            const cached = apiCache.get(row.registration_no);
+            if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+              mimsData = cached.data;
+            } else {
+              // Fetch from API
+              try {
+                const medicineDetails = await getMedicineDetails(row.registration_no);
+                if (medicineDetails) {
+                  mimsData = medicineDetails;
+                  // Store in cache
+                  apiCache.set(row.registration_no, {
+                    data: medicineDetails,
+                    timestamp: Date.now(),
+                  });
+                }
+              } catch (apiError) {
+                console.warn(`Failed to fetch medicine details for ${row.registration_no}:`, apiError);
+                // Use fallback data
+                mimsData.genericName = row.registration_no;
+                mimsData.brandName = 'Medicine details unavailable';
               }
-            } catch (apiError) {
-              console.warn(`Failed to fetch medicine details for ${row.registration_no}:`, apiError);
-              // Use fallback data
-              mimsData.genericName = row.registration_no;
-              mimsData.brandName = 'Medicine details unavailable';
             }
           }
 
@@ -88,7 +121,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         })
       );
 
-      set({ medications: formatted, isLoading: false });
+      set({ medications: formatted, isLoading: false, lastLoadTime: now });
     } catch (error) {
       console.error('Error loading medications:', error);
       set({ error: (error as Error).message, isLoading: false });
