@@ -8,11 +8,10 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
-  Platform,
-  FlatList,
   Keyboard,
   TouchableWithoutFeedback,
 } from 'react-native';
+import DatePicker from 'react-native-date-picker';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Medication, FoodTiming, MIMSSearchResult } from '../types';
@@ -105,51 +104,68 @@ export default function AddMedicineScreen() {
     }
   }, []);
 
-  // Handle medicine selection from search
-  const handleMedicineSelect = (medicine: MIMSSearchResult) => {
+  // Helper functions for parsing medicine data
+  const parseDosageFromStrength = (strength: string) => {
+    const match = strength.match(/(\d+(?:\.\d+)?)/);
+    return match ? match[1] : '';
+  };
+
+  const parseUnitFromStrength = (strength: string) => {
+    const match = strength.match(/(MG|ML|MCG|G|IU)/i);
+    if (match) {
+      const unitValue = match[1].toLowerCase();
+      if (unitValue === 'mg') return 'mg';
+      if (unitValue === 'ml') return 'ml';
+      if (unitValue === 'mcg') return 'mcg';
+      if (unitValue === 'g') return 'g';
+      if (unitValue === 'iu') return 'iu';
+    }
+    return 'tablet';
+  };
+
+  const parseFormFromDosageForm = (dosageForm: string) => {
+    const formValue = dosageForm.toLowerCase();
+    if (formValue.includes('tablet')) return 'tablet';
+    if (formValue.includes('capsule')) return 'capsule';
+    if (formValue.includes('syrup') || formValue.includes('liquid')) return 'syrup';
+    if (formValue.includes('injection')) return 'injection';
+    if (formValue.includes('cream') || formValue.includes('ointment')) return 'cream';
+    if (formValue.includes('drop')) return 'drops';
+    if (formValue.includes('inhaler') || formValue.includes('puff')) return 'inhaler';
+    return '';
+  };
+
+  // Helper function to capitalize dosage form for display
+  const capitalizeDosageForm = (dosageForm: string) => {
+    return dosageForm.charAt(0).toUpperCase() + dosageForm.slice(1).toLowerCase();
+  };
+
+  // Extract medicine pre-filling logic to avoid duplication
+  const prefillMedicineData = (medicine: MIMSSearchResult) => {
     setSelectedMedicineFromSearch(medicine);
     setSearchQuery(medicine.brandName || medicine.genericName);
-    setShowSearchResults(false);
-
-    // Pre-fill form fields
     setMedicationName(medicine.brandName || medicine.genericName);
 
-    // Pre-fill dosage from strength (e.g., "500MG" -> "500")
+    // Pre-fill dosage and unit from structured strength field (parsed by backend)
     if (medicine.strength) {
-      const dosageMatch = medicine.strength.match(/(\d+(?:\.\d+)?)/);
-      if (dosageMatch) {
-        setDosage(dosageMatch[1]);
-      }
+      setDosage(parseDosageFromStrength(medicine.strength));
+      setUnit(parseUnitFromStrength(medicine.strength));
     }
 
-    // Pre-fill unit from strength (e.g., "500MG" -> "mg")
-    if (medicine.strength) {
-      const unitMatch = medicine.strength.match(/(MG|ML|MCG|G|IU)/i);
-      if (unitMatch) {
-        const unitValue = unitMatch[1].toLowerCase();
-        if (unitValue === 'mg') setUnit('mg');
-        else if (unitValue === 'ml') setUnit('ml');
-        else if (unitValue === 'mcg') setUnit('mcg');
-        else if (unitValue === 'g') setUnit('g');
-        else if (unitValue === 'iu') setUnit('iu');
-      }
-    }
-
-    // Pre-fill form from dosage form
+    // Pre-fill form from structured dosageForm field (parsed by backend)
     if (medicine.dosageForm) {
-      const formValue = medicine.dosageForm.toLowerCase();
-      if (formValue.includes('tablet')) setForm('tablet');
-      else if (formValue.includes('capsule')) setForm('capsule');
-      else if (formValue.includes('syrup') || formValue.includes('liquid')) setForm('syrup');
-      else if (formValue.includes('injection')) setForm('injection');
-      else if (formValue.includes('cream') || formValue.includes('ointment')) setForm('cream');
-      else if (formValue.includes('drop')) setForm('drops');
-      else if (formValue.includes('inhaler') || formValue.includes('puff')) setForm('inhaler');
+      setForm(medicine.dosageForm);
     }
 
     // Set default frequency to "once daily" for auto-filled medicines
     setFrequency('once');
     setSelectedTimes(MEDICATION_TIMING.onceDailyMorning);
+  };
+
+  // Handle medicine selection from search
+  const handleMedicineSelect = (medicine: MIMSSearchResult) => {
+    prefillMedicineData(medicine);
+    setShowSearchResults(false);
   };
 
   // Clear selected medicine
@@ -164,51 +180,7 @@ export default function AddMedicineScreen() {
   // Pre-fill form when medicine is selected from API (OCR)
   useEffect(() => {
     if (selectedMedicine) {
-      console.log('AddMedicineScreen: Pre-filling from selectedMedicine', selectedMedicine);
-      
-      // Set it as the selected medicine from search so the registration number is used
-      setSelectedMedicineFromSearch(selectedMedicine);
-      setSearchQuery(selectedMedicine.brandName || selectedMedicine.genericName);
-      
-      // Pre-fill medicine name
-      setMedicationName(selectedMedicine.brandName || selectedMedicine.genericName);
-
-      // Pre-fill dosage from strength (e.g., "500MG" -> "500")
-      if (selectedMedicine.strength) {
-        const dosageMatch = selectedMedicine.strength.match(/(\d+(?:\.\d+)?)/);
-        if (dosageMatch) {
-          setDosage(dosageMatch[1]);
-        }
-      }
-
-      // Pre-fill unit from strength (e.g., "500MG" -> "mg")
-      if (selectedMedicine.strength) {
-        const unitMatch = selectedMedicine.strength.match(/(MG|ML|MCG|G|IU)/i);
-        if (unitMatch) {
-          const unitValue = unitMatch[1].toLowerCase();
-          if (unitValue === 'mg') setUnit('mg');
-          else if (unitValue === 'ml') setUnit('ml');
-          else if (unitValue === 'mcg') setUnit('mcg');
-          else if (unitValue === 'g') setUnit('g');
-          else if (unitValue === 'iu') setUnit('iu');
-        }
-      }
-
-      // Pre-fill form from dosage form
-      if (selectedMedicine.dosageForm) {
-        const formValue = selectedMedicine.dosageForm.toLowerCase();
-        if (formValue.includes('tablet')) setForm('tablet');
-        else if (formValue.includes('capsule')) setForm('capsule');
-        else if (formValue.includes('syrup') || formValue.includes('liquid')) setForm('syrup');
-        else if (formValue.includes('injection')) setForm('injection');
-        else if (formValue.includes('cream') || formValue.includes('ointment')) setForm('cream');
-        else if (formValue.includes('drop')) setForm('drops');
-        else if (formValue.includes('inhaler') || formValue.includes('puff')) setForm('inhaler');
-      }
-
-      // Set default frequency to "once daily" for auto-filled medicines
-      setFrequency('once');
-      setSelectedTimes(MEDICATION_TIMING.onceDailyMorning);
+      prefillMedicineData(selectedMedicine);
     }
   }, [selectedMedicine]);
 
@@ -311,20 +283,7 @@ export default function AddMedicineScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [
-    medicationName,
-    dosage,
-    unit,
-    form,
-    frequency,
-    selectedTimes,
-    startDate,
-    endDate,
-    notes,
-    addMedication,
-    navigation,
-    getTimesForFrequency,
-  ]);
+  }, [medicationName, dosage, unit, form, frequency, selectedTimes, startDate, endDate, notes, selectedMedicineFromSearch, selectedMedicine, addMedication, navigation]);
 
   const renderPickerModal = (
     visible: boolean,
@@ -356,63 +315,33 @@ export default function AddMedicineScreen() {
     </Modal>
   );
 
-  const renderDatePickerModal = () => {
+  const renderDatePicker = () => {
     if (!showDatePicker) return null;
 
     const currentDate = showDatePicker === 'start' ? startDate : endDate || new Date();
-    const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() + i);
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
+    const minimumDate = showDatePicker === 'end' ? startDate : undefined;
 
     return (
-      <Modal visible={true} transparent animationType="fade">
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowDatePicker(null)}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {showDatePicker === 'start' ? 'Select Start Date' : 'Select End Date'}
-            </Text>
-            <View style={styles.datePickerContainer}>
-              <Text style={styles.dateDisplay}>{currentDate.toLocaleDateString()}</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => {
-                  const newDate = new Date();
-                  if (showDatePicker === 'start') {
-                    setStartDate(newDate);
-                  } else {
-                    setEndDate(newDate);
-                  }
-                  setShowDatePicker(null);
-                }}
-              >
-                <Text style={styles.dateButtonText}>Select Today</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.dateButton, styles.dateButtonSecondary]}
-                onPress={() => setShowDatePicker(null)}
-              >
-                <Text style={styles.dateButtonTextSecondary}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      <DatePicker
+        modal
+        open={true}
+        date={currentDate}
+        mode="date"
+        minimumDate={minimumDate}
+        onConfirm={(date) => {
+          if (showDatePicker === 'start') {
+            setStartDate(date);
+          } else {
+            setEndDate(date);
+          }
+          setShowDatePicker(null);
+        }}
+        onCancel={() => setShowDatePicker(null)}
+        title={showDatePicker === 'start' ? 'Select Start Date' : 'Select End Date'}
+        confirmText="Confirm"
+        cancelText="Cancel"
+        theme="light"
+      />
     );
   };
 
@@ -470,31 +399,28 @@ export default function AddMedicineScreen() {
                   nestedScrollEnabled={true}
                   keyboardShouldPersistTaps="always"
                 >
-                  {searchResults.map((item, index) => {
-                    console.log(`Rendering item ${index + 1}/${searchResults.length}: ${item.brandName || item.genericName}`);
-                    return (
-                      <TouchableOpacity
-                        key={item.id}
-                        style={styles.searchResultItem}
-                        onPress={() => {
-                          Keyboard.dismiss();
-                          handleMedicineSelect(item);
-                        }}
-                      >
-                        <View style={styles.searchResultContent}>
-                          <Text style={styles.searchResultName}>
-                            {item.brandName || item.genericName}
-                          </Text>
-                          <Text style={styles.searchResultDetails}>
-                            {item.strength && `${item.strength} • `}
-                            {item.dosageForm && `${item.dosageForm} • `}
-                            {item.activeIngredients.slice(0, 2).join(', ')}
-                            {item.activeIngredients.length > 2 && '...'}
-                          </Text>
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
+                  {searchResults.map((item) => (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={styles.searchResultItem}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        handleMedicineSelect(item);
+                      }}
+                    >
+                      <View style={styles.searchResultContent}>
+                        <Text style={styles.searchResultName}>
+                          {item.brandName || item.genericName}
+                        </Text>
+                        <Text style={styles.searchResultDetails}>
+                          {item.strength && `${item.strength} • `}
+                          {item.dosageForm && `${capitalizeDosageForm(item.dosageForm)} • `}
+                          {item.activeIngredients.slice(0, 2).join(', ')}
+                          {item.activeIngredients.length > 2 && '...'}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </ScrollView>
               )}
             </View>
@@ -663,7 +589,7 @@ export default function AddMedicineScreen() {
       )}
 
       {/* Date Picker */}
-      {renderDatePickerModal()}
+      {renderDatePicker()}
       </View>
     </TouchableWithoutFeedback>
   );
@@ -837,16 +763,6 @@ const styles = StyleSheet.create({
   modalOptionText: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.primary,
-  },
-  datePickerContainer: {
-    gap: Spacing.md,
-  },
-  dateDisplay: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
   },
   dateButton: {
     backgroundColor: Colors.accent.main,

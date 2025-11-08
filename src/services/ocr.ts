@@ -300,15 +300,15 @@ export async function scanPrescription(imageUri: string): Promise<ExtractedMedic
 
         // Only include extracted medicines that have at least one valid match
         if (top5Matches.length > 0) {
-          results.push({
-            name: item.name,
-            strength: item.strength,
-            dosageForm: item.dosageForm,
-            dosage: item.dosage,
-            frequency: item.frequency,
-            confidence: item.confidence,
+        results.push({
+          name: item.name,
+          strength: item.strength,
+          dosageForm: item.dosageForm,
+          dosage: item.dosage,
+          frequency: item.frequency,
+          confidence: item.confidence,
             apiMatches: top5Matches,
-          });
+        });
         }
       }
 

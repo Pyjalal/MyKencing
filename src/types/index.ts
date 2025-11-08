@@ -3,6 +3,20 @@
 // ============================================================================
 
 // ----------------------------------------------------------------------------
+// Dosage Form Enum
+// ----------------------------------------------------------------------------
+export enum DosageForm {
+  TABLET = 'tablet',
+  CAPSULE = 'capsule',
+  SYRUP = 'syrup',
+  INJECTION = 'injection',
+  CREAM = 'cream',
+  OINTMENT = 'ointment',
+  DROPS = 'drops',
+  INHALER = 'inhaler'
+}
+
+// ----------------------------------------------------------------------------
 // MIMS (Medicine Information Management System) Types
 // ----------------------------------------------------------------------------
 
@@ -38,7 +52,7 @@ export interface MIMSSearchResult {
   genericName: string; // Primary active ingredient
   brandName?: string; // Medicine name from API
   strength?: string; // Extracted from medicine name
-  dosageForm?: string; // Extracted from medicine name
+  dosageForm?: DosageForm; // Extracted from medicine name
   confidence?: number; // 0-1, for OCR matches
   activeIngredients: string[]; // From MyMedix API
 }

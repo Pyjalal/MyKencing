@@ -11,39 +11,28 @@ import { apiClient, type ApiMedicine } from './api-client';
  * Convert API medicine to search result format
  */
 function convertApiMedicineToSearchResult(apiMedicine: ApiMedicine): MIMSSearchResult {
-  // Extract medicine name parts (brand/generic) and strength from the full name
-  // Example: "PANADOL TABLET 500MG" -> brand: PANADOL, dosageForm: TABLET, strength: 500MG
-  
-  let brandName = '';
-  let genericName = apiMedicine.activeIngredients[0] || '';
-  let dosageForm = '';
-  let strength = '';
-  
-  // Try to extract strength (ends with MG, ML, MCG, etc.)
-  const strengthMatch = apiMedicine.name.match(/(\d+(?:\.\d+)?(?:MG|ML|MCG|G|IU))/i);
-  if (strengthMatch) {
-    strength = strengthMatch[1];
-  }
-  
-  // Try to extract dosage form
-  const dosageFormMatch = apiMedicine.name.match(/(TABLET|CAPSULE|SYRUP|INJECTION|CREAM|OINTMENT|SUSPENSION)/i);
-  if (dosageFormMatch) {
-    dosageForm = dosageFormMatch[1];
-  }
-  
-  // Everything before dosage form is likely the brand name
-  if (dosageFormMatch) {
-    brandName = apiMedicine.name.substring(0, dosageFormMatch.index).trim();
-  } else {
+  // Parse medicine name to extract brand name (everything before strength/dosage info)
+  let brandName = apiMedicine.name;
+
+  // Remove strength and dosage form from the end to get clean brand name
+  // Remove patterns like "500MG", "TABLET", "20 MG", etc.
+  brandName = brandName
+    .replace(/\s+\d+(?:\.\d+)?\s*(?:MG|ML|MCG|G|IU)/gi, '') // Remove strength
+    .replace(/\s+(?:TABLET|CAPSULE|SYRUP|LIQUID|INJECTION|CREAM|OINTMENT|DROP|INHALER|PUFF)/gi, '') // Remove dosage form
+    .trim();
+
+  // If brand name is empty after parsing, use the original name
+  if (!brandName) {
     brandName = apiMedicine.name;
   }
-  
+
   return {
     id: apiMedicine.id,
-    genericName,
+    genericName: apiMedicine.activeIngredients[0] || '',
     brandName,
-    strength,
-    dosageForm,
+    // Use backend-parsed strength and dosageForm directly
+    strength: apiMedicine.strength,
+    dosageForm: apiMedicine.dosageForm,
     // Use backend-calculated similarity if available, otherwise default to high confidence
     confidence: apiMedicine.similarity !== undefined ? apiMedicine.similarity : 0.9,
     activeIngredients: apiMedicine.activeIngredients || [],

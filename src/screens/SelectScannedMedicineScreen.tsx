@@ -73,33 +73,33 @@ export default function SelectScannedMedicineScreen() {
   };
 
 
-  return (
+    return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>{t('scan.select_medicine')}</Text>
         <Text style={styles.subtitle}>
           {t('scan.select_best_match', { count: apiMatches.length })}
         </Text>
-      </View>
+          </View>
 
-      <FlatList
+            <FlatList
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        data={apiMatches}
-        keyExtractor={(item, index) => `${item.id}-${index}`}
+              data={apiMatches}
+              keyExtractor={(item, index) => `${item.id}-${index}`}
         renderItem={({ item: medicine }) => {
-          const isSelected = selectedMedicine?.id === medicine.id;
-          return (
-            <TouchableOpacity
-              style={[styles.matchItem, isSelected && styles.matchItemSelected]}
+                const isSelected = selectedMedicine?.id === medicine.id;
+                return (
+                  <TouchableOpacity
+                    style={[styles.matchItem, isSelected && styles.matchItemSelected]}
               onPress={() => handleMedicineSelect(medicine)}
-            >
-              <View style={styles.matchContent}>
-                <View style={styles.matchMain}>
+                  >
+                    <View style={styles.matchContent}>
+                      <View style={styles.matchMain}>
                   <View style={styles.matchHeader}>
-                    <Text style={[styles.matchName, isSelected && styles.matchNameSelected]}>
-                      {medicine.brandName || medicine.genericName}
-                    </Text>
+                        <Text style={[styles.matchName, isSelected && styles.matchNameSelected]}>
+                          {medicine.brandName || medicine.genericName}
+                        </Text>
                     <Text style={styles.confidenceBadge}>
                       {Math.round((medicine.confidence || 0) * 100)}%
                     </Text>
@@ -111,19 +111,19 @@ export default function SelectScannedMedicineScreen() {
                   <Text style={[styles.matchIngredients, isSelected && styles.matchDetailsSelected]} numberOfLines={2}>
                     {medicine.activeIngredients.slice(0, 3).join(', ')}
                     {medicine.activeIngredients.length > 3 && ` +${medicine.activeIngredients.length - 3} more`}
-                  </Text>
-                </View>
-                {isSelected && (
-                  <View style={styles.checkIcon}>
+                        </Text>
+                      </View>
+                      {isSelected && (
+                        <View style={styles.checkIcon}>
                     <Check size={24} color={Colors.accent.main} />
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          );
-        }}
-        showsVerticalScrollIndicator={true}
-      />
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+              showsVerticalScrollIndicator={true}
+            />
 
       <View style={styles.footer}>
         <TouchableOpacity
