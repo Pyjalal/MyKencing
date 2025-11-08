@@ -28,40 +28,22 @@ interactions.post(
       }
       
       const { medicineIds, foodDrinkTobacco } = validation.data;
-      
+
       const ingredientMapper = new IngredientMapper();
       const stockleyService = new StockleyService();
       const medicines = await ingredientMapper.getIngredientsForMedicines(medicineIds);
-      
+
       if (medicines.length === 0) {
         return c.json(
-          { 
-            error: 'No medicines found', 
-            message: 'None of the provided medicine IDs were found' 
+          {
+            error: 'No medicines found',
+            message: 'None of the provided medicine IDs were found'
           },
           404
         );
       }
-      
-      const allIngredients = new Set<string>();
-      medicines.forEach(medicine => {
-        medicine.activeIngredients.forEach(ingredient => {
-          allIngredients.add(ingredient);
-        });
-      });
-      
-      const ingredientsArray = Array.from(allIngredients);
-      
-      if (ingredientsArray.length < 1) {
-        return c.json({
-          count: 0,
-          interactions: [],
-          medicines,
-          message: 'Insufficient active ingredients found for interaction check'
-        });
-      }
-      
-      const interactions = await stockleyService.checkInteractions(ingredientsArray, foodDrinkTobacco ?? false);
+
+      const interactions = await stockleyService.checkInteractions(medicineIds, foodDrinkTobacco ?? false);
       
       return c.json({
         count: interactions.length,
@@ -106,16 +88,16 @@ interactions.get(
   async (c: Context) => {
     try {
       const stockleyService = new StockleyService();
-      const stats = stockleyService.getCacheStats();
-      
+      const stats = await stockleyService.getCacheStats();
+
       return c.json({
         cache: stats
       });
     } catch {
       return c.json(
-        { 
-          error: 'Failed to get cache statistics', 
-          message: 'An unexpected error occurred' 
+        {
+          error: 'Failed to get cache statistics',
+          message: 'An unexpected error occurred'
         },
         500
       );
@@ -128,16 +110,16 @@ interactions.delete(
   async (c: Context) => {
     try {
       const stockleyService = new StockleyService();
-      stockleyService.clearCache();
-      
+      await stockleyService.clearCache();
+
       return c.json({
         message: 'Cache cleared successfully'
       });
     } catch {
       return c.json(
-        { 
-          error: 'Failed to clear cache', 
-          message: 'An unexpected error occurred' 
+        {
+          error: 'Failed to clear cache',
+          message: 'An unexpected error occurred'
         },
         500
       );

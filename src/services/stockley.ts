@@ -1,32 +1,57 @@
+import { createClient } from '@supabase/supabase-js';
 import { config } from '../config.js';
-import type { 
-  StockleyResponse, 
-  DrugInteraction, 
+import type {
+  StockleyResponse,
+  DrugInteraction,
   CacheEntry
 } from '../types.js';
 import { ScrapingError } from '../types.js';
 
 export class StockleyService {
   private readonly baseUrl = 'https://www.medicinescomplete.com/api/interactions/stockley';
-  private cache = new Map<string, CacheEntry<StockleyResponse>>();
-  private readonly cacheTtl = config.CACHE_TTL;
+  private supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
 
-  async checkInteractions(ingredients: string[], foodDrinkTobacco: boolean): Promise<DrugInteraction[]> {
-    if (ingredients.length < 2) {
+  async checkInteractions(medicineIds: string[], foodDrinkTobacco: boolean): Promise<DrugInteraction[]> {
+    if (medicineIds.length < 2) {
       return [];
     }
 
-    const cacheKey = this.generateCacheKey(ingredients);
-    
-    const cached = this.getFromCache(cacheKey);
+    // Try to get from database cache first
+    const cached = await this.getFromCache(medicineIds, foodDrinkTobacco);
     if (cached) {
       return this.transformInteractions(cached);
     }
 
+    // Fetch ingredients for the medicines
+    const ingredients = await this.getIngredientsForMedicines(medicineIds);
+    if (ingredients.length < 2) {
+      return [];
+    }
+
     const response = await this.fetchInteractions(ingredients, foodDrinkTobacco);
-    this.setCache(cacheKey, response);
-    
+
+    // Cache the response in database
+    await this.setCache(medicineIds, foodDrinkTobacco, response);
+
     return this.transformInteractions(response);
+  }
+
+  private async getIngredientsForMedicines(medicineIds: string[]): Promise<string[]> {
+    const ingredients = new Set<string>();
+
+    for (const medicineId of medicineIds) {
+      const { data, error } = await this.supabase
+        .from('medicine_ingredients')
+        .select('active_ingredients')
+        .eq('registration_no', medicineId)
+        .single();
+
+      if (!error && data?.active_ingredients) {
+        data.active_ingredients.forEach((ingredient: string) => ingredients.add(ingredient));
+      }
+    }
+
+    return Array.from(ingredients);
   }
 
   private async fetchInteractions(ingredients: string[], foodDrinkTobacco: boolean): Promise<StockleyResponse> {
@@ -82,35 +107,44 @@ export class StockleyService {
     return `${this.baseUrl}?${params.toString()}`;
   }
 
-  private generateCacheKey(ingredients: string[]): string {
-    const sortedIngredients = [...ingredients].sort();
-    return `interactions:${sortedIngredients.join(',')}`;
-  }
+  private async getFromCache(medicineIds: string[], foodDrinkTobacco: boolean): Promise<StockleyResponse | null> {
+    try {
+      const { data, error } = await this.supabase
+        .from('drug_interactions_cache')
+        .select('stockley_response')
+        .eq('medicine_ids', medicineIds.sort())
+        .eq('food_drink_tobacco', foodDrinkTobacco)
+        .single();
 
-  private getFromCache(key: string): StockleyResponse | null {
-    const entry = this.cache.get(key);
-    
-    if (!entry) {
+      if (error || !data) {
+        return null;
+      }
+
+      return data.stockley_response as StockleyResponse;
+    } catch (error) {
+      // If cache lookup fails, just return null (don't throw)
       return null;
     }
-
-    const now = Date.now();
-    if (now - entry.timestamp > entry.ttl) {
-      this.cache.delete(key);
-      return null;
-    }
-
-    return entry.data;
   }
 
-  private setCache(key: string, data: StockleyResponse): void {
-    const entry: CacheEntry<StockleyResponse> = {
-      data,
-      timestamp: Date.now(),
-      ttl: this.cacheTtl
-    };
-    
-    this.cache.set(key, entry);
+  private async setCache(medicineIds: string[], foodDrinkTobacco: boolean, data: StockleyResponse): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('drug_interactions_cache')
+        .upsert({
+          medicine_ids: medicineIds.sort(),
+          food_drink_tobacco: foodDrinkTobacco,
+          stockley_response: data
+        });
+
+      if (error) {
+        console.warn('Failed to cache drug interactions:', error);
+        // Don't throw - caching failure shouldn't break the main flow
+      }
+    } catch (error) {
+      console.warn('Failed to cache drug interactions:', error);
+      // Don't throw - caching failure shouldn't break the main flow
+    }
   }
 
   private transformInteractions(response: StockleyResponse): DrugInteraction[] {
@@ -137,14 +171,38 @@ export class StockleyService {
     }));
   }
 
-  clearCache(): void {
-    this.cache.clear();
+  async clearCache(): Promise<void> {
+    try {
+      const { error } = await this.supabase
+        .from('drug_interactions_cache')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows
+
+      if (error) {
+        console.warn('Failed to clear cache:', error);
+      }
+    } catch (error) {
+      console.warn('Failed to clear cache:', error);
+    }
   }
 
-  getCacheStats(): { size: number; keys: string[] } {
-    return {
-      size: this.cache.size,
-      keys: Array.from(this.cache.keys())
-    };
+  async getCacheStats(): Promise<{ size: number; entries: any[] }> {
+    try {
+      const { data, error } = await this.supabase
+        .from('drug_interactions_cache')
+        .select('medicine_ids, food_drink_tobacco, created_at')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return { size: 0, entries: [] };
+      }
+
+      return {
+        size: data?.length || 0,
+        entries: data || []
+      };
+    } catch (error) {
+      return { size: 0, entries: [] };
+    }
   }
 }
