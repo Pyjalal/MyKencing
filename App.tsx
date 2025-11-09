@@ -2,7 +2,7 @@ import 'react-native-gesture-handler';
 import './global.css';
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { I18nextProvider } from 'react-i18next';
 import AppNavigator from './src/navigation/AppNavigator';
 import { initDatabase, cleanupInvalidMedications, getDatabase } from './src/services/database';
@@ -20,10 +20,9 @@ export default function App() {
   const [db, setDb] = useState<any>(null);
   useNotifications();
 
-  // Set up Drizzle Studio for database browsing (native platforms only)
+  // Set up Drizzle Studio for database browsing
   // Hook must be called unconditionally at top level
-  // Pass null if not ready or on web - the hook should handle it gracefully
-  useDrizzleStudio(Platform.OS !== 'web' ? db : null);
+  useDrizzleStudio(db);
 
   useEffect(() => {
     async function prepare() {
@@ -36,14 +35,12 @@ export default function App() {
         await initDatabase();
         console.log('✓ Database initialized');
 
-        // Get database instance for Drizzle Studio (native platforms only)
-        if (Platform.OS !== 'web') {
-          try {
-            const database = getDatabase();
-            setDb(database);
-          } catch (e) {
-            console.warn('Could not get database for Drizzle Studio:', e);
-          }
+        // Get database instance for Drizzle Studio
+        try {
+          const database = getDatabase();
+          setDb(database);
+        } catch (e) {
+          console.warn('Could not get database for Drizzle Studio:', e);
         }
 
         // Clean up any invalid medications to prevent API errors

@@ -1,5 +1,4 @@
 import * as SQLite from 'expo-sqlite';
-import { Platform } from 'react-native';
 
 // Database version for migrations
 const DB_VERSION = 5;
@@ -7,33 +6,11 @@ const DB_NAME = 'mykencing.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
 
-function createInMemoryDatabase(): SQLite.SQLiteDatabase {
-  console.warn('[database] Using in-memory database stub on web. Data will not persist.');
-
-  const noop = async () => {};
-  const emptyArray = async <T>() => [] as T[];
-  const nullValue = async <T>() => null as T | null;
-
-  // The object only implements the methods we call in the app; casting to satisfy typings.
-  return {
-    execAsync: noop,
-    runAsync: async () => ({ changes: { affectedRows: 0, insertId: null } }),
-    getAllAsync: emptyArray,
-    getFirstAsync: nullValue,
-    closeAsync: noop,
-  } as unknown as SQLite.SQLiteDatabase;
-}
-
 /**
  * Initialize the database and run migrations
  */
 export async function initDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
-
-  if (Platform.OS === 'web') {
-    db = createInMemoryDatabase();
-    return db;
-  }
 
   db = await SQLite.openDatabaseAsync(DB_NAME);
 

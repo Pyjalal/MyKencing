@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AppState, AppStateStatus, Platform } from 'react-native';
+import { AppState, AppStateStatus } from 'react-native';
 import { initializeNotifications, checkForMissedDoses } from '../services/notifications';
 
 export default function useNotifications() {
@@ -7,20 +7,18 @@ export default function useNotifications() {
     let isMounted = true;
     let intervalId: ReturnType<typeof setInterval> | undefined;
 
-    if (Platform.OS !== 'web') {
-      (async () => {
-        await initializeNotifications();
-        if (!isMounted) return;
+    (async () => {
+      await initializeNotifications();
+      if (!isMounted) return;
 
-        // periodic missed-dose check every 30 minutes
-        intervalId = setInterval(() => {
-          checkForMissedDoses().catch(() => {});
-        }, 30 * 60 * 1000);
-      })();
-    }
+      // periodic missed-dose check every 30 minutes
+      intervalId = setInterval(() => {
+        checkForMissedDoses().catch(() => {});
+      }, 30 * 60 * 1000);
+    })();
 
     const onAppStateChange = (state: AppStateStatus) => {
-      if (state === 'active' && Platform.OS !== 'web') {
+      if (state === 'active') {
         checkForMissedDoses().catch(() => {});
       }
     };
