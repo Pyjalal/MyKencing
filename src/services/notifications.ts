@@ -390,46 +390,6 @@ export async function scheduleOneTimeNotification(
 }
 
 /**
- * Create dose entries for a medication
- * This should be called when adding a new medication
- */
-export async function createDoseEntries(
-  medicationId: string,
-  times: string[],
-  startDate: string
-): Promise<void> {
-  const db = getDatabase();
-  const start = new Date(startDate);
-
-  // Create dose entries for the next 7 days
-  for (let day = 0; day < 7; day++) {
-    const doseDate = new Date(start);
-    doseDate.setDate(doseDate.getDate() + day);
-
-    for (const time of times) {
-      const [hour, minute] = time.split(':').map(Number);
-      doseDate.setHours(hour, minute, 0, 0);
-
-      const doseId = `${medicationId}-${doseDate.toISOString()}`;
-
-      await db.runAsync(
-        `INSERT INTO doses (id, medication_id, scheduled_time, status, created_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [
-          doseId,
-          medicationId,
-          doseDate.toISOString(),
-          DoseStatus.Pending,
-          new Date().toISOString(),
-        ]
-      );
-    }
-  }
-
-  console.log(`Created dose entries for medication ${medicationId}`);
-}
-
-/**
  * Check for missed doses and update their status
  */
 export async function updateMissedDoses(): Promise<void> {

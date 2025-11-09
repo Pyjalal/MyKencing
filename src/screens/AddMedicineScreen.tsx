@@ -17,7 +17,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { Medication, FoodTiming, MIMSSearchResult } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { MEDICATION_TIMING } from '../constants/clinical';
-import { scheduleMedicationReminders, createDoseEntries } from '../services/notifications';
+import { scheduleMedicationReminders } from '../services/notifications';
 import { searchMedicines } from '../services/mymedix-api';
 import { ChevronDown, Search, X } from 'lucide-react-native';
 
@@ -270,7 +270,6 @@ export default function AddMedicineScreen() {
       };
 
       const newId = await addMedication(medInput);
-      await createDoseEntries(newId, times, medInput.startDate);
       await scheduleMedicationReminders({
         ...(medInput as any),
         id: newId,
