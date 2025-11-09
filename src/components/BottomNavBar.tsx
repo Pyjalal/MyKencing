@@ -4,11 +4,16 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Home, Heart, Plus, Pill, User } from 'lucide-react-native';
 import { Colors, Spacing, Shadows } from '../constants/theme';
 
-const getTabIcon = (routeName: string, isFocused: boolean) => {
-  const iconColor = isFocused ? Colors.primary.main : Colors.text.tertiary;
+const getActiveTabColor = (routeName: string): string => {
+  const navigatorColors = Colors.navigatorColors as Record<string, string>;
+  return navigatorColors[routeName] ?? Colors.primary.main;
+};
+
+const getTabIcon = (routeName: string, isFocused: boolean, activeColor: string) => {
+  const iconColor = isFocused ? activeColor : Colors.text.tertiary;
   const size = 24;
 
-  const icons: Record<string, JSX.Element> = {
+  const icons: Record<string, React.ReactNode> = {
     HomeTab: <Home size={size} color={iconColor} />,
     VitalsTab: <Heart size={size} color={iconColor} />,
     AddMedicine: <Plus size={28} color={Colors.primary.contrast} />,
@@ -32,6 +37,9 @@ const getTabLabel = (routeName: string, label: any): string => {
 };
 
 export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const activeRouteName = state.routes[state.index]?.name;
+  const activeNavigatorColor = activeRouteName ? getActiveTabColor(activeRouteName) : Colors.primary.main;
+
   return (
     <View style={styles.container}>
       <View style={styles.tabBar}>
@@ -57,6 +65,8 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
             }
           };
 
+          const activeColor = getActiveTabColor(route.name);
+
           // Special styling for center AddMedicine button
           if (route.name === 'AddMedicine') {
             return (
@@ -67,8 +77,8 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
                 accessibilityRole="button"
                 accessibilityState={isFocused ? { selected: true } : {}}
               >
-                <View style={styles.addButtonCircle}>
-                  {getTabIcon(route.name, isFocused)}
+                <View style={[styles.addButtonCircle, { backgroundColor: activeNavigatorColor }]}>
+                  {getTabIcon(route.name, isFocused, activeColor)}
                 </View>
               </TouchableOpacity>
             );
@@ -82,10 +92,11 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
               accessibilityRole="button"
               accessibilityState={isFocused ? { selected: true } : {}}
             >
-              {getTabIcon(route.name, isFocused)}
+              {getTabIcon(route.name, isFocused, activeColor)}
               <Text style={[
                 styles.tabLabel,
-                isFocused && styles.tabLabelFocused
+                isFocused && styles.tabLabelFocused,
+                isFocused && { color: activeColor }
               ]}>
                 {getTabLabel(route.name, label)}
               </Text>
@@ -130,7 +141,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tabLabelFocused: {
-    color: Colors.primary.main,
     fontWeight: '600',
   },
   addButton: {
@@ -141,7 +151,6 @@ const styles = StyleSheet.create({
   addButtonCircle: {
     width: 56,
     height: 56,
-    backgroundColor: Colors.primary.main,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
