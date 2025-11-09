@@ -1,7 +1,7 @@
 import initSqlJs, { Database } from 'sql.js';
 import { getDatabaseKey } from './encryption';
 
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const DB_NAME = 'mykencing_web';
 const INDEXED_DB_KEY = 'mykencing_encrypted_db';
 
@@ -244,6 +244,9 @@ async function runMigrations(database: Database): Promise<void> {
   if (currentVersion < 3) {
     await applyMigration3(database);
   }
+  if (currentVersion < 4) {
+    await applyMigration4(database);
+  }
 
   await persistDatabase();
 }
@@ -439,6 +442,62 @@ function applyMigration3(database: Database): void {
   );
 
   console.log('[database.web] Migration 3 applied successfully');
+}
+
+/**
+ * Migration 4: Add 'upcoming' status to doses table
+ */
+function applyMigration4(database: Database): void {
+  console.log('[database.web] Migration 4: Adding upcoming status to doses table');
+
+  try {
+    // Create new table with updated CHECK constraint including 'upcoming'
+    database.exec(`
+      CREATE TABLE doses_new (
+        id TEXT PRIMARY KEY,
+        medication_id TEXT NOT NULL,
+        scheduled_time TEXT NOT NULL,
+        actual_time TEXT,
+        status TEXT NOT NULL CHECK(status IN ('upcoming', 'pending', 'taken', 'skipped', 'late', 'missed')),
+        notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (medication_id) REFERENCES medications(id) ON DELETE CASCADE
+      );
+    `);
+
+    // Copy all existing data from old table
+    database.exec(`
+      INSERT INTO doses_new (
+        id, medication_id, scheduled_time, actual_time, status, notes, created_at
+      )
+      SELECT
+        id, medication_id, scheduled_time, actual_time, status, notes, created_at
+      FROM doses;
+    `);
+
+    // Drop old table
+    database.exec('DROP TABLE doses;');
+
+    // Rename new table
+    database.exec('ALTER TABLE doses_new RENAME TO doses;');
+
+    // Recreate indexes
+    database.exec(`
+      CREATE INDEX IF NOT EXISTS idx_doses_medication_id ON doses(medication_id);
+      CREATE INDEX IF NOT EXISTS idx_doses_scheduled_time ON doses(scheduled_time);
+      CREATE INDEX IF NOT EXISTS idx_doses_status ON doses(status);
+    `);
+
+    database.run(
+      'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+      [4, new Date().toISOString()]
+    );
+
+    console.log('[database.web] Migration 4 applied successfully');
+  } catch (error) {
+    console.error('[database.web] Migration 4 failed:', error);
+    throw error;
+  }
 }
 
 /**
