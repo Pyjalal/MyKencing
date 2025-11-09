@@ -53,7 +53,12 @@
     "optional": "Pilihan",
     "cancel": "Batal",
     "save": "Simpan",
-    "loading": "Memuatkan..."
+    "loading": "Memuatkan...",
+    "error_invalid_input": "Sila masukkan nombor yang sah sebelum menyimpan.",
+    "error_bp_range": "Tekanan darah mesti antara 60-220 / 30-120 mmHg.",
+    "error_glucose_range": "Glukosa mesti antara 2.0 dan 11.0 mmol/L (36-198 mg/dL).",
+    "error_weight_range": "Berat mesti antara 25 dan 220 kg.",
+    "error_waist_range": "Ukurlilit pinggang mesti antara 30 dan 200 cm."
   },
   "analytics": {
     "loading_usage": "Memuatkan data penggunaan...",
@@ -130,8 +135,8 @@
     "enter_weight": "Masukkan berat",
     "your_weight": "Berat Anda (kg)",
     "select_gender": "Pilih Jantina",
-    "valid_age_alert": "Sila masukkan umur yang sah",
-    "valid_weight_alert": "Sila masukkan berat yang sah",
+    "valid_age_alert": "Sila masukkan umur antara 8 hingga 120",
+    "valid_weight_alert": "Sila masukkan berat antara 25 hingga 220 kg",
     "welcome_title": "Selamat datang ke MyKencing",
     "welcome_subtitle": "Teman peribadi anda untuk menjejak ubat-ubatan dan kesihatan",
     "feature_scan_title": "Imbas & Fahami",
@@ -284,8 +289,8 @@
     "results_hint": "Skor dikemas kini secara automatik apabila anda ubah data anda.",
     "summary_missing": "Belum direkod",
     "errors": {
-      "age_invalid": "Masukkan umur antara 1 hingga 120.",
-      "bmi_invalid": "Masukkan berat (25-300 kg) dan tinggi (100-220 cm) yang munasabah."
+      "age_invalid": "Masukkan umur antara 8 hingga 120.",
+      "bmi_invalid": "Berat mesti 25-220 kg dan tinggi 50-200 cm (BMI 10.0-50.0)."
     }
   },
   "risk_calculators": {

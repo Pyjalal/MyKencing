@@ -53,7 +53,12 @@
     "optional": "Optional",
     "cancel": "Cancel",
     "save": "Save",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "error_invalid_input": "Please enter valid numbers before saving.",
+    "error_bp_range": "Blood pressure must be between 60-220 / 30-120 mmHg.",
+    "error_glucose_range": "Glucose must be between 2.0 and 11.0 mmol/L (36-198 mg/dL).",
+    "error_weight_range": "Weight must be between 25 and 220 kg.",
+    "error_waist_range": "Waist circumference must be between 30 and 200 cm."
   },
   "analytics": {
     "loading_usage": "Loading usage data...",
@@ -130,8 +135,8 @@
     "enter_weight": "Enter weight",
     "your_weight": "Your Weight (kg)",
     "select_gender": "Select Gender",
-    "valid_age_alert": "Please enter a valid age",
-    "valid_weight_alert": "Please enter a valid weight",
+    "valid_age_alert": "Please enter an age between 8 and 120",
+    "valid_weight_alert": "Please enter a weight between 25 and 220 kg",
     "welcome_title": "Welcome to MyKencing",
     "welcome_subtitle": "Your personal medication and health tracking companion",
     "feature_scan_title": "Scan & Understand",
@@ -284,8 +289,8 @@
     "results_hint": "Scores update automatically when you revise your data.",
     "summary_missing": "Not recorded",
     "errors": {
-      "age_invalid": "Enter an age between 1 and 120.",
-      "bmi_invalid": "Enter a realistic weight (25-300 kg) and height (100-220 cm)."
+      "age_invalid": "Enter an age between 8 and 120.",
+      "bmi_invalid": "Weight must be 25-220 kg and height 50-200 cm (BMI 10.0-50.0)."
     }
   },
   "risk_calculators": {

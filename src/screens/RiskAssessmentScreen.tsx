@@ -129,7 +129,7 @@ export default function RiskAssessmentScreen() {
   );
 
   const handleSaveAge = useCallback(async () => {
-    if (!isValidNumber(ageInput, 1, 120)) {
+    if (!isValidNumber(ageInput, 8, 120)) {
       setAgeError(t('risk.errors.age_invalid'));
       return;
     }
@@ -141,8 +141,8 @@ export default function RiskAssessmentScreen() {
   }, [ageInput, t, updateRiskFactors]);
 
   const handleSaveBmi = useCallback(async () => {
-    const weightValid = isValidNumber(weightInput, 25, 300);
-    const heightValid = isValidNumber(heightInput, 100, 220);
+    const weightValid = isValidNumber(weightInput, 25, 220);
+    const heightValid = isValidNumber(heightInput, 50, 200);
     if (!weightValid || !heightValid) {
       setBmiError(t('risk.errors.bmi_invalid'));
       return;
@@ -152,6 +152,10 @@ export default function RiskAssessmentScreen() {
     const height = Number(heightInput);
     const heightMeters = height / 100;
     const bmi = weight / (heightMeters * heightMeters);
+    if (bmi < 10 || bmi > 50) {
+      setBmiError(t('risk.errors.bmi_invalid'));
+      return;
+    }
     const bmiRisk = bmi >= 27.5;
 
     setBmiError(null);
