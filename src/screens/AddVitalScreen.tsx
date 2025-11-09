@@ -24,7 +24,15 @@ type AddVitalScreenProps = {
 export default function AddVitalScreen({ navigation, route }: AddVitalScreenProps) {
   const { t } = useTranslation();
   const { type } = route.params || {};
-  const { addBloodPressure, addGlucose, addWeight, isLoading } = useVitalsStore();
+  const {
+    addBloodPressure,
+    addGlucose,
+    addWeight,
+    addWaistCircumference,
+    addTotalCholesterol,
+    addHdlCholesterol,
+    isLoading,
+  } = useVitalsStore();
 
   // Blood Pressure fields
   const [systolic, setSystolic] = useState('');
@@ -38,6 +46,12 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
 
+  // Waist circumference fields
+  const [waistValue, setWaistValue] = useState('');
+
+  // Cholesterol fields
+  const [cholesterolValue, setCholesterolValue] = useState('');
+
   // Common fields
   const [notes, setNotes] = useState('');
 
@@ -49,6 +63,12 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         return t('add_vital.glucose');
       case VitalType.Weight:
         return t('add_vital.weight');
+      case VitalType.WaistCircumference:
+        return t('add_vital.waist_circumference');
+      case VitalType.TotalCholesterol:
+        return t('add_vital.total_cholesterol');
+      case VitalType.HDLCholesterol:
+        return t('add_vital.hdl_cholesterol');
       default:
         return t('add_vital.add_vital');
     }
@@ -62,6 +82,11 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         return glucoseValue !== '' && !isNaN(Number(glucoseValue));
       case VitalType.Weight:
         return weightValue !== '' && !isNaN(Number(weightValue));
+      case VitalType.WaistCircumference:
+        return waistValue !== '' && !isNaN(Number(waistValue));
+      case VitalType.TotalCholesterol:
+      case VitalType.HDLCholesterol:
+        return cholesterolValue !== '' && !isNaN(Number(cholesterolValue));
       default:
         return false;
     }
@@ -82,6 +107,15 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
           break;
         case VitalType.Weight:
           await addWeight(Number(weightValue), weightUnit, undefined, notes || undefined);
+          break;
+        case VitalType.WaistCircumference:
+          await addWaistCircumference(Number(waistValue), undefined, notes || undefined);
+          break;
+        case VitalType.TotalCholesterol:
+          await addTotalCholesterol(Number(cholesterolValue), undefined, notes || undefined);
+          break;
+        case VitalType.HDLCholesterol:
+          await addHdlCholesterol(Number(cholesterolValue), undefined, notes || undefined);
           break;
       }
       navigation.goBack();
@@ -210,6 +244,36 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
     </>
   );
 
+  const renderWaistForm = () => (
+    <View style={styles.formGroup}>
+      <Text style={styles.label}>{t('add_vital.value')} (cm)</Text>
+      <TextInput
+        style={styles.input}
+        value={waistValue}
+        onChangeText={setWaistValue}
+        placeholder="85"
+        keyboardType="decimal-pad"
+        accessibilityLabel={t('add_vital.value')}
+        accessibilityRole="none"
+      />
+    </View>
+  );
+
+  const renderCholesterolForm = () => (
+    <View style={styles.formGroup}>
+      <Text style={styles.label}>{t('add_vital.value')} (mmol/L)</Text>
+      <TextInput
+        style={styles.input}
+        value={cholesterolValue}
+        onChangeText={setCholesterolValue}
+        placeholder="4.8"
+        keyboardType="decimal-pad"
+        accessibilityLabel={t('add_vital.value')}
+        accessibilityRole="none"
+      />
+    </View>
+  );
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -221,6 +285,9 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         {type === VitalType.BloodPressure && renderBloodPressureForm()}
         {type === VitalType.Glucose && renderGlucoseForm()}
         {type === VitalType.Weight && renderWeightForm()}
+        {type === VitalType.WaistCircumference && renderWaistForm()}
+        {(type === VitalType.TotalCholesterol || type === VitalType.HDLCholesterol) &&
+          renderCholesterolForm()}
 
         <View style={styles.formGroup}>
           <Text style={styles.label}>{t('add_vital.notes')} ({t('add_vital.optional')})</Text>

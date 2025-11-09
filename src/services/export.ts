@@ -328,6 +328,105 @@ function generateReportHTML(data: ExportData): string {
       : ''
   }
 
+  ${
+    recentVitals.waistCircumference.length > 0
+      ? `
+  <div class="section">
+    <h2>Waist Circumference</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Value</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${recentVitals.waistCircumference
+          .slice(0, 10)
+          .map(
+            waist => `
+          <tr>
+            <td>${new Date(waist.measuredAt).toLocaleString('en-MY')}</td>
+            <td>${waist.value} cm</td>
+            <td>${waist.notes || '-'}</td>
+          </tr>
+        `
+          )
+          .join('')}
+      </tbody>
+    </table>
+  </div>
+  `
+      : ''
+  }
+
+  ${
+    recentVitals.totalCholesterol.length > 0
+      ? `
+  <div class="section">
+    <h2>Total Cholesterol</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Value</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${recentVitals.totalCholesterol
+          .slice(0, 10)
+          .map(
+            chol => `
+          <tr>
+            <td>${new Date(chol.measuredAt).toLocaleString('en-MY')}</td>
+            <td>${chol.value} mmol/L</td>
+            <td>${chol.notes || '-'}</td>
+          </tr>
+        `
+          )
+          .join('')}
+      </tbody>
+    </table>
+  </div>
+  `
+      : ''
+  }
+
+  ${
+    recentVitals.hdlCholesterol.length > 0
+      ? `
+  <div class="section">
+    <h2>HDL Cholesterol</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Value</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${recentVitals.hdlCholesterol
+          .slice(0, 10)
+          .map(
+            chol => `
+          <tr>
+            <td>${new Date(chol.measuredAt).toLocaleString('en-MY')}</td>
+            <td>${chol.value} mmol/L</td>
+            <td>${chol.notes || '-'}</td>
+          </tr>
+        `
+          )
+          .join('')}
+      </tbody>
+    </table>
+  </div>
+  `
+      : ''
+  }
+
   <div class="disclaimer">
     <strong>Disclaimer:</strong> This report is generated from self-reported data entered in the MyKencing app.
     It should be used as a reference only and does not replace professional medical advice.
@@ -465,6 +564,33 @@ export async function gatherExportData(
     [periodStart.toISOString()]
   );
 
+  const waistCircumference = await db.getAllAsync(
+    `SELECT * FROM vitals
+     WHERE type = 'waist_circumference'
+     AND measured_at >= ?
+     ORDER BY measured_at DESC
+     LIMIT 30`,
+    [periodStart.toISOString()]
+  );
+
+  const totalCholesterol = await db.getAllAsync(
+    `SELECT * FROM vitals
+     WHERE type = 'total_cholesterol'
+     AND measured_at >= ?
+     ORDER BY measured_at DESC
+     LIMIT 30`,
+    [periodStart.toISOString()]
+  );
+
+  const hdlCholesterol = await db.getAllAsync(
+    `SELECT * FROM vitals
+     WHERE type = 'hdl_cholesterol'
+     AND measured_at >= ?
+     ORDER BY measured_at DESC
+     LIMIT 30`,
+    [periodStart.toISOString()]
+  );
+
   return {
     generatedAt: new Date().toISOString(),
     medications: medicationsWithDetails as any,
@@ -494,6 +620,33 @@ export async function gatherExportData(
         type: VitalType.Weight,
         value: v.value,
         unit: v.unit as 'kg' | 'lb',
+        measuredAt: v.measured_at,
+        notes: v.notes,
+        createdAt: v.created_at,
+      })),
+      waistCircumference: waistCircumference.map((v: any) => ({
+        id: v.id,
+        type: VitalType.WaistCircumference,
+        value: v.value,
+        unit: 'cm' as const,
+        measuredAt: v.measured_at,
+        notes: v.notes,
+        createdAt: v.created_at,
+      })),
+      totalCholesterol: totalCholesterol.map((v: any) => ({
+        id: v.id,
+        type: VitalType.TotalCholesterol,
+        value: v.value,
+        unit: 'mmol/L' as const,
+        measuredAt: v.measured_at,
+        notes: v.notes,
+        createdAt: v.created_at,
+      })),
+      hdlCholesterol: hdlCholesterol.map((v: any) => ({
+        id: v.id,
+        type: VitalType.HDLCholesterol,
+        value: v.value,
+        unit: 'mmol/L' as const,
         measuredAt: v.measured_at,
         notes: v.notes,
         createdAt: v.created_at,
