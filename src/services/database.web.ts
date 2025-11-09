@@ -521,6 +521,15 @@ export async function exportDatabaseStats(): Promise<any> {
 }
 
 /**
+ * Clean up medications with invalid registration numbers
+ * Web version - returns 0 as web doesn't need this cleanup
+ */
+export async function cleanupInvalidMedications(): Promise<number> {
+  // Web doesn't need this cleanup
+  return 0;
+}
+
+/**
  * Cleanup function to stop auto-persist interval
  * Call this when app is closing to prevent memory leaks
  */

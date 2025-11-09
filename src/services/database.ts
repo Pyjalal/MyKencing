@@ -50,3 +50,14 @@ export async function needsMigration3(): Promise<boolean> {
 export async function exportDatabaseStats(): Promise<any> {
   return databaseModule.exportDatabaseStats();
 }
+
+/**
+ * Clean up medications with invalid registration numbers
+ */
+export async function cleanupInvalidMedications(): Promise<number> {
+  if (Platform.OS === 'web') {
+    // Web doesn't need this cleanup
+    return 0;
+  }
+  return databaseModule.cleanupInvalidMedications();
+}

@@ -2,21 +2,28 @@ import 'react-native-gesture-handler';
 import './global.css';
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { I18nextProvider } from 'react-i18next';
 import AppNavigator from './src/navigation/AppNavigator';
-import { initDatabase, cleanupInvalidMedications } from './src/services/database';
+import { initDatabase, cleanupInvalidMedications, getDatabase } from './src/services/database';
 import { initializeEncryption } from './src/services/encryption';
 import { initializeNotifications, clearAllPresentedNotifications } from './src/services/notifications';
 import i18n from './src/services/i18n';
 import { Colors, Typography } from './src/constants/theme';
 import useNotifications from './src/hooks/useNotifications';
 import { logEvent, EventType } from './src/services/analytics';
+import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [db, setDb] = useState<any>(null);
   useNotifications();
+
+  // Set up Drizzle Studio for database browsing (native platforms only)
+  // Hook must be called unconditionally at top level
+  // Pass null if not ready or on web - the hook should handle it gracefully
+  useDrizzleStudio(Platform.OS !== 'web' ? db : null);
 
   useEffect(() => {
     async function prepare() {
@@ -28,6 +35,16 @@ export default function App() {
         // Initialize database
         await initDatabase();
         console.log('✓ Database initialized');
+
+        // Get database instance for Drizzle Studio (native platforms only)
+        if (Platform.OS !== 'web') {
+          try {
+            const database = getDatabase();
+            setDb(database);
+          } catch (e) {
+            console.warn('Could not get database for Drizzle Studio:', e);
+          }
+        }
 
         // Clean up any invalid medications to prevent API errors
         const cleanedCount = await cleanupInvalidMedications();
