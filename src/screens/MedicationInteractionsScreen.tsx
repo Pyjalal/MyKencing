@@ -2,18 +2,21 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
-  TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, MedicationWithDetails } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
+import { Colors } from '../constants/theme';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { checkDrugInteractions as checkDrugInteractionsAPI } from '../services/mymedix-api';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Progress } from '../components/ui/progress';
+import { Separator } from '../components/ui/separator';
+import { Skeleton } from '../components/ui/skeleton';
 
 type MedicationInteractionsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MedicationInteractions'>;
@@ -33,8 +36,25 @@ interface FoodInteraction {
   severity: 'low' | 'moderate' | 'high';
 }
 
+// Helper function to summarize long risk descriptions
+const summarizeRisk = (riskText: string, maxLength: number = 50): string => {
+  if (!riskText) return 'Interaction detected';
+  
+  // If text is short enough, return as-is
+  if (riskText.length <= maxLength) return riskText;
+  
+  // Try to get first sentence
+  const firstSentence = riskText.split(/[.!?]/)[0];
+  if (firstSentence.length <= maxLength) {
+    return firstSentence.trim();
+  }
+  
+  // Truncate and add ellipsis
+  return riskText.substring(0, maxLength).trim() + '...';
+};
+
 export default function MedicationInteractionsScreen({ navigation }: MedicationInteractionsScreenProps) {
-  const { medications, loadMedications } = useMedicationStore();
+  const { medications, loadMedications, isLoading } = useMedicationStore();
   const [refreshing, setRefreshing] = useState(false);
   const [drugInteractions, setDrugInteractions] = useState<DrugInteraction[]>([]);
   const [foodInteractions, setFoodInteractions] = useState<FoodInteraction[]>([]);
@@ -67,19 +87,14 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
           .filter(Boolean) as string[];
 
         if (medIds.length === 0) {
-          console.warn('No valid registration numbers found for interaction checking');
           setDrugInteractions([]);
           setFoodInteractions([]);
           setIsCheckingInteractions(false);
           return;
         }
 
-        console.log('Checking interactions for medications:', medIds);
-
         // Call the MyMedix API for comprehensive interaction data
         const result = await checkDrugInteractionsAPI(medIds);
-
-        console.log('Interaction check result:', result);
 
         if (result.hasInteractions && result.interactions.length > 0) {
           // Parse the interaction strings and categorize them
@@ -119,9 +134,6 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
                   severity: (severity.toLowerCase() as 'low' | 'moderate' | 'high') || 'moderate',
                 });
               }
-            } else {
-              // Fallback: treat as general drug interaction
-              console.warn('Could not parse interaction:', interactionText);
             }
           });
 
@@ -132,7 +144,6 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
           setFoodInteractions([]);
         }
       } catch (error) {
-        console.error('Failed to check interactions:', error);
         setInteractionError('Unable to check interactions. Please try again later.');
         setDrugInteractions([]);
         setFoodInteractions([]);
@@ -177,36 +188,36 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
     const formattedTime = format(parseISO(`2000-01-01T${firstTime}`), 'h:mm a');
     
     return (
-      <View key={medication.id} style={styles.activeMedCard}>
-        <Text style={styles.activeMedName}>{medName}</Text>
-        <Text style={styles.activeMedIndication}>{indication}</Text>
-        <Text style={styles.activeMedDose}>
-          {medication.frequency} tablet{medication.frequency > 1 ? 's' : ''} daily at {formattedTime}
-        </Text>
-        
-        {daysLeft !== null && (
-          <>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+      <Card key={medication.id} className="w-72">
+        <CardHeader>
+          <CardTitle className="text-blue-600">{medName}</CardTitle>
+          <Text className="text-gray-500">{indication}</Text>
+        </CardHeader>
+        <CardContent>
+          <Text className="text-black mb-2">{medication.frequency} tablet{medication.frequency > 1 ? 's' : ''} daily at {formattedTime}</Text>
+          
+          {daysLeft !== null && (
+            <>
+              <Progress value={progress * 100} className="h-2 bg-gray-200" />
+              <Text className="text-xs text-gray-500 text-center mt-1">{daysLeft} days left</Text>
+            </>
+          )}
+          
+          {medication.notes && (
+            <View className="bg-yellow-100 p-2 rounded-md mt-2">
+              <Text className="text-xs text-gray-800">Note: {medication.notes}</Text>
             </View>
-            <Text style={styles.daysLeft}>{daysLeft} days left</Text>
-          </>
-        )}
-        
-        {medication.notes && (
-          <View style={styles.noteContainer}>
-            <Text style={styles.noteText}>Note: {medication.notes}</Text>
-          </View>
-        )}
-      </View>
+          )}
+        </CardContent>
+      </Card>
     );
   };
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-gray-100">
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.contentContainer}
+        className="flex-1"
+        contentContainerStyle={{ paddingTop: 16, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -217,101 +228,116 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
         }
       >
         {/* Active Medications Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Active Medications</Text>
+        <View className="mb-8">
+          <Text className="text-xl font-bold text-black mx-4 mb-4">Active Medications</Text>
           
-          {medications.filter(m => m.isActive).length > 0 ? (
+          {isLoading ? (
+            <View className="px-4">
+              <Skeleton className="h-48 w-full rounded-lg" />
+            </View>
+          ) : medications.filter(m => m.isActive).length > 0 ? (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalScroll}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 16 }}
             >
               {medications.filter(m => m.isActive).map(renderActiveMedication)}
             </ScrollView>
           ) : (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>No active medications</Text>
-            </View>
+            <Card className="mx-4">
+              <CardContent className="p-6 items-center">
+                <Text className="text-gray-500">No active medications</Text>
+              </CardContent>
+            </Card>
           )}
         </View>
+
+        <Separator className="my-4" />
 
         {/* Drug-Drug Interactions Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Drug-Drug Interaction</Text>
+        <View className="mb-8">
+          <Text className="text-xl font-bold text-black mx-4 mb-4">Drug-Drug Interaction</Text>
 
           {isCheckingInteractions ? (
-            <View style={styles.emptyCard}>
-              <ActivityIndicator size="large" color={Colors.accent.main} />
-              <Text style={[styles.emptyText, { marginTop: Spacing.md }]}>
-                Checking for interactions...
-              </Text>
-            </View>
+            <Card className="mx-4">
+              <CardContent className="p-6 items-center">
+                <ActivityIndicator size="large" color={Colors.accent.main} />
+                <Text className="text-gray-500 mt-4">Checking for interactions...</Text>
+              </CardContent>
+            </Card>
           ) : interactionError ? (
-            <View style={styles.emptyCard}>
-              <Text style={[styles.emptyText, { color: Colors.status.error }]}>
-                {interactionError}
-              </Text>
-            </View>
+            <Card className="mx-4 bg-red-100">
+              <CardContent className="p-6 items-center">
+                <Text className="text-red-600">{interactionError}</Text>
+              </CardContent>
+            </Card>
           ) : drugInteractions.length > 0 ? (
-            <View style={styles.interactionCard}>
-              <Text style={styles.interactionWarning}>Possible interactions detected</Text>
-
-              {drugInteractions.map((interaction, index) => (
-                <View key={index} style={styles.interactionDetails}>
-                  <View style={styles.drugBadgesContainer}>
-                    <View style={[styles.drugBadge, { backgroundColor: Colors.secondary.main }]}>
-                      <Text style={styles.drugBadgeText}>{interaction.drug1}</Text>
-                    </View>
-                    <Text style={styles.plusSign}>+</Text>
-                    <View style={[styles.drugBadge, { backgroundColor: Colors.secondary.main }]}>
-                      <Text style={styles.drugBadgeText}>{interaction.drug2}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.riskText}>Risk:</Text>
-                  <Text style={styles.riskDescription}>{interaction.risk}</Text>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>No drug interactions detected</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Food-Drug Interactions Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Food-Drug Interaction</Text>
-
-          {isCheckingInteractions ? (
-            <View style={styles.emptyCard}>
-              <ActivityIndicator size="large" color={Colors.accent.main} />
-              <Text style={[styles.emptyText, { marginTop: Spacing.md }]}>
-                Checking for interactions...
-              </Text>
-            </View>
-          ) : interactionError ? (
-            <View style={styles.emptyCard}>
-              <Text style={[styles.emptyText, { color: Colors.status.error }]}>
-                {interactionError}
-              </Text>
-            </View>
-          ) : foodInteractions.length > 0 ? (
             <>
-              {foodInteractions.map((interaction, index) => (
-                <View key={index} style={styles.foodInteractionCard}>
-                  <Text style={styles.foodWarning}>
-                    {interaction.food} may interact with {interaction.medication}
-                  </Text>
-                  <Text style={styles.recommendationLabel}>Recommendation:</Text>
-                  <Text style={styles.recommendationText}>{interaction.recommendation}</Text>
-                </View>
+              {drugInteractions.map((interaction, index) => (
+                <Card key={index} className="mx-4 mb-4">
+                  <CardHeader>
+                    <CardTitle className="text-red-600 text-center">Possible interactions detected</CardTitle>
+                  </CardHeader>
+                  <CardContent className="items-center">
+                    <View className="flex-row items-center justify-center mb-4">
+                      <Badge variant="destructive" className="p-2 max-w-36"><Text className="text-white text-center">{interaction.drug1}</Text></Badge>
+                      <Text className="text-xl font-bold mx-4">+</Text>
+                      <Badge variant="destructive" className="p-2 max-w-36"><Text className="text-white text-center">{interaction.drug2}</Text></Badge>
+                    </View>
+                    <Text className="text-base font-semibold text-black mb-1">Risk:</Text>
+                    <Text className="text-base text-gray-500 text-center px-2">{summarizeRisk(interaction.risk)}</Text>
+                  </CardContent>
+                </Card>
               ))}
             </>
           ) : (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>No food interactions detected</Text>
-            </View>
+            <Card className="mx-4">
+              <CardContent className="p-6 items-center">
+                <Text className="text-gray-500">No drug interactions detected</Text>
+              </CardContent>
+            </Card>
+          )}
+        </View>
+
+        <Separator className="my-4" />
+
+        {/* Food-Drug Interactions Section */}
+        <View className="mb-8">
+          <Text className="text-xl font-bold text-black mx-4 mb-4">Food-Drug Interaction</Text>
+
+          {isCheckingInteractions ? (
+            <Card className="mx-4">
+              <CardContent className="p-6 items-center">
+                <ActivityIndicator size="large" color={Colors.accent.main} />
+                <Text className="text-gray-500 mt-4">Checking for interactions...</Text>
+              </CardContent>
+            </Card>
+          ) : interactionError ? (
+            <Card className="mx-4 bg-red-100">
+              <CardContent className="p-6 items-center">
+                <Text className="text-red-600">{interactionError}</Text>
+              </CardContent>
+            </Card>
+          ) : foodInteractions.length > 0 ? (
+            <>
+              {foodInteractions.map((interaction, index) => (
+                <Card key={index} className="mx-4 mb-4">
+                  <CardHeader>
+                    <CardTitle className="text-blue-600 text-center">{interaction.food} may interact with {interaction.medication}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Text className="text-base font-semibold text-black mb-1">Recommendation:</Text>
+                    <Text className="text-base text-gray-500 text-center">{summarizeRisk(interaction.recommendation, 80)}</Text>
+                  </CardContent>
+                </Card>
+              ))}
+            </>
+          ) : (
+            <Card className="mx-4">
+              <CardContent className="p-6 items-center">
+                <Text className="text-gray-500">No food interactions detected</Text>
+              </CardContent>
+            </Card>
           )}
         </View>
       </ScrollView>
@@ -319,170 +345,3 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#D5D7E3', // Light purple/lavender background
-  },
-  scrollView: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingTop: Spacing.lg,
-    paddingBottom: 100,
-  },
-  section: {
-    marginBottom: Spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-  },
-  horizontalScroll: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-  },
-  activeMedCard: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.lg,
-    width: 280,
-    ...Shadows.sm,
-  },
-  activeMedName: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.accent.main,
-    marginBottom: Spacing.xs,
-  },
-  activeMedIndication: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.xs,
-  },
-  activeMedDose: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
-    marginBottom: Spacing.md,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: Colors.neutral[200],
-    borderRadius: 4,
-    marginBottom: Spacing.xs,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.accent.main,
-    borderRadius: 4,
-  },
-  daysLeft: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-  },
-  noteContainer: {
-    backgroundColor: '#FFF8E1',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginTop: Spacing.md,
-  },
-  noteText: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.primary,
-  },
-  interactionCard: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    ...Shadows.sm,
-  },
-  interactionWarning: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.secondary.main,
-    textAlign: 'center',
-    marginBottom: Spacing.lg,
-  },
-  interactionDetails: {
-    alignItems: 'center',
-  },
-  drugBadgesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  drugBadge: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: 20,
-    ...Shadows.sm,
-  },
-  drugBadgeText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.inverse,
-  },
-  plusSign: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginHorizontal: Spacing.md,
-  },
-  riskText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  riskDescription: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-  },
-  foodInteractionCard: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-    ...Shadows.sm,
-  },
-  foodWarning: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.accent.main,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
-  },
-  recommendationLabel: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.xs,
-  },
-  recommendationText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-    textAlign: 'center',
-  },
-  emptyCard: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.xl,
-    marginHorizontal: Spacing.lg,
-    alignItems: 'center',
-    ...Shadows.sm,
-  },
-  emptyText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.tertiary,
-    textAlign: 'center',
-  },
-});
