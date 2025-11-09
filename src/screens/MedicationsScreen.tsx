@@ -7,6 +7,8 @@ import {
   ScrollView,
   TextInput,
   RefreshControl,
+  SafeAreaView,
+  StatusBar,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, DoseStatus } from '../types';
@@ -15,6 +17,7 @@ import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants
 import { Search, MessageSquare, Scan } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { addDays, startOfWeek, format, isSameDay, parseISO } from 'date-fns';
+import { PillButton } from '../components/PillButton';
 
 type MedicationsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -111,180 +114,214 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header with yellow/gold background */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.background.meds} />
+      <View style={styles.container}>
+        {/* Header with golden background */}
+        <View style={styles.header}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.back', 'Back')}
+            >
+              <Text style={styles.backIcon}>←</Text>
+            </TouchableOpacity>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search here"
-            placeholderTextColor={Colors.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+            <View style={styles.headerTopActions}>
+              <TouchableOpacity
+                style={styles.roundAction}
+                onPress={handleScanPress}
+                accessibilityRole="button"
+                accessibilityLabel={t('medications.scan_prescription', 'Scan prescription')}
+              >
+                <Scan size={20} color={Colors.accent.dark} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.searchContainer}>
+            <Search size={18} color={Colors.text.tertiary} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search here"
+              placeholderTextColor={Colors.text.tertiary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+            />
+          </View>
+
+          <Text style={styles.title}>Medications</Text>
+
+          <TouchableOpacity
+            style={styles.headerBadge}
+            onPress={handleManagePress}
+            accessibilityRole="button"
+            accessibilityLabel={t('medications.view_interactions', 'View interactions')}
+          >
+            <MessageSquare size={22} color={Colors.accent.main} />
+          </TouchableOpacity>
         </View>
 
-        {/* Title */}
-        <Text style={styles.title}>Medications</Text>
+        {/* Content */}
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.accent.main}
+            />
+          }
+        >
+          {/* Reminders Card with Calendar */}
+          <View style={styles.remindersCard}>
+            <Text style={styles.cardTitle}>Reminders</Text>
 
-        {/* View Interactions Button */}
-        <TouchableOpacity style={styles.manageButton} onPress={handleManagePress}>
-          <Text style={styles.manageButtonText}>View Interactions</Text>
-        </TouchableOpacity>
+            <View style={styles.weekCalendar}>
+              {weekDays.map((day, index) => {
+                const isSelected = isSameDay(day, selectedDate);
+                const dayName = format(day, 'EEE');
+                const dayNumber = format(day, 'd');
 
-        {/* Scan Button */}
-        <TouchableOpacity style={styles.scanButton} onPress={handleScanPress}>
-          <View style={styles.scanIconContainer}>
-            <Scan size={24} color={Colors.accent.main} />
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.dayContainer}
+                    onPress={() => setSelectedDate(day)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                  >
+                    <Text style={styles.dayName}>{dayName}</Text>
+                    <View style={[styles.dayNumberContainer, isSelected && styles.dayNumberSelected]}>
+                      <Text style={[styles.dayNumber, isSelected && styles.dayNumberTextSelected]}>
+                        {dayNumber}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-        </TouchableOpacity>
-      </View>
 
-      {/* Content with light purple background */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.accent.main}
-          />
-        }
-      >
-        {/* Reminders Card with Calendar */}
-        <View style={styles.remindersCard}>
-          <Text style={styles.cardTitle}>Reminders</Text>
-
-          {/* Week Calendar */}
-          <View style={styles.weekCalendar}>
-            {weekDays.map((day, index) => {
-              const isSelected = isSameDay(day, selectedDate);
-              const dayName = format(day, 'EEE');
-              const dayNumber = format(day, 'd');
+          {/* Medication List */}
+          {filteredDoses.length > 0 ? (
+            filteredDoses.map((dose) => {
+              const medicationTitle = dose.medication.mims.brandName || dose.medication.mims.genericName;
+              const scheduledTime = format(parseISO(dose.scheduledTime), 'h:mm a');
 
               return (
                 <TouchableOpacity
-                  key={index}
-                  style={styles.dayContainer}
-                  onPress={() => setSelectedDate(day)}
+                  key={dose.id}
+                  style={styles.medicationCard}
+                  activeOpacity={0.9}
+                  onPress={() => navigation.navigate('MedicineDetail', { medicationId: dose.medicationId })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${medicationTitle} ${dose.medication.userDosage}`}
                 >
-                  <Text style={styles.dayName}>{dayName}</Text>
-                  <View style={[styles.dayNumberContainer, isSelected && styles.dayNumberSelected]}>
-                    <Text style={[styles.dayNumber, isSelected && styles.dayNumberTextSelected]}>
-                      {dayNumber}
+                  <View style={styles.medicationInfo}>
+                    <Text style={styles.medicationName}>{medicationTitle}</Text>
+                    <Text style={styles.medicationMeta}>
+                      {scheduledTime} · {dose.medication.userDosage}
                     </Text>
+                  </View>
+
+                  <View style={styles.medicationActions}>
+                    <PillButton
+                      title={dose.status === DoseStatus.Taken ? 'Taken' : 'Take'}
+                      variant="accent"
+                      size="md"
+                      onPress={() => handleTakeDose(dose.id)}
+                      disabled={dose.status === DoseStatus.Taken}
+                      style={[styles.actionPill, styles.takePill]}
+                      textStyle={styles.actionPillText}
+                    />
+                    <PillButton
+                      title="Skip"
+                      variant="outline"
+                      size="md"
+                      onPress={() => handleSkipDose(dose.id)}
+                      disabled={dose.status === DoseStatus.Skipped}
+                      style={[styles.actionPill, styles.skipPill]}
+                      textStyle={styles.skipPillText}
+                    />
                   </View>
                 </TouchableOpacity>
               );
-            })}
-          </View>
-        </View>
-
-        {/* Medication List */}
-        {filteredDoses.length > 0 ? (
-          filteredDoses.map((dose) => (
-            <TouchableOpacity
-              key={dose.id}
-              style={styles.medicationCard}
-              activeOpacity={0.95}
-              onPress={() => navigation.navigate('MedicineDetail', { medicationId: dose.medicationId })}
-            >
-              <View style={styles.medicationInfo}>
-                <Text style={styles.medicationName}>
-                  {dose.medication.mims.brandName || dose.medication.mims.genericName}
-                </Text>
-                <Text style={styles.medicationDetails}>
-                  {format(parseISO(dose.scheduledTime), 'h:mm a')}, {dose.medication.userDosage}
-                </Text>
-              </View>
-
-              <View style={styles.medicationActions}>
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton,
-                    styles.takeButton,
-                    dose.status === DoseStatus.Taken && styles.takeButtonDisabled,
-                  ]}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleTakeDose(dose.id);
-                  }}
-                  disabled={dose.status === DoseStatus.Taken}
-                >
-                  <Text style={styles.takeButtonText}>
-                    {dose.status === DoseStatus.Taken ? 'Taken' : 'Take'}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton,
-                    styles.skipButton,
-                    dose.status === DoseStatus.Skipped && styles.skipButtonDisabled,
-                  ]}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleSkipDose(dose.id);
-                  }}
-                  disabled={dose.status === DoseStatus.Skipped}
-                >
-                  <Text style={styles.skipButtonText}>Skip</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>
-              {searchQuery ? 'No medications found' : 'No medications scheduled for this day'}
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-    </View>
+            })
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'No medications found' : 'No medications scheduled for this day'}
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.primary,
+  },
   container: {
     flex: 1,
-    backgroundColor: '#D5D7E3', // Light purple/lavender background
+    backgroundColor: Colors.background.primary,
   },
   header: {
-    backgroundColor: Colors.background.meds, // Yellow/gold #F5B800
-    paddingTop: Spacing['2xl'] + 10,
-    paddingBottom: Spacing.xl,
+    backgroundColor: Colors.background.meds,
+    paddingTop: Spacing['2xl'],
+    paddingBottom: Spacing['2xl'],
     paddingHorizontal: Spacing.lg,
+    borderBottomLeftRadius: BorderRadius['3xl'] + 12,
+    position: 'relative',
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
   },
   backButton: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
   },
   backIcon: {
     fontSize: 28,
     color: Colors.text.inverse,
   },
+  headerTopActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  roundAction: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.background.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
+  },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.background.card,
-    borderRadius: 25,
-    paddingHorizontal: Spacing.md + 4,
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
+    ...Shadows.sm,
   },
   searchIcon: {
     marginRight: Spacing.sm,
@@ -295,31 +332,14 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
   title: {
-    fontSize: 32,
+    fontSize: Typography.fontSize['3xl'],
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.inverse,
-    marginBottom: Spacing.md,
   },
-  manageButton: {
-    backgroundColor: Colors.background.card,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.button,
-    marginBottom: Spacing.sm,
-    ...Shadows.sm,
-  },
-  manageButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    textAlign: 'center',
-  },
-  scanButton: {
+  headerBadge: {
     position: 'absolute',
     right: Spacing.lg,
-    top: Spacing['2xl'] + 80,
-  },
-  scanIconContainer: {
+    bottom: -28,
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -332,16 +352,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 0,
-    paddingTop: Spacing.lg,
-    paddingBottom: 100,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing['2xl'],
+    paddingBottom: Spacing['3xl'],
   },
   remindersCard: {
     backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
+    borderRadius: BorderRadius['3xl'],
+    borderTopLeftRadius: BorderRadius['3xl'] * 2,
     padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
     ...Shadows.sm,
   },
   cardTitle: {
@@ -370,10 +390,11 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: Colors.background.primary,
   },
   dayNumberSelected: {
     backgroundColor: Colors.accent.main,
+    ...Shadows.sm,
   },
   dayNumber: {
     fontSize: Typography.fontSize.base,
@@ -385,10 +406,9 @@ const styles = StyleSheet.create({
   },
   medicationCard: {
     backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
+    borderRadius: BorderRadius['3xl'],
     padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
     ...Shadows.sm,
   },
   medicationInfo: {
@@ -398,47 +418,31 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
-    marginBottom: Spacing.xs,
   },
-  medicationDetails: {
-    fontSize: Typography.fontSize.base,
+  medicationMeta: {
+    fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
   },
   medicationActions: {
     flexDirection: 'row',
     gap: Spacing.md,
   },
-  actionButton: {
+  actionPill: {
     flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.button,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
-  takeButton: {
-    backgroundColor: Colors.accent.main,
+  takePill: {
+    ...Shadows.sm,
   },
-  takeButtonDisabled: {
-    backgroundColor: Colors.neutral[300],
-    opacity: 0.6,
+  skipPill: {
+    backgroundColor: Colors.background.primary,
+    borderWidth: 0,
   },
-  takeButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
+  actionPillText: {
+    fontSize: Typography.fontSize.sm,
   },
-  skipButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.border.main,
-  },
-  skipButtonDisabled: {
-    opacity: 0.5,
-  },
-  skipButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
+  skipPillText: {
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.sm,
   },
   emptyState: {
     paddingVertical: Spacing['2xl'],

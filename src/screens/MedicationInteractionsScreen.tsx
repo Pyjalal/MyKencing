@@ -219,7 +219,7 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
         {/* Active Medications Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Active Medications</Text>
-          
+
           {medications.filter(m => m.isActive).length > 0 ? (
             <ScrollView
               horizontal
@@ -242,15 +242,11 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
           {isCheckingInteractions ? (
             <View style={styles.emptyCard}>
               <ActivityIndicator size="large" color={Colors.accent.main} />
-              <Text style={[styles.emptyText, { marginTop: Spacing.md }]}>
-                Checking for interactions...
-              </Text>
+              <Text style={[styles.emptyText, styles.loadingText]}>Checking for interactions...</Text>
             </View>
           ) : interactionError ? (
             <View style={styles.emptyCard}>
-              <Text style={[styles.emptyText, { color: Colors.status.error }]}>
-                {interactionError}
-              </Text>
+              <Text style={[styles.emptyText, styles.errorText]}>{interactionError}</Text>
             </View>
           ) : drugInteractions.length > 0 ? (
             <View style={styles.interactionCard}>
@@ -259,16 +255,18 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
               {drugInteractions.map((interaction, index) => (
                 <View key={index} style={styles.interactionDetails}>
                   <View style={styles.drugBadgesContainer}>
-                    <View style={[styles.drugBadge, { backgroundColor: Colors.secondary.main }]}>
+                    <View style={styles.drugBadge}>
                       <Text style={styles.drugBadgeText}>{interaction.drug1}</Text>
                     </View>
                     <Text style={styles.plusSign}>+</Text>
-                    <View style={[styles.drugBadge, { backgroundColor: Colors.secondary.main }]}>
+                    <View style={styles.drugBadge}>
                       <Text style={styles.drugBadgeText}>{interaction.drug2}</Text>
                     </View>
                   </View>
                   <Text style={styles.riskText}>Risk:</Text>
                   <Text style={styles.riskDescription}>{interaction.risk}</Text>
+
+                  {index !== drugInteractions.length - 1 && <View style={styles.interactionDivider} />}
                 </View>
               ))}
             </View>
@@ -286,15 +284,11 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
           {isCheckingInteractions ? (
             <View style={styles.emptyCard}>
               <ActivityIndicator size="large" color={Colors.accent.main} />
-              <Text style={[styles.emptyText, { marginTop: Spacing.md }]}>
-                Checking for interactions...
-              </Text>
+              <Text style={[styles.emptyText, styles.loadingText]}>Checking for interactions...</Text>
             </View>
           ) : interactionError ? (
             <View style={styles.emptyCard}>
-              <Text style={[styles.emptyText, { color: Colors.status.error }]}>
-                {interactionError}
-              </Text>
+              <Text style={[styles.emptyText, styles.errorText]}>{interactionError}</Text>
             </View>
           ) : foodInteractions.length > 0 ? (
             <>
@@ -322,7 +316,7 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#D5D7E3', // Light purple/lavender background
+    backgroundColor: Colors.background.primary,
   },
   scrollView: {
     flex: 1,
@@ -330,6 +324,7 @@ const styles = StyleSheet.create({
   contentContainer: {
     paddingTop: Spacing.lg,
     paddingBottom: 100,
+    paddingHorizontal: Spacing.lg,
   },
   section: {
     marginBottom: Spacing.xl,
@@ -338,16 +333,16 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
-    marginHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.xs,
     marginBottom: Spacing.md,
   },
   horizontalScroll: {
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.xs,
     gap: Spacing.md,
   },
   activeMedCard: {
     backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
+    borderRadius: BorderRadius['3xl'],
     padding: Spacing.lg,
     width: 280,
     ...Shadows.sm,
@@ -397,9 +392,13 @@ const styles = StyleSheet.create({
   },
   interactionCard: {
     backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
+    borderRadius: BorderRadius['3xl'],
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+    alignItems: 'center',
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 360,
     ...Shadows.sm,
   },
   interactionWarning: {
@@ -411,47 +410,75 @@ const styles = StyleSheet.create({
   },
   interactionDetails: {
     alignItems: 'center',
+    width: '100%',
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.sm,
   },
   drugBadgesContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    flexWrap: 'wrap',
     marginBottom: Spacing.md,
+    width: '100%',
   },
   drugBadge: {
+    backgroundColor: Colors.secondary.main,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: 20,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.full,
+    marginHorizontal: Spacing.sm,
+    marginBottom: Spacing.sm,
+    flexShrink: 1,
+    maxWidth: '80%',
+    minHeight: 40,
+    justifyContent: 'center',
     ...Shadows.sm,
   },
   drugBadgeText: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.inverse,
+    textAlign: 'center',
+    lineHeight: 24,
   },
   plusSign: {
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
-    marginHorizontal: Spacing.md,
+    marginHorizontal: Spacing.sm,
+    marginVertical: Spacing.xs,
   },
   riskText: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
+    textAlign: 'center',
     marginBottom: Spacing.xs,
   },
   riskDescription: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.secondary,
     textAlign: 'center',
+    lineHeight: 26,
+    paddingHorizontal: Spacing.sm,
+  },
+  interactionDivider: {
+    height: 1,
+    backgroundColor: Colors.neutral[200],
+    width: '100%',
+    marginTop: Spacing.lg,
   },
   foodInteractionCard: {
     backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
+    borderRadius: BorderRadius['3xl'],
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
     marginBottom: Spacing.md,
+    alignItems: 'center',
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 360,
     ...Shadows.sm,
   },
   foodWarning: {
@@ -460,6 +487,7 @@ const styles = StyleSheet.create({
     color: Colors.accent.main,
     textAlign: 'center',
     marginBottom: Spacing.md,
+    lineHeight: 26,
   },
   recommendationLabel: {
     fontSize: Typography.fontSize.base,
@@ -474,15 +502,23 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
+    borderRadius: BorderRadius['3xl'],
     padding: Spacing.xl,
-    marginHorizontal: Spacing.lg,
     alignItems: 'center',
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 360,
     ...Shadows.sm,
   },
   emptyText: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.tertiary,
     textAlign: 'center',
+  },
+  loadingText: {
+    marginTop: Spacing.md,
+  },
+  errorText: {
+    color: Colors.status.error,
   },
 });

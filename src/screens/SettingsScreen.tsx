@@ -1,5 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Switch,
+  TextInput,
+  Alert,
+  SafeAreaView,
+  StatusBar,
+} from 'react-native';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useNavigation } from '@react-navigation/native';
@@ -8,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../services/i18n';
 import { clearAllData } from '../services/database';
 import { clearAllSecureData } from '../services/encryption';
+import { PillButton } from '../components/PillButton';
 
 export default function SettingsScreen() {
   const { settings, loadSettings, updateSettings } = useSettingsStore();
@@ -83,174 +95,191 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header with background */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.canGoBack() && navigation.goBack()}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.background.profile} />
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <View style={styles.headerTopRow}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.canGoBack() && navigation.goBack()}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.back', 'Back')}
+            >
+              <Text style={styles.backIcon}>←</Text>
+            </TouchableOpacity>
+          </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('settings.searchPlaceholder')}
-            placeholderTextColor={Colors.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
+          <View style={styles.searchContainer}>
+            <Search size={18} color={Colors.text.secondary} style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder={t('settings.searchPlaceholder')}
+              placeholderTextColor={Colors.text.secondary}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+            />
+          </View>
+
+          <Text style={styles.headerTitle}>{t('settings.title', 'Profile & Settings')}</Text>
         </View>
 
-        {/* Title */}
-        <Text style={styles.headerTitle}>{t('settings.title')}</Text>
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>{t('settings.profileSection', 'Profile')}</Text>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>{t('settings.profileName', 'Your name')}</Text>
+              <TextInput
+                style={styles.textField}
+                value={profileName}
+                onChangeText={setProfileName}
+                placeholder={t('settings.profileNamePlaceholder', 'Enter your name')}
+                placeholderTextColor={Colors.text.tertiary}
+                autoCorrect={false}
+                returnKeyType="done"
+                onSubmitEditing={handleSaveProfileName}
+              />
+            </View>
+            <PillButton
+              title={t('settings.save', 'Save')}
+              variant="accent"
+              onPress={handleSaveProfileName}
+              disabled={!isProfileDirty || isSavingName}
+              loading={isSavingName}
+              style={styles.savePill}
+              textStyle={styles.savePillText}
+            />
+          </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>{t('settings.remindersSection')}</Text>
+            <View style={styles.settingRow}>
+              <Text style={styles.settingLabel}>{t('settings.enableReminders')}</Text>
+              <Switch
+                value={settings.reminderEnabled}
+                onValueChange={(value) => updateSettings({ reminderEnabled: value })}
+                trackColor={{ false: Colors.border.main, true: Colors.primary.light }}
+                thumbColor={settings.reminderEnabled ? Colors.primary.main : Colors.background.card}
+              />
+            </View>
+            <View style={styles.settingRow}>
+              <Text style={styles.settingLabel}>{t('settings.sound')}</Text>
+              <Switch
+                value={settings.reminderSound}
+                onValueChange={(value) => updateSettings({ reminderSound: value })}
+                disabled={!settings.reminderEnabled}
+                trackColor={{ false: Colors.border.main, true: Colors.primary.light }}
+                thumbColor={settings.reminderSound ? Colors.primary.main : Colors.background.card}
+              />
+            </View>
+            <View style={styles.settingRow}>
+              <Text style={styles.settingLabel}>{t('settings.vibrate')}</Text>
+              <Switch
+                value={settings.reminderVibrate}
+                onValueChange={(value) => updateSettings({ reminderVibrate: value })}
+                disabled={!settings.reminderEnabled}
+                trackColor={{ false: Colors.border.main, true: Colors.primary.light }}
+                thumbColor={settings.reminderVibrate ? Colors.primary.main : Colors.background.card}
+              />
+            </View>
+          </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>{t('settings.unitsSection')}</Text>
+            <View style={styles.settingRow}>
+              <Text style={styles.settingLabel}>{t('settings.glucoseUnit')}</Text>
+              <Text style={styles.settingValue}>{settings.glucoseUnit}</Text>
+            </View>
+            <View style={styles.settingRow}>
+              <Text style={styles.settingLabel}>{t('settings.weightUnit')}</Text>
+              <Text style={styles.settingValue}>{settings.weightUnit}</Text>
+            </View>
+          </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>{t('settings.languageSection')}</Text>
+            <TouchableOpacity style={styles.settingRow} onPress={handleLanguageChange}>
+              <Text style={styles.settingLabel}>{t('settings.appLanguage')}</Text>
+              <Text style={styles.settingValue}>{i18n.language === 'en' ? 'English' : 'Bahasa Melayu'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>{t('settings.dataPrivacySection')}</Text>
+            <TouchableOpacity style={styles.actionLink} onPress={() => navigation.navigate('Export')}>
+              <Text style={styles.actionLinkText}>{t('settings.exportData')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionLink}>
+              <Text style={styles.actionLinkText}>{t('settings.viewPrivacyPolicy')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionLink} onPress={handleDeleteAllData}>
+              <Text style={[styles.actionLinkText, styles.dangerText]}>{t('settings.deleteAllData')}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>{t('settings.aboutSection')}</Text>
+            <View style={styles.settingRow}>
+              <Text style={styles.settingLabel}>{t('settings.version')}</Text>
+              <Text style={styles.settingValue}>1.0.0</Text>
+            </View>
+            <TouchableOpacity style={styles.actionLink} onPress={() => navigation.navigate('RamadanMode')}>
+              <Text style={styles.actionLinkText}>{t('settings.ramadanMode')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionLink} onPress={() => navigation.navigate('Analytics')}>
+              <Text style={styles.actionLinkText}>{t('settings.analytics')}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.bottomSpacing} />
+        </ScrollView>
       </View>
-
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.profileSection', 'Profile')}</Text>
-          <View style={styles.settingRowAligned}>
-            <Text style={styles.settingLabel}>{t('settings.profileName', 'Your name')}</Text>
-          </View>
-          <TextInput
-            style={styles.nameInput}
-            value={profileName}
-            onChangeText={setProfileName}
-            placeholder={t('settings.profileNamePlaceholder', 'Enter your name')}
-            placeholderTextColor={Colors.text.tertiary}
-            autoCorrect={false}
-            returnKeyType="done"
-            onSubmitEditing={handleSaveProfileName}
-          />
-          <TouchableOpacity
-            style={[styles.saveButton, (!isProfileDirty || isSavingName) && styles.saveButtonDisabled]}
-            onPress={handleSaveProfileName}
-            disabled={!isProfileDirty || isSavingName}
-          >
-            <Text style={styles.saveButtonText}>
-              {isSavingName ? t('settings.saving', 'Saving...') : t('settings.save', 'Save')}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.remindersSection')}</Text>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('settings.enableReminders')}</Text>
-            <Switch
-              value={settings.reminderEnabled}
-              onValueChange={(value) => updateSettings({ reminderEnabled: value })}
-              trackColor={{ false: Colors.border.main, true: Colors.primary.light }}
-              thumbColor={settings.reminderEnabled ? Colors.primary.main : Colors.background.card}
-            />
-          </View>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('settings.sound')}</Text>
-            <Switch
-              value={settings.reminderSound}
-              onValueChange={(value) => updateSettings({ reminderSound: value })}
-              disabled={!settings.reminderEnabled}
-              trackColor={{ false: Colors.border.main, true: Colors.primary.light }}
-              thumbColor={settings.reminderSound ? Colors.primary.main : Colors.background.card}
-            />
-          </View>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('settings.vibrate')}</Text>
-            <Switch
-              value={settings.reminderVibrate}
-              onValueChange={(value) => updateSettings({ reminderVibrate: value })}
-              disabled={!settings.reminderEnabled}
-              trackColor={{ false: Colors.border.main, true: Colors.primary.light }}
-              thumbColor={settings.reminderVibrate ? Colors.primary.main : Colors.background.card}
-            />
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.unitsSection')}</Text>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('settings.glucoseUnit')}</Text>
-            <Text style={styles.settingValue}>{settings.glucoseUnit}</Text>
-          </View>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('settings.weightUnit')}</Text>
-            <Text style={styles.settingValue}>{settings.weightUnit}</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.languageSection')}</Text>
-          <TouchableOpacity style={styles.settingRow} onPress={handleLanguageChange}>
-            <Text style={styles.settingLabel}>{t('settings.appLanguage')}</Text>
-            <Text style={styles.settingValue}>{i18n.language === 'en' ? 'English' : 'Bahasa Melayu'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.dataPrivacySection')}</Text>
-          <TouchableOpacity style={styles.settingButton} onPress={() => navigation.navigate('Export')}>
-            <Text style={styles.settingButtonText}>{t('settings.exportData')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.settingButton}>
-            <Text style={styles.settingButtonText}>{t('settings.viewPrivacyPolicy')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.settingButton, styles.dangerButton]} onPress={handleDeleteAllData}>
-            <Text style={[styles.settingButtonText, styles.dangerButtonText]}>{t('settings.deleteAllData')}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.aboutSection')}</Text>
-          <View style={styles.settingRow}>
-            <Text style={styles.settingLabel}>{t('settings.version')}</Text>
-            <Text style={styles.settingValue}>1.0.0</Text>
-          </View>
-          <TouchableOpacity style={styles.settingButton} onPress={() => navigation.navigate('RamadanMode')}>
-            <Text style={styles.settingButtonText}>{t('settings.ramadanMode')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.settingButton} onPress={() => navigation.navigate('Analytics')}>
-            <Text style={styles.settingButtonText}>{t('settings.attributions')}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.profile,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background.primary,
   },
   header: {
     backgroundColor: Colors.background.profile,
-    paddingTop: Spacing['2xl'] + 10,
-    paddingBottom: Spacing.xl,
+    paddingTop: Spacing['2xl'],
     paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
+    borderBottomLeftRadius: BorderRadius['3xl'] * 2,
+    ...Shadows.sm,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
   },
   backButton: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
   },
   backIcon: {
-    fontSize: 28,
+    fontSize: 26,
     color: Colors.text.inverse,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-    marginBottom: Spacing.lg,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    ...Shadows.sm,
   },
   searchIcon: {
     marginRight: Spacing.sm,
@@ -261,89 +290,89 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: Typography.fontSize['3xl'],
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.inverse,
-    marginBottom: Spacing.sm,
+    marginTop: Spacing.lg,
   },
-  scrollView: {
+  content: {
     flex: 1,
   },
-  scrollContent: {
-    paddingBottom: 100,
+  contentContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing['2xl'],
+    paddingBottom: Spacing['4xl'],
+    gap: Spacing.lg,
   },
-  section: {
+  sectionCard: {
     backgroundColor: Colors.background.card,
-    marginTop: Spacing.md,
-    padding: Spacing.md,
+    borderRadius: BorderRadius['3xl'],
+    padding: Spacing.lg,
+    ...Shadows.sm,
   },
   sectionTitle: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
     marginBottom: Spacing.md,
   },
+  fieldGroup: {
+    marginBottom: Spacing.lg,
+  },
+  fieldLabel: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.xs,
+  },
+  textField: {
+    backgroundColor: Colors.background.primary,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+    borderWidth: 1,
+    borderColor: Colors.border.main,
+  },
+  savePill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.lg,
+  },
+  savePillText: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.accent.contrast,
+  },
   settingRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
+    justifyContent: 'space-between',
+    backgroundColor: Colors.background.primary,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   settingLabel: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.primary,
   },
   settingValue: {
-    fontSize: Typography.fontSize.base,
+    fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
+    fontWeight: Typography.fontWeight.medium,
   },
-  settingRowAligned: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingBottom: Spacing.sm,
+  actionLink: {
+    paddingVertical: Spacing.sm,
   },
-  nameInput: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    borderWidth: 1,
-    borderColor: Colors.border.light,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
+  actionLinkText: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.primary,
-    marginBottom: Spacing.sm,
   },
-  saveButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.primary.main,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: BorderRadius.full,
-  },
-  saveButtonDisabled: {
-    backgroundColor: Colors.neutral[300],
-  },
-  saveButtonText: {
-    color: Colors.primary.contrast,
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  settingButton: {
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border.light,
-  },
-  settingButtonText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.primary.main,
-  },
-  dangerButton: {
-    borderBottomWidth: 0,
-  },
-  dangerButtonText: {
+  dangerText: {
     color: Colors.status.error,
+  },
+  bottomSpacing: {
+    height: Spacing['3xl'],
   },
 });

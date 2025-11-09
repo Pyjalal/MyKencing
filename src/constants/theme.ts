@@ -16,157 +16,157 @@
 export const Colors = {
   // Primary palette (Blue - trust, healthcare, MyKencing brand)
   primary: {
-    50: '#E8F1F8',
-    100: '#C5DDED',
-    200: '#9FC7E1',
-    300: '#79B1D5',
-    400: '#5C9FCB',
-    500: '#4A8FBD', // Main brand blue
-    600: '#3D7AAC',
-    700: '#2F6699',
-    800: '#235186',
-    900: '#1E4A6D', // Dark navy blue
-    main: '#4A8FBD',
-    light: '#79B1D5',
-    dark: '#1E4A6D',
+    50: '#EFF1FE',
+    100: '#8FA2B9',
+    200: '#377AB1',
+    300: '#2C3442',
+    400: '#194568',
+    500: '#377AB1',
+    600: '#2C3442',
+    700: '#194568',
+    800: '#194568',
+    900: '#194568',
+    main: '#377AB1',
+    light: '#8FA2B9',
+    dark: '#194568',
     contrast: '#FFFFFF',
   },
 
   // Secondary palette (Coral/Red - vitals, health indicators)
   secondary: {
-    50: '#FFEBEE',
-    100: '#FFCDD2',
-    200: '#EF9A9A',
-    300: '#E57373',
-    400: '#EF5350',
-    500: '#E57373', // Main coral
-    600: '#E53935',
-    700: '#D32F2F',
-    800: '#C62828',
-    900: '#B71C1C',
-    main: '#E57373',
-    light: '#FFCDD2',
-    dark: '#D32F2F',
+    50: '#EFF1FE',
+    100: '#E66A6A',
+    200: '#E66A6A',
+    300: '#E66A6A',
+    400: '#E66A6A',
+    500: '#E66A6A',
+    600: '#E66A6A',
+    700: '#E66A6A',
+    800: '#E66A6A',
+    900: '#E66A6A',
+    main: '#E66A6A',
+    light: '#EFF1FE',
+    dark: '#2C3442',
     contrast: '#FFFFFF',
   },
 
   // Accent palette (Yellow/Gold - medications, positive actions)
   accent: {
-    main: '#F5B800',
-    light: '#FFD54F',
-    dark: '#F57F17',
-    contrast: '#000000',
+    main: '#F8D849',
+    light: '#FEF278',
+    dark: '#2C3442',
+    contrast: '#2C3442',
   },
 
   // Neutral palette (Enhanced grays with extended scale)
   neutral: {
-    50: '#FAFAFA',
-    100: '#F5F5F5',
-    200: '#EEEEEE',
-    300: '#E0E0E0',
-    400: '#BDBDBD',
-    500: '#9E9E9E',
-    600: '#757575',
-    700: '#616161',
-    800: '#424242',
-    900: '#212121',
+    50: '#FFFFFF',
+    100: '#EFF1FE',
+    200: '#8FA2B9',
+    300: '#5A6D8A',
+    400: '#2C3442',
+    500: '#194568',
+    600: '#194568',
+    700: '#2C3442',
+    800: '#5A6D8A',
+    900: '#8FA2B9',
   },
 
   // Background (Light lavender/purple tint from Figma)
   background: {
-    primary: '#E8EAF0', // Light lavender background
-    secondary: '#F5F5F5',
-    tertiary: '#E0E0E0',
+    primary: '#EFF1FE',
+    secondary: '#FFFFFF',
+    tertiary: '#8FA2B9',
     card: '#FFFFFF',
     elevated: '#FFFFFF',
-    vitals: '#E57373', // Coral background for vitals
-    meds: '#F5B800', // Yellow/gold background for meds
-    profile: '#4A8FBD', // Blue background for profile
+    vitals: '#E66A6A',
+    meds: '#F8D849',
+    profile: '#377AB1',
   },
 
   // Text (WCAG AA compliant contrast ratios)
   text: {
-    primary: '#1A1A1A',      // 16:1 contrast on white
-    secondary: '#4A4A4A',    // 8:1 contrast
-    tertiary: '#757575',     // 4.5:1 contrast (minimum)
-    disabled: '#ABABAB',     // 2.5:1 (non-essential only)
+    primary: '#2C3442',
+    secondary: '#5A6D8A',
+    tertiary: '#8FA2B9',
+    disabled: '#8FA2B9',
     inverse: '#FFFFFF',
-    link: '#2D9F9F',
+    link: '#377AB1',
   },
 
   // Status colors (calm, reassuring)
   status: {
-    success: '#4CAF50',
-    successLight: '#E8F5E9',
-    successDark: '#2E7D32',
+    success: '#7ED957',
+    successLight: '#EFF1FE',
+    successDark: '#58A67C',
 
-    warning: '#FF9800',
-    warningLight: '#FFF3E0',
-    warningDark: '#E65100',
+    warning: '#F8D849',
+    warningLight: '#FEF278',
+    warningDark: '#2C3442',
 
-    error: '#E53935',
-    errorLight: '#FFEBEE',
-    errorDark: '#C62828',
+    error: '#E66A6A',
+    errorLight: '#EFF1FE',
+    errorDark: '#2C3442',
 
-    info: '#2196F3',
-    infoLight: '#E3F2FD',
-    infoDark: '#1565C0',
+    info: '#377AB1',
+    infoLight: '#8FA2B9',
+    infoDark: '#194568',
   },
 
   // Dose status (specific to medication adherence)
   dose: {
-    taken: '#4CAF50',
-    takenLight: '#E8F5E9',
+    taken: '#7ED957',
+    takenLight: '#EFF1FE',
 
-    pending: '#2196F3',
-    pendingLight: '#E3F2FD',
+    pending: '#377AB1',
+    pendingLight: '#8FA2B9',
 
-    upcoming: '#9E9E9E',
-    upcomingLight: '#F5F5F5',
+    upcoming: '#8FA2B9',
+    upcomingLight: '#EFF1FE',
 
-    late: '#FF9800',
-    lateLight: '#FFF3E0',
+    late: '#F8D849',
+    lateLight: '#FEF278',
 
-    missed: '#E53935',
-    missedLight: '#FFEBEE',
+    missed: '#E66A6A',
+    missedLight: '#EFF1FE',
 
-    skipped: '#757575',
-    skippedLight: '#F5F5F5',
+    skipped: '#5A6D8A',
+    skippedLight: '#EFF1FE',
   },
 
   // Vitals status
   vitals: {
-    normal: '#4CAF50',
-    normalLight: '#E8F5E9',
+    normal: '#7ED957',
+    normalLight: '#EFF1FE',
 
-    warning: '#FF9800',
-    warningLight: '#FFF3E0',
+    warning: '#F8D849',
+    warningLight: '#FEF278',
 
-    critical: '#E53935',
-    criticalLight: '#FFEBEE',
+    critical: '#E66A6A',
+    criticalLight: '#EFF1FE',
 
-    unknown: '#9E9E9E',
-    unknownLight: '#F5F5F5',
+    unknown: '#8FA2B9',
+    unknownLight: '#EFF1FE',
   },
 
   // Borders
   border: {
-    light: '#E0E0E0',
-    main: '#BDBDBD',
-    dark: '#9E9E9E',
-    focus: '#2D9F9F',
+    light: '#EFF1FE',
+    main: '#8FA2B9',
+    dark: '#5A6D8A',
+    focus: '#377AB1',
   },
 
   // Overlays and shadows
-  overlay: 'rgba(0, 0, 0, 0.5)',
-  overlayLight: 'rgba(0, 0, 0, 0.3)',
-  shadow: 'rgba(0, 0, 0, 0.1)',
+  overlay: 'rgba(44, 52, 66, 0.55)',
+  overlayLight: 'rgba(44, 52, 66, 0.35)',
+  shadow: 'rgba(25, 69, 104, 0.15)',
 
   // Ramadan mode accent
   ramadan: {
-    main: '#8B4789',    // Purple
-    light: '#B47AB2',
-    background: '#F3E8F3',
+    main: '#58A67C',
+    light: '#7ED957',
+    background: '#EFF1FE',
   },
 };
 
