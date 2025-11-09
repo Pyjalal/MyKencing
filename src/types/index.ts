@@ -168,6 +168,9 @@ export enum VitalType {
   BloodPressure = 'blood_pressure',
   Glucose = 'glucose',
   Weight = 'weight',
+  WaistCircumference = 'waist_circumference',
+  TotalCholesterol = 'total_cholesterol',
+  HDLCholesterol = 'hdl_cholesterol',
 }
 
 /**
@@ -211,9 +214,65 @@ export interface WeightVital {
 }
 
 /**
+ * Waist circumference reading
+ */
+export interface WaistCircumferenceVital {
+  id: string;
+  type: VitalType.WaistCircumference;
+  value: number;
+  unit: 'cm';
+  measuredAt: string; // ISO datetime
+  notes?: string;
+  createdAt: string;
+}
+
+/**
+ * Cholesterol reading (total or HDL)
+ */
+export interface CholesterolVital {
+  id: string;
+  type: VitalType.TotalCholesterol | VitalType.HDLCholesterol;
+  value: number;
+  unit: 'mmol/L';
+  measuredAt: string; // ISO datetime
+  notes?: string;
+  createdAt: string;
+}
+
+/**
+ * Risk factor settings persisted in app settings
+ */
+export interface RiskFactorSettings {
+  ageHighRisk: boolean;
+  genderHighRisk: boolean;
+  smoking: boolean;
+  bpMedication: boolean;
+  bmiHighRisk: boolean;
+  historyHighGlucose: boolean;
+  physicalActivity: boolean; // true = >=4h/week
+  vegetablesDaily: boolean;
+  familyHistory: 'none' | 'extended' | 'immediate';
+  weightKg?: number | null;
+  heightCm?: number | null;
+}
+
+export interface RiskCalculatorSettings {
+  findriscEnabled: boolean;
+  framinghamEnabled: boolean;
+  lastFindriscScore?: number;
+  lastFraminghamScore?: number;
+  lastUpdated?: string;
+}
+
+/**
  * Union type for all vitals
  */
-export type Vital = BloodPressureVital | GlucoseVital | WeightVital;
+export type Vital =
+  | BloodPressureVital
+  | GlucoseVital
+  | WeightVital
+  | WaistCircumferenceVital
+  | CholesterolVital;
 
 /**
  * Vitals trend data for charts
@@ -256,6 +315,8 @@ export interface AppSettings {
   userGender?: 'male' | 'female' | 'other';
   userWeight?: number;
   userGoal?: 'get_fit' | 'be_active' | 'be_healthy' | 'find_balance';
+  riskFactors?: RiskFactorSettings;
+  riskCalculators?: RiskCalculatorSettings;
 }
 
 // ----------------------------------------------------------------------------
@@ -347,6 +408,9 @@ export interface ExportData {
     bloodPressure: BloodPressureVital[];
     glucose: GlucoseVital[];
     weight: WeightVital[];
+    waistCircumference: WaistCircumferenceVital[];
+    totalCholesterol: CholesterolVital[];
+    hdlCholesterol: CholesterolVital[];
   };
   periodStart: string;
   periodEnd: string;
@@ -369,6 +433,7 @@ export type RootStackParamList = {
   SelectScannedMedicine: { extractedMedicines: ExtractedMedicine[] };
   Vitals: undefined;
   AddVital: { type: VitalType };
+  RiskCalculators: undefined;
   RiskAssessment: undefined;
   Export: undefined;
   Settings: undefined;

@@ -382,6 +382,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
 
       // Reload medications and doses
       await get().loadMedications();
+      await get().loadTodayDoses();
       
       // Reload week doses for current view
       const today = new Date();

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AppSettings } from '../types';
+import { AppSettings, RiskFactorSettings, RiskCalculatorSettings } from '../types';
 import { getDatabase } from '../services/database';
 
 interface SettingsState {
@@ -13,6 +13,28 @@ interface SettingsState {
   resetSettings: () => Promise<void>;
 }
 
+const DEFAULT_RISK_FACTORS: RiskFactorSettings = {
+  ageHighRisk: false,
+  genderHighRisk: false,
+  smoking: false,
+  bpMedication: false,
+  bmiHighRisk: false,
+  historyHighGlucose: false,
+  physicalActivity: true,
+  vegetablesDaily: true,
+  familyHistory: 'none',
+  weightKg: null,
+  heightCm: null,
+};
+
+const DEFAULT_RISK_CALCULATORS: RiskCalculatorSettings = {
+  findriscEnabled: false,
+  framinghamEnabled: false,
+  lastFindriscScore: undefined,
+  lastFraminghamScore: undefined,
+  lastUpdated: undefined,
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'en',
   reminderEnabled: true,
@@ -23,6 +45,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   glucoseUnit: 'mmol/L',
   weightUnit: 'kg',
   onboardingCompleted: false,
+  riskFactors: DEFAULT_RISK_FACTORS,
+  riskCalculators: DEFAULT_RISK_CALCULATORS,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -38,7 +62,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         'SELECT key, value FROM settings'
       );
 
-      const settings = { ...DEFAULT_SETTINGS };
+      const settings: AppSettings = {
+        ...DEFAULT_SETTINGS,
+        riskFactors: { ...DEFAULT_RISK_FACTORS },
+        riskCalculators: { ...DEFAULT_RISK_CALCULATORS },
+      };
 
       rows.forEach((row) => {
         const key = row.key as keyof AppSettings;
@@ -53,6 +81,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
         settings[key] = value;
       });
+
+      // Ensure risk factors always present
+      settings.riskFactors = {
+        ...DEFAULT_RISK_FACTORS,
+        ...(settings.riskFactors || {}),
+      };
+
+      settings.riskCalculators = {
+        ...DEFAULT_RISK_CALCULATORS,
+        ...(settings.riskCalculators || {}),
+      };
 
       set({ settings, isLoading: false });
     } catch (error) {

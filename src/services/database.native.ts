@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 // Database version for migrations
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 const DB_NAME = 'mykencing.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -67,6 +67,9 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
   if (currentVersion < 5) {
     await applyMigration5(database);
   }
+  if (currentVersion < 6) {
+    await applyMigration6(database);
+  }
 }
 
 /**
@@ -128,7 +131,14 @@ async function applyMigration1(database: SQLite.SQLiteDatabase): Promise<void> {
     -- Vitals table (BP, glucose, weight)
     CREATE TABLE IF NOT EXISTS vitals (
       id TEXT PRIMARY KEY,
-      type TEXT NOT NULL CHECK(type IN ('blood_pressure', 'glucose', 'weight')),
+      type TEXT NOT NULL CHECK(type IN (
+        'blood_pressure',
+        'glucose',
+        'weight',
+        'waist_circumference',
+        'total_cholesterol',
+        'hdl_cholesterol'
+      )),
       systolic INTEGER, -- For blood pressure
       diastolic INTEGER, -- For blood pressure
       value REAL, -- For glucose and weight
@@ -327,7 +337,6 @@ async function applyMigration5(database: SQLite.SQLiteDatabase): Promise<void> {
   try {
     await database.execAsync('BEGIN TRANSACTION;');
 
-    // Create new table with updated CHECK constraint including 'upcoming'
     await database.execAsync(`
       CREATE TABLE doses_new (
         id TEXT PRIMARY KEY,
@@ -341,7 +350,6 @@ async function applyMigration5(database: SQLite.SQLiteDatabase): Promise<void> {
       );
     `);
 
-    // Copy all existing data from old table
     await database.execAsync(`
       INSERT INTO doses_new (
         id, medication_id, scheduled_time, actual_time, status, notes, created_at
@@ -351,13 +359,9 @@ async function applyMigration5(database: SQLite.SQLiteDatabase): Promise<void> {
       FROM doses;
     `);
 
-    // Drop old table
     await database.execAsync('DROP TABLE doses;');
-
-    // Rename new table
     await database.execAsync('ALTER TABLE doses_new RENAME TO doses;');
 
-    // Recreate indexes
     await database.execAsync(`
       CREATE INDEX IF NOT EXISTS idx_doses_medication_id ON doses(medication_id);
       CREATE INDEX IF NOT EXISTS idx_doses_scheduled_time ON doses(scheduled_time);
@@ -366,7 +370,6 @@ async function applyMigration5(database: SQLite.SQLiteDatabase): Promise<void> {
 
     await database.execAsync('COMMIT;');
 
-    // Insert migration record
     await database.runAsync(
       'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
       [5, new Date().toISOString()]
@@ -376,6 +379,70 @@ async function applyMigration5(database: SQLite.SQLiteDatabase): Promise<void> {
   } catch (error) {
     await database.execAsync('ROLLBACK;');
     console.error('[database.native] Migration 5 failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Migration 6: Extend vitals types to include waist circumference and cholesterol
+ */
+async function applyMigration6(database: SQLite.SQLiteDatabase): Promise<void> {
+  console.log('[database.native] Migration 6: Updating vitals type constraints');
+
+  try {
+    await database.execAsync('BEGIN TRANSACTION;');
+
+    await database.execAsync(`
+      CREATE TABLE vitals_new (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL CHECK(type IN (
+          'blood_pressure',
+          'glucose',
+          'weight',
+          'waist_circumference',
+          'total_cholesterol',
+          'hdl_cholesterol'
+        )),
+        systolic INTEGER,
+        diastolic INTEGER,
+        value REAL,
+        unit TEXT NOT NULL,
+        measured_at TEXT NOT NULL,
+        notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+
+    await database.execAsync(`
+      INSERT INTO vitals_new (
+        id, type, systolic, diastolic, value, unit, measured_at, notes, created_at
+      )
+      SELECT
+        id, type, systolic, diastolic, value, unit, measured_at, notes, created_at
+      FROM vitals;
+    `);
+
+    await database.execAsync(`
+      DROP TABLE vitals;
+      ALTER TABLE vitals_new RENAME TO vitals;
+    `);
+
+    await database.execAsync(`
+      CREATE INDEX IF NOT EXISTS idx_vitals_type ON vitals(type);
+      CREATE INDEX IF NOT EXISTS idx_vitals_measured_at ON vitals(measured_at);
+    `);
+
+    await database.execAsync('COMMIT;');
+
+    await database.runAsync(
+      'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+      [6, new Date().toISOString()]
+    );
+
+    console.log('[database.native] Migration 6 applied successfully');
+  } catch (error) {
+    await database.execAsync('ROLLBACK;');
+    console.error('[database.native] Migration 6 failed:', error);
     throw error;
   }
 }

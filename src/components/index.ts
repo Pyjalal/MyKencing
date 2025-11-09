@@ -11,6 +11,7 @@ export { default as PrimaryButton } from './PrimaryButton';
 export { default as DoseStatusBadge } from './DoseStatusBadge';
 export { PillButton } from './PillButton';
 export { CustomTabBar } from './BottomNavBar';
+export { default as RiskScoreCircle } from './RiskScoreCircle';
 
 // Medication carousel and interaction components
 export { default as MedicationCarousel } from './MedicationCarousel';
