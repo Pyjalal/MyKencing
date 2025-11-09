@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   glucoseUnit: 'mmol/L',
   weightUnit: 'kg',
   onboardingCompleted: false,
+  userName: '',
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -34,27 +35,28 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const db = getDatabase();
-      const rows = await db.getAllAsync<{ key: string; value: string }>(
+      type SettingsRow = { key: string; value: string };
+      const rows = (await db.getAllAsync(
         'SELECT key, value FROM settings'
-      );
+      )) as SettingsRow[];
 
-      const settings = { ...DEFAULT_SETTINGS };
+      const loadedSettings: AppSettings = { ...DEFAULT_SETTINGS };
+      const mutableSettings = loadedSettings as AppSettings & Record<string, unknown>;
 
-      rows.forEach((row) => {
-        const key = row.key as keyof AppSettings;
-        let value: any = row.value;
-
-        // Parse JSON values
+      rows.forEach(({ key, value }) => {
+        let parsed: unknown = value;
         try {
-          value = JSON.parse(row.value);
+          parsed = JSON.parse(value);
         } catch {
-          // Keep as string if not JSON
+          parsed = value;
         }
 
-        settings[key] = value;
+        if (Object.prototype.hasOwnProperty.call(loadedSettings, key)) {
+          mutableSettings[key] = parsed;
+        }
       });
 
-      set({ settings, isLoading: false });
+      set({ settings: loadedSettings, isLoading: false });
     } catch (error) {
       console.error('Error loading settings:', error);
       set({ error: (error as Error).message, isLoading: false });

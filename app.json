@@ -74,8 +74,11 @@
             "enableShrinkResourcesInReleaseBuilds": true,
             "extraProguardRules": "-keep public class com.horcrux.svg.** {*;}",
             "packagingOptions": {
-              "pickFirst": ["**/libc++_shared.so"]
-            }
+              "pickFirst": [
+                "**/libc++_shared.so"
+              ]
+            },
+            "enableMinifyInReleaseBuilds": true
           },
           "ios": {
             "deploymentTarget": "15.5"
@@ -86,9 +89,8 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "PLACEHOLDER_PROJECT_ID"
+        "projectId": "f8928a3c-22d5-45f3-9e0d-fe69c6d021f8"
       }
-    },
-    "owner": "mykencing"
+    }
   }
 }

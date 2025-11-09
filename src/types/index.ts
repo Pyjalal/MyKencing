@@ -256,6 +256,7 @@ export interface AppSettings {
   userGender?: 'male' | 'female' | 'other';
   userWeight?: number;
   userGoal?: 'get_fit' | 'be_active' | 'be_healthy' | 'find_balance';
+  userName?: string;
 }
 
 // ----------------------------------------------------------------------------

@@ -2,7 +2,7 @@ import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 
 // Database version for migrations
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const DB_NAME = 'mykencing.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -84,6 +84,9 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
   if (currentVersion < 3) {
     await applyMigration3(database);
   }
+  if (currentVersion < 4) {
+    await applyMigration4(database);
+  }
 }
 
 /**
@@ -135,7 +138,7 @@ async function applyMigration1(database: SQLite.SQLiteDatabase): Promise<void> {
       medication_id TEXT NOT NULL,
       scheduled_time TEXT NOT NULL,
       actual_time TEXT,
-      status TEXT NOT NULL CHECK(status IN ('pending', 'taken', 'skipped', 'late', 'missed')),
+      status TEXT NOT NULL CHECK(status IN ('pending', 'taken', 'skipped', 'late', 'missed', 'upcoming')),
       notes TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (medication_id) REFERENCES medications(id) ON DELETE CASCADE
@@ -298,6 +301,73 @@ async function applyMigration3(database: SQLite.SQLiteDatabase): Promise<void> {
   );
 
   console.log('Migration 3 applied successfully');
+}
+
+/**
+ * Migration 4: Allow "upcoming" dose status
+ */
+async function applyMigration4(database: SQLite.SQLiteDatabase): Promise<void> {
+  console.log('[database.native] Migration 4: Updating doses status constraint');
+
+  try {
+    const tableSql = await database.getFirstAsync<{ sql: string }>(
+      "SELECT sql FROM sqlite_master WHERE type='table' AND name='doses'"
+    );
+    if (tableSql?.sql?.includes("'upcoming'")) {
+      console.log('[database.native] Migration 4 already applied');
+      return;
+    }
+  } catch (error) {
+    console.warn('[database.native] Unable to inspect doses table before Migration 4:', error);
+  }
+
+  try {
+    await database.execAsync('BEGIN TRANSACTION;');
+    await database.execAsync('PRAGMA foreign_keys = OFF;');
+
+    await database.execAsync(`
+      CREATE TABLE doses_new (
+        id TEXT PRIMARY KEY,
+        medication_id TEXT NOT NULL,
+        scheduled_time TEXT NOT NULL,
+        actual_time TEXT,
+        status TEXT NOT NULL CHECK(status IN ('pending', 'taken', 'skipped', 'late', 'missed', 'upcoming')),
+        notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (medication_id) REFERENCES medications(id) ON DELETE CASCADE
+      );
+    `);
+
+    await database.execAsync(`
+      INSERT INTO doses_new (id, medication_id, scheduled_time, actual_time, status, notes, created_at)
+      SELECT id, medication_id, scheduled_time, actual_time, status, notes, created_at
+      FROM doses;
+    `);
+
+    await database.execAsync('DROP TABLE doses;');
+    await database.execAsync('ALTER TABLE doses_new RENAME TO doses;');
+
+    await database.execAsync('CREATE INDEX IF NOT EXISTS idx_doses_medication_id ON doses(medication_id);');
+    await database.execAsync('CREATE INDEX IF NOT EXISTS idx_doses_scheduled_time ON doses(scheduled_time);');
+    await database.execAsync('CREATE INDEX IF NOT EXISTS idx_doses_status ON doses(status);');
+
+    await database.execAsync('PRAGMA foreign_keys = ON;');
+    await database.execAsync('COMMIT;');
+
+    await database.runAsync(
+      'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+      [4, new Date().toISOString()]
+    );
+
+    console.log('Migration 4 applied successfully');
+  } catch (error) {
+    console.error('[database.native] Migration 4 failed:', error);
+    try {
+      await database.execAsync('ROLLBACK;');
+    } catch {}
+    await database.execAsync('PRAGMA foreign_keys = ON;');
+    throw error;
+  }
 }
 
 /**

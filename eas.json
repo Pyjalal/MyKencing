@@ -4,10 +4,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "simulator": false,
-        "entitlements": {
-          "aps-environment": null
-        }
+        "simulator": false
       }
     },
     "preview": {
@@ -17,11 +14,7 @@
       }
     },
     "production": {
-      "ios": {
-        "entitlements": {
-          "aps-environment": "production"
-        }
-      }
+      "ios": {}
     }
   }
 }

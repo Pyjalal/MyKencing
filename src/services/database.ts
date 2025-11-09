@@ -16,6 +16,10 @@ export async function initDatabase(): Promise<any> {
   return databaseModule.initDatabase();
 }
 
+export async function cleanupInvalidMedications(): Promise<number> {
+  return databaseModule.cleanupInvalidMedications();
+}
+
 /**
  * Get the database instance
  */

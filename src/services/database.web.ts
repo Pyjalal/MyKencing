@@ -1,7 +1,7 @@
 import initSqlJs, { Database } from 'sql.js';
 import { getDatabaseKey } from './encryption';
 
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 const DB_NAME = 'mykencing_web';
 const INDEXED_DB_KEY = 'mykencing_encrypted_db';
 
@@ -297,7 +297,7 @@ async function applyMigration1(database: Database): Promise<void> {
       medication_id TEXT NOT NULL,
       scheduled_time TEXT NOT NULL,
       actual_time TEXT,
-      status TEXT NOT NULL CHECK(status IN ('pending', 'taken', 'skipped', 'late', 'missed')),
+      status TEXT NOT NULL CHECK(status IN ('pending', 'taken', 'skipped', 'late', 'missed', 'upcoming')),
       notes TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (medication_id) REFERENCES medications(id) ON DELETE CASCADE
@@ -341,6 +341,63 @@ async function applyMigration1(database: Database): Promise<void> {
   );
 
   console.log('[database.web] Migration 1 applied successfully');
+}
+
+/**
+ * Migration 4: Allow "upcoming" dose status
+ */
+async function applyMigration4(database: Database): Promise<void> {
+  console.log('[database.web] Migration 4: Updating doses status constraint');
+
+  const result = database.exec(`
+    SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'doses';
+  `);
+
+  const tableSql = result?.[0]?.values?.[0]?.[0] as string | undefined;
+  if (tableSql && tableSql.includes("'upcoming'")) {
+    console.log('[database.web] Migration 4 already applied');
+    return;
+  }
+
+  try {
+    database.run('BEGIN TRANSACTION;');
+
+    database.exec(`
+      CREATE TABLE doses_new (
+        id TEXT PRIMARY KEY,
+        medication_id TEXT NOT NULL,
+        scheduled_time TEXT NOT NULL,
+        actual_time TEXT,
+        status TEXT NOT NULL CHECK(status IN ('pending', 'taken', 'skipped', 'late', 'missed', 'upcoming')),
+        notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (medication_id) REFERENCES medications(id) ON DELETE CASCADE
+      );
+    `);
+
+    database.exec(`
+      INSERT INTO doses_new (id, medication_id, scheduled_time, actual_time, status, notes, created_at)
+      SELECT id, medication_id, scheduled_time, actual_time, status, notes, created_at
+      FROM doses;
+    `);
+
+    database.exec('DROP TABLE doses;');
+    database.exec('ALTER TABLE doses_new RENAME TO doses;');
+
+    database.exec('CREATE INDEX IF NOT EXISTS idx_doses_medication_id ON doses(medication_id);');
+    database.exec('CREATE INDEX IF NOT EXISTS idx_doses_scheduled_time ON doses(scheduled_time);');
+    database.exec('CREATE INDEX IF NOT EXISTS idx_doses_status ON doses(status);');
+
+    database.run('COMMIT;');
+
+    database.run('INSERT INTO migrations (version, applied_at) VALUES (?, ?);', [4, new Date().toISOString()]);
+
+    console.log('[database.web] Migration 4 applied successfully');
+  } catch (error) {
+    console.error('[database.web] Migration 4 failed:', error);
+    database.run('ROLLBACK;');
+    throw error;
+  }
 }
 
 /**
