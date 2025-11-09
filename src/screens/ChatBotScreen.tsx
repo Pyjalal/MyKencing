@@ -43,6 +43,7 @@ const handleSend = async () => {
     const history: Message[] = updatedMessages.map(m => ({
       role: m.role === 'user' ? 'user' : 'assistant',
       content: m.content,
+      timestamp: m.timestamp
     }));
 
     const botReply = await sendMessage(history);
