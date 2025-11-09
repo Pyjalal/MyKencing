@@ -9,8 +9,9 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { cn } from '../lib/utils';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
+import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../constants/theme';
 
 export interface DrugInteraction {
   id: string;
@@ -29,13 +30,13 @@ export interface DrugInteraction {
 interface DrugDrugInteractionAlertProps {
   interaction: DrugInteraction;
   onDrugPress?: (drugId: string) => void;
-  containerClassName?: string;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 export default function DrugDrugInteractionAlert({
   interaction,
   onDrugPress,
-  containerClassName,
+  containerStyle,
 }: DrugDrugInteractionAlertProps) {
   const handleDrug1Press = () => {
     onDrugPress?.(interaction.drug1.id);
@@ -47,61 +48,103 @@ export default function DrugDrugInteractionAlert({
 
   return (
     <View
-      className={cn(
-        'bg-white rounded-[20px] p-5 shadow-md',
-        containerClassName
-      )}
-      style={{ minHeight: 252 }}
+      style={[styles.container, containerStyle]}
       accessibilityRole="alert"
       accessibilityLabel={`Drug interaction warning: ${interaction.drug1.name} and ${interaction.drug2.name}`}
     >
-      {/* Warning Title */}
-      <Text className="text-2xl font-semibold text-error text-center mb-4">
+      <Text style={styles.title}>
         Possible interactions detected
       </Text>
 
-      {/* Drug 1 Button */}
       <TouchableOpacity
         onPress={handleDrug1Press}
-        className="bg-error rounded-[50px] py-2 px-6 mb-3 shadow-sm"
-        style={{ minHeight: 38 }}
+        style={styles.drugButton}
         activeOpacity={0.8}
         accessibilityRole="button"
         accessibilityLabel={`View details for ${interaction.drug1.name}`}
       >
-        <Text className="text-2xl font-semibold text-white text-center">
+        <Text style={styles.drugButtonText}>
           {interaction.drug1.name}
         </Text>
       </TouchableOpacity>
 
-      {/* Plus Separator */}
-      <Text className="text-2xl font-medium text-text-primary text-center mb-3">
-        +
-      </Text>
+      <Text style={styles.plus}>+</Text>
 
-      {/* Drug 2 Button */}
       <TouchableOpacity
         onPress={handleDrug2Press}
-        className="bg-error rounded-[50px] py-2 px-6 mb-4 shadow-sm"
-        style={{ minHeight: 38 }}
+        style={styles.drugButton}
         activeOpacity={0.8}
         accessibilityRole="button"
         accessibilityLabel={`View details for ${interaction.drug2.name}`}
       >
-        <Text className="text-2xl font-semibold text-white text-center">
+        <Text style={styles.drugButtonText}>
           {interaction.drug2.name}
         </Text>
       </TouchableOpacity>
 
-      {/* Risk Description */}
-      <View className="mt-2">
-        <Text className="text-[15px] font-medium text-text-primary text-center mb-1">
+      <View style={styles.riskContainer}>
+        <Text style={styles.riskLabel}>
           Risk:
         </Text>
-        <Text className="text-[15px] font-medium text-text-primary text-center">
+        <Text style={styles.riskText}>
           {interaction.riskDescription}
         </Text>
       </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius['3xl'],
+    padding: Spacing.cardPadding,
+    minHeight: 252,
+    ...Shadows.md,
+  },
+  title: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.status.error,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  drugButton: {
+    backgroundColor: Colors.status.error,
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    alignItems: 'center',
+    ...Shadows.sm,
+  },
+  drugButtonText: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.primary.contrast,
+    textAlign: 'center',
+  },
+  plus: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  riskContainer: {
+    marginTop: Spacing.sm,
+  },
+  riskLabel: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  riskText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.primary,
+    textAlign: 'center',
+  }
+});

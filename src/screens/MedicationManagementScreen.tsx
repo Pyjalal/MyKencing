@@ -19,6 +19,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   StatusBar,
+  StyleSheet,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
@@ -30,7 +31,7 @@ import FoodDrugInteractionAlert, {
   FoodInteraction,
 } from '../components/FoodDrugInteractionAlert';
 import { Home, Activity, Plus, Pill, User } from 'lucide-react-native';
-import { cn } from '../lib/utils';
+import { Colors, Spacing, BorderRadius, Typography } from '../constants/theme';
 
 type MedicationManagementScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MedicationManagement'>;
@@ -118,7 +119,7 @@ export default function MedicationManagementScreen({
     // Navigate based on tab
     switch (tab) {
       case 'home':
-        navigation.navigate('Home');
+        navigation.navigate('Home', { screen: 'HomeTab' });
         break;
       case 'vitals':
         navigation.navigate('Vitals');
@@ -136,17 +137,17 @@ export default function MedicationManagementScreen({
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#EFF1FE" />
 
       <ScrollView
-        className="flex-1"
+        style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={styles.scrollContent}
       >
         {/* Active Medications Section */}
-        <View className="px-10 pt-10">
-          <Text className="text-2xl font-semibold text-text-primary mb-6">
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
             Active Medications
           </Text>
         </View>
@@ -162,47 +163,37 @@ export default function MedicationManagementScreen({
         />
 
         {/* Drug-Drug Interaction Section */}
-        <View className="px-10">
-          <Text className="text-2xl font-semibold text-text-primary mb-6">
+        <View style={styles.sectionWrapper}>
+          <Text style={styles.sectionTitle}>
             Drug-Drug Interaction
           </Text>
 
           <DrugDrugInteractionAlert
             interaction={drugInteraction}
             onDrugPress={handleDrugPress}
-            containerClassName="mb-12"
+            containerStyle={styles.interactionCardSpacing}
           />
         </View>
 
         {/* Food-Drug Interaction Section */}
-        <View className="px-10">
-          <Text className="text-2xl font-semibold text-text-primary mb-6">
+        <View style={styles.sectionWrapper}>
+          <Text style={styles.sectionTitle}>
             Food-Drug Interaction
           </Text>
 
           <FoodDrugInteractionAlert
             interaction={foodInteraction}
-            containerClassName="mb-8"
+            containerStyle={styles.interactionCardSpacingSmall}
           />
         </View>
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View
-        className="absolute bottom-8 left-8 right-8 bg-white rounded-[50px] shadow-lg"
-        style={{
-          height: 75,
-          shadowColor: '#8FA2B9',
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.5,
-          shadowRadius: 20,
-          elevation: 10,
-        }}
-      >
-        <View className="flex-1 flex-row items-center justify-around px-5">
+      <View style={styles.bottomNav}>
+        <View style={styles.bottomNavInner}>
           {/* Home */}
           <TouchableOpacity
-            className="items-center justify-center"
+            style={styles.navButton}
             onPress={() => handleNavigationPress('home')}
             accessibilityRole="button"
             accessibilityLabel="Home"
@@ -210,14 +201,11 @@ export default function MedicationManagementScreen({
           >
             <Home
               size={20}
-              color={activeTab === 'home' ? '#F0C400' : '#2C3442'}
+              color={activeTab === 'home' ? Colors.accent.main : '#2C3442'}
               strokeWidth={2}
             />
             <Text
-              className={cn(
-                'text-[15px] font-medium mt-1',
-                activeTab === 'home' ? 'text-warning' : 'text-text-primary'
-              )}
+              style={[styles.navLabel, activeTab === 'home' && styles.navLabelActive]}
             >
               Home
             </Text>
@@ -225,7 +213,7 @@ export default function MedicationManagementScreen({
 
           {/* Vitals */}
           <TouchableOpacity
-            className="items-center justify-center"
+            style={styles.navButton}
             onPress={() => handleNavigationPress('vitals')}
             accessibilityRole="button"
             accessibilityLabel="Vitals"
@@ -233,14 +221,11 @@ export default function MedicationManagementScreen({
           >
             <Activity
               size={20}
-              color={activeTab === 'vitals' ? '#F0C400' : '#2C3442'}
+              color={activeTab === 'vitals' ? Colors.accent.main : '#2C3442'}
               strokeWidth={2}
             />
             <Text
-              className={cn(
-                'text-[15px] font-medium mt-1',
-                activeTab === 'vitals' ? 'text-warning' : 'text-text-primary'
-              )}
+              style={[styles.navLabel, activeTab === 'vitals' && styles.navLabelActive]}
             >
               Vitals
             </Text>
@@ -248,41 +233,30 @@ export default function MedicationManagementScreen({
 
           {/* Add Button (Center) */}
           <TouchableOpacity
-            className="w-11 h-11 bg-warning rounded-full items-center justify-center"
+            style={styles.addButton}
             onPress={() => handleNavigationPress('add')}
             accessibilityRole="button"
             accessibilityLabel="Add medication"
-            style={{
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.25,
-              shadowRadius: 4,
-              elevation: 5,
-            }}
           >
             <Plus size={24} color="#FFFFFF" strokeWidth={3} />
           </TouchableOpacity>
 
           {/* Meds (Active) */}
           <TouchableOpacity
-            className="items-center justify-center"
+            style={styles.navButton}
             onPress={() => handleNavigationPress('meds')}
             accessibilityRole="button"
             accessibilityLabel="Medications"
             accessibilityState={{ selected: activeTab === 'meds' }}
-            accessibilityCurrent={activeTab === 'meds' ? 'page' : undefined}
           >
             <Pill
               size={20}
-              color={activeTab === 'meds' ? '#F0C400' : '#2C3442'}
+              color={activeTab === 'meds' ? Colors.accent.main : '#2C3442'}
               strokeWidth={2}
-              fill={activeTab === 'meds' ? '#F0C400' : 'none'}
+              fill={activeTab === 'meds' ? Colors.accent.main : 'none'}
             />
             <Text
-              className={cn(
-                'text-[15px] font-medium mt-1',
-                activeTab === 'meds' ? 'text-warning' : 'text-text-primary'
-              )}
+              style={[styles.navLabel, activeTab === 'meds' && styles.navLabelActive]}
             >
               Meds
             </Text>
@@ -290,7 +264,7 @@ export default function MedicationManagementScreen({
 
           {/* Profile */}
           <TouchableOpacity
-            className="items-center justify-center"
+            style={styles.navButton}
             onPress={() => handleNavigationPress('profile')}
             accessibilityRole="button"
             accessibilityLabel="Profile"
@@ -298,14 +272,11 @@ export default function MedicationManagementScreen({
           >
             <User
               size={20}
-              color={activeTab === 'profile' ? '#F0C400' : '#2C3442'}
+              color={activeTab === 'profile' ? Colors.accent.main : '#2C3442'}
               strokeWidth={2}
             />
             <Text
-              className={cn(
-                'text-[15px] font-medium mt-1',
-                activeTab === 'profile' ? 'text-warning' : 'text-text-primary'
-              )}
+              style={[styles.navLabel, activeTab === 'profile' && styles.navLabelActive]}
             >
               Profile
             </Text>
@@ -315,3 +286,83 @@ export default function MedicationManagementScreen({
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#EFF1FE',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 120,
+  },
+  sectionHeader: {
+    paddingHorizontal: 40,
+    paddingTop: 40,
+    marginBottom: 24,
+  },
+  sectionWrapper: {
+    paddingHorizontal: 40,
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+  },
+  interactionCardSpacing: {
+    marginBottom: Spacing['2xl'],
+  },
+  interactionCardSpacingSmall: {
+    marginBottom: Spacing.xl,
+  },
+  bottomNav: {
+    position: 'absolute',
+    left: 32,
+    right: 32,
+    bottom: 32,
+    height: 75,
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.full,
+    shadowColor: '#8FA2B9',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  bottomNavInner: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 20,
+  },
+  navButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navLabel: {
+    marginTop: 4,
+    fontSize: 15,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.primary,
+  },
+  navLabelActive: {
+    color: Colors.accent.main,
+  },
+  addButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: Colors.accent.main,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+});
