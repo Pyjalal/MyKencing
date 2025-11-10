@@ -166,7 +166,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
   return (
     <ScreenLayout
       backgroundColor={Colors.background.meds}
-      contentBackgroundColor="#EFF1FE"
+      contentBackgroundColor={Colors.background.primary}
       title={t('medications.medications_title')}
       searchPlaceholder={t('medications.search_placeholder')}
       searchQuery={searchQuery}

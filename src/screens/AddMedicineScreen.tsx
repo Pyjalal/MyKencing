@@ -594,7 +594,7 @@ export default function AddMedicineScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#D5D7E3',
+    backgroundColor: Colors.background.primary,
   },
   scrollView: {
     flex: 1,

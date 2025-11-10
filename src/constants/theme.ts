@@ -81,7 +81,7 @@ export const Colors = {
 
   // Background (Light lavender/purple tint from Figma)
   background: {
-    primary: '#E8EAF0', // Light lavender background
+    primary: '#EFF1FE', // Light lavender background
     secondary: '#F5F5F5',
     tertiary: '#E0E0E0',
     card: '#FFFFFF',
