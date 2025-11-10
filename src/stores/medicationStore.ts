@@ -597,11 +597,11 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         // Continue with removal even if notification cancellation fails
       }
 
-      // 2. Delete future doses (scheduled_time > now)
-      // Keep past doses for logging purposes
+      // 2. Delete future doses,
+      // Keep taken/skipped doses for logging purposes
       const deletedDoses = await db.runAsync(
-        'DELETE FROM doses WHERE medication_id = ? AND scheduled_time > ?',
-        [id, now]
+        'DELETE FROM doses WHERE medication_id = ? AND status NOT IN (?, ?)',
+        [id, DoseStatus.Taken, DoseStatus.Skipped]
       );
       console.log(`Deleted ${deletedDoses.changes} future dose(s) for medication ${id}`);
 
@@ -615,7 +615,11 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       // 4. Reload medication lists and today's doses
       await get().loadMedications();
       await get().loadTodayDoses();
-      
+
+      get().getUnacknowledgedHighRiskInteractions(id).catch(err => {
+        console.warn('Background interaction check failed:', err);
+      });
+  
       // Reload week doses for current view
       const today = new Date();
       const startOfWeekDate = new Date(today);
