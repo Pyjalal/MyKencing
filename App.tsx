@@ -14,6 +14,7 @@ import { Colors, Typography } from './src/constants/theme';
 import useNotifications from './src/hooks/useNotifications';
 import { logEvent, EventType } from './src/services/analytics';
 import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
+import { useInteractionStore } from './src/stores/interactionStore';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
@@ -48,6 +49,14 @@ export default function App() {
         const cleanedCount = await cleanupInvalidMedications();
         if (cleanedCount > 0) {
           console.log(`✓ Cleaned up ${cleanedCount} invalid medication(s)`);
+        }
+
+        // Clean up expired interaction cache entries
+        try {
+          await useInteractionStore.getState().removeExpiredCache();
+          console.log('✓ Cleaned up expired interaction cache');
+        } catch (e) {
+          console.warn('Could not clean up interaction cache:', e);
         }
 
         // Initialize notifications

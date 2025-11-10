@@ -11,9 +11,9 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, MedicationWithDetails } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
+import { useInteractionStore } from '../stores/interactionStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { format, parseISO, differenceInDays } from 'date-fns';
-import { checkDrugInteractions as checkDrugInteractionsAPI } from '../services/mymedix-api';
 
 type MedicationInteractionsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'MedicationInteractions'>;
@@ -35,6 +35,7 @@ interface FoodInteraction {
 
 export default function MedicationInteractionsScreen({ navigation }: MedicationInteractionsScreenProps) {
   const { medications, loadMedications } = useMedicationStore();
+  const { getInteractions } = useInteractionStore();
   const [refreshing, setRefreshing] = useState(false);
   const [drugInteractions, setDrugInteractions] = useState<DrugInteraction[]>([]);
   const [foodInteractions, setFoodInteractions] = useState<FoodInteraction[]>([]);
@@ -76,8 +77,8 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
 
         console.log('Checking interactions for medications:', medIds);
 
-        // Call the MyMedix API for comprehensive interaction data
-        const result = await checkDrugInteractionsAPI(medIds);
+        // Use interaction store which handles caching
+        const result = await getInteractions(medIds);
 
         console.log('Interaction check result:', result);
 

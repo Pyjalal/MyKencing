@@ -5,7 +5,7 @@ import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
-import { checkDrugInteractions } from '../services/mymedix-api';
+import { useInteractionStore } from '../stores/interactionStore';
 import DrugInteractionWarning from '../components/DrugInteractionWarning';
 
 export default function MedicineDetailScreen() {
@@ -14,6 +14,7 @@ export default function MedicineDetailScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'MedicineDetail'>>();
   const medicationId = route.params?.medicationId;
   const { medications, loadMedications, removeMedication } = useMedicationStore();
+  const { getInteractions } = useInteractionStore();
   const [interactions, setInteractions] = useState<string[]>([]);
   const [isRemoving, setIsRemoving] = useState(false);
 
@@ -30,7 +31,8 @@ export default function MedicineDetailScreen() {
     (async () => {
       if (!med) return;
       const registrationNos = [med, ...coMeds].map(m => m.registrationNo).filter(Boolean);
-      const res = await checkDrugInteractions(registrationNos);
+      // Use interaction store which handles caching
+      const res = await getInteractions(registrationNos);
       setInteractions(res.interactions || []);
     })();
   }, [med, coMeds]);

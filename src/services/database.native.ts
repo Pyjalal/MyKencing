@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 // Database version for migrations
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 const DB_NAME = 'mykencing.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -69,6 +69,9 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
   }
   if (currentVersion < 6) {
     await applyMigration6(database);
+  }
+  if (currentVersion < 7) {
+    await applyMigration7(database);
   }
 }
 
@@ -448,6 +451,39 @@ async function applyMigration6(database: SQLite.SQLiteDatabase): Promise<void> {
 }
 
 /**
+ * Migration 7: Add drug interactions cache table
+ */
+async function applyMigration7(database: SQLite.SQLiteDatabase): Promise<void> {
+  console.log('[database.native] Migration 7: Creating drug_interactions_cache table');
+
+  try {
+    await database.execAsync(`
+      -- Drug interactions cache table
+      CREATE TABLE IF NOT EXISTS drug_interactions_cache (
+        medication_ids TEXT PRIMARY KEY,
+        interaction_data TEXT NOT NULL,
+        checked_at TEXT NOT NULL,
+        expires_at TEXT NOT NULL
+      );
+
+      -- Index for finding expired cache entries
+      CREATE INDEX IF NOT EXISTS idx_drug_interactions_expires_at 
+        ON drug_interactions_cache(expires_at);
+    `);
+
+    await database.runAsync(
+      'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+      [7, new Date().toISOString()]
+    );
+
+    console.log('[database.native] Migration 7 applied successfully');
+  } catch (error) {
+    console.error('[database.native] Migration 7 failed:', error);
+    throw error;
+  }
+}
+
+/**
  * Clear all data (for testing or user data deletion)
  */
 export async function clearAllData(): Promise<void> {
@@ -458,6 +494,7 @@ export async function clearAllData(): Promise<void> {
     DELETE FROM vitals;
     DELETE FROM settings;
     DELETE FROM events;
+    DELETE FROM drug_interactions_cache;
   `);
   console.log('All data cleared');
 }
