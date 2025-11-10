@@ -46,7 +46,7 @@ export function PillButton({
   if (backgroundColor) {
     buttonStyle.backgroundColor = backgroundColor;
   } else if (variant === 'yellow') {
-    buttonStyle.backgroundColor = '#F8D849';
+    buttonStyle.backgroundColor = Colors.accent.main;
   } else if (variant === 'light') {
     buttonStyle.backgroundColor = '#EFF1FE';
   } else if (variant === 'white') {

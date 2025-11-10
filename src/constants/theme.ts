@@ -59,7 +59,7 @@ export const Colors = {
 
   // Accent palette (Yellow/Gold - medications, positive actions)
   accent: {
-    main: '#F5B800',
+    main: '#F8D849',
     light: '#FFD54F',
     dark: '#F57F17',
     contrast: '#000000',

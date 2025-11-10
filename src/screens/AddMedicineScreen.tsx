@@ -20,6 +20,7 @@ import { scheduleMedicationReminders } from '../services/notifications';
 import { searchMedicines } from '../services/mymedix-api';
 import { ChevronDown, Search, X, Plus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { PillButton } from '../components';
 
 
 interface RouteParams {
@@ -500,23 +501,30 @@ export default function AddMedicineScreen() {
                 </TouchableOpacity>
               </View>
             ))}
-            <TouchableOpacity
-              style={selectedTimes.length === 0 ? styles.addTimeButtonWithText : styles.addTimeButton}
-              onPress={() => {
-                setTempTime(new Date());
-                setEditingTime(null);
-                setShowTimePicker(true);
-              }}
-            >
-              {selectedTimes.length === 0 ? (
-                <View style={styles.addTimeButtonContent}>
-                  <Plus size={20} color={Colors.text.primary} />
-                  <Text style={styles.addTimeButtonTextWithLabel}>Add Time</Text>
-                </View>
-              ) : (
+            {selectedTimes.length === 0 ? (
+              <PillButton
+                title={t('add_medicine.add_time')}
+                onPress={() => {
+                  setTempTime(new Date());
+                  setEditingTime(null);
+                  setShowTimePicker(true);
+                }}
+                variant="yellow"
+                size="md"
+                icon={<Plus size={20} color={Colors.text.primary} />}
+              />
+            ) : (
+              <TouchableOpacity
+                style={styles.addTimeButton}
+                onPress={() => {
+                  setTempTime(new Date());
+                  setEditingTime(null);
+                  setShowTimePicker(true);
+                }}
+              >
                 <Plus size={24} color={Colors.text.primary} />
-              )}
-            </TouchableOpacity>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -536,17 +544,15 @@ export default function AddMedicineScreen() {
         </View>
 
         {/* Add Medication Button */}
-        <TouchableOpacity
-          style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+        <PillButton
+          title={t('add_medicine.add_medication')}
           onPress={handleSave}
+          variant="yellow"
+          size="lg"
           disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator color={Colors.text.primary} />
-          ) : (
-            <Text style={styles.saveButtonText}>{t('add_medicine.add_medication')}</Text>
-          )}
-        </TouchableOpacity>
+          loading={isSaving}
+          style={styles.saveButton}
+        />
       </ScrollView>
 
       {/* Pickers */}
@@ -585,8 +591,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: Spacing.lg,
-    paddingTop: Spacing['2xl'],
-    paddingBottom: 100,
+    paddingTop: Spacing.xl,
+    paddingBottom: 25,
   },
   section: {
     marginBottom: Spacing.lg,
@@ -686,24 +692,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addTimeButtonWithText: {
-    backgroundColor: Colors.accent.main,
-    borderRadius: 20,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addTimeButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  addTimeButtonTextWithLabel: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
-    fontWeight: Typography.fontWeight.medium,
-  },
   notesInput: {
     backgroundColor: Colors.background.card,
     borderRadius: BorderRadius.card,
@@ -714,20 +702,9 @@ const styles = StyleSheet.create({
     minHeight: 120,
   },
   saveButton: {
-    backgroundColor: Colors.accent.main,
-    borderRadius: BorderRadius.card,
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: Spacing.lg,
-  },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   modalOverlay: {
     flex: 1,
