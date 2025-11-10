@@ -5,15 +5,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  TextInput,
   RefreshControl,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, DoseStatus } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { Search, MessageSquare, Scan } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
+import { ScreenLayout } from '../components';
 import { addDays, startOfWeek, format, isSameDay, parseISO } from 'date-fns';
 
 type MedicationsScreenProps = {
@@ -102,53 +101,25 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
     }
   };
 
-  const handleScanPress = () => {
-    navigation.navigate('ScanPrescription');
-  };
-
   const handleManagePress = () => {
     navigation.navigate('MedicationInteractions');
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header with yellow/gold background */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search here"
-            placeholderTextColor={Colors.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-
-        {/* Title */}
-        <Text style={styles.title}>Medications</Text>
-
-        {/* View Interactions Button */}
+    <ScreenLayout
+      backgroundColor={Colors.background.meds}
+      contentBackgroundColor="#EFF1FE"
+      title="Medications"
+      searchPlaceholder="Search here"
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      onBackPress={() => navigation.goBack()}
+      headerSlot={
         <TouchableOpacity style={styles.manageButton} onPress={handleManagePress}>
           <Text style={styles.manageButtonText}>View Interactions</Text>
         </TouchableOpacity>
-
-        {/* Scan Button */}
-        <TouchableOpacity style={styles.scanButton} onPress={handleScanPress}>
-          <View style={styles.scanIconContainer}>
-            <Scan size={24} color={Colors.accent.main} />
-          </View>
-        </TouchableOpacity>
-      </View>
-
+      }
+    >
       {/* Content with light purple background */}
       <ScrollView
         style={styles.content}
@@ -251,55 +222,11 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
           </View>
         )}
       </ScrollView>
-    </View>
+    </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#D5D7E3', // Light purple/lavender background
-  },
-  header: {
-    backgroundColor: Colors.background.meds, // Yellow/gold #F5B800
-    paddingTop: Spacing['2xl'] + 10,
-    paddingBottom: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  backIcon: {
-    fontSize: 28,
-    color: Colors.text.inverse,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background.card,
-    borderRadius: 25,
-    paddingHorizontal: Spacing.md + 4,
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  searchIcon: {
-    marginRight: Spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.inverse,
-    marginBottom: Spacing.md,
-  },
   manageButton: {
     backgroundColor: Colors.background.card,
     paddingVertical: Spacing.md,
@@ -313,20 +240,6 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
     textAlign: 'center',
-  },
-  scanButton: {
-    position: 'absolute',
-    right: Spacing.lg,
-    top: Spacing['2xl'] + 80,
-  },
-  scanIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.md,
   },
   content: {
     flex: 1,
