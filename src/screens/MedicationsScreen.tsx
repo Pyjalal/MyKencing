@@ -296,7 +296,6 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
                   onPress={() => navigation.navigate('MedicineDetail', { medicationId: dose.medicationId })}
                 >
                   <Text style={styles.medicationName}>
-                    {hasUnacknowledged && '⚠️ '}
                     {dose.medication.mims.brandName || dose.medication.mims.genericName}
                   </Text>
                   <Text style={styles.medicationDetails}>
