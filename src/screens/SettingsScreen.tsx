@@ -13,16 +13,39 @@ export default function SettingsScreen() {
   const { settings, loadSettings, updateSettings } = useSettingsStore();
   const navigation = useNavigation<any>();
   const [searchQuery, setSearchQuery] = useState('');
+  const [profileName, setProfileName] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
   const { t } = useTranslation();
 
   useEffect(() => {
     loadSettings();
   }, []);
 
+  useEffect(() => {
+    setProfileName(settings.userName || '');
+  }, [settings.userName]);
+
   const handleLanguageChange = () => {
     const newLang = i18n.language === 'en' ? 'ms' : 'en';
     i18n.changeLanguage(newLang);
     updateSettings({ language: newLang });
+  };
+
+  const trimmedProfileName = profileName.trim();
+  const currentProfileName = settings.userName?.trim() || '';
+  const isProfileDirty = trimmedProfileName !== currentProfileName;
+
+  const handleSaveProfileName = async () => {
+    if (!isProfileDirty) return;
+    try {
+      setIsSavingName(true);
+      await updateSettings({ userName: trimmedProfileName });
+    } catch (error) {
+      console.error('Error saving profile name:', error);
+      Alert.alert(t('settings.profileSaveError', 'Failed to save your name. Please try again.'));
+    } finally {
+      setIsSavingName(false);
+    }
   };
 
   const handleDeleteAllData = () => {
@@ -87,6 +110,32 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('settings.profileSection', 'Profile')}</Text>
+          <View style={styles.settingRowAligned}>
+            <Text style={styles.settingLabel}>{t('settings.profileName', 'Your name')}</Text>
+          </View>
+          <TextInput
+            style={styles.nameInput}
+            value={profileName}
+            onChangeText={setProfileName}
+            placeholder={t('settings.profileNamePlaceholder', 'Enter your name')}
+            placeholderTextColor={Colors.text.tertiary}
+            autoCorrect={false}
+            returnKeyType="done"
+            onSubmitEditing={handleSaveProfileName}
+          />
+          <TouchableOpacity
+            style={[styles.saveButton, (!isProfileDirty || isSavingName) && styles.saveButtonDisabled]}
+            onPress={handleSaveProfileName}
+            disabled={!isProfileDirty || isSavingName}
+          >
+            <Text style={styles.saveButtonText}>
+              {isSavingName ? t('settings.saving', 'Saving...') : t('settings.save', 'Save')}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('settings.remindersSection')}</Text>
@@ -249,6 +298,38 @@ const styles = StyleSheet.create({
   settingValue: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.secondary,
+  },
+  settingRowAligned: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: Spacing.sm,
+  },
+  nameInput: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    borderWidth: 1,
+    borderColor: Colors.border.light,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
+  },
+  saveButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.primary.main,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.full,
+  },
+  saveButtonDisabled: {
+    backgroundColor: Colors.neutral[300],
+  },
+  saveButtonText: {
+    color: Colors.primary.contrast,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
   },
   settingButton: {
     paddingVertical: Spacing.md,

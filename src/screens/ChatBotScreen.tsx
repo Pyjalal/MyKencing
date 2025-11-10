@@ -8,18 +8,13 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
-  SafeAreaView,
 } from 'react-native';
 import { Colors } from '../constants/theme';
-import { sendMessage } from '../services/chatclient';
+import { sendMessage } from '../services/chatclient'; // 👈 import your chat API handler
 import { Message } from '../types';
-import { format } from 'date-fns';
 
 export default function ChatBotScreen() {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Hello! How can I help you today?', timestamp: new Date() }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const scrollViewRef = useRef<ScrollView>(null);
   const [loading, setLoading] = useState(false);
@@ -27,11 +22,7 @@ export default function ChatBotScreen() {
 const handleSend = async () => {
   if (!input.trim() || loading) return;
 
-  const newUserMessage: Message = {
-    role: 'user',
-    content: input.trim(),
-    timestamp: new Date()
-  };
+  const newUserMessage: Message = { role: 'user', content: input.trim() };
   const updatedMessages = [...messages, newUserMessage];
 
   setMessages(updatedMessages);
@@ -43,23 +34,14 @@ const handleSend = async () => {
     const history: Message[] = updatedMessages.map(m => ({
       role: m.role === 'user' ? 'user' : 'assistant',
       content: m.content,
-      timestamp: m.timestamp
     }));
 
     const botReply = await sendMessage(history);
-    const botMessage: Message = {
-      role: 'assistant',
-      content: botReply,
-      timestamp: new Date()
-    };
+    const botMessage: Message = { role: 'assistant', content: botReply };
 
     setMessages(prev => [...prev, botMessage]);
   } catch (error) {
-    const errMessage: Message = {
-      role: 'assistant',
-      content: '⚠️ Failed to reach the chatbot.',
-      timestamp: new Date()
-    };
+    const errMessage: Message = { role: 'assistant', content: '⚠️ Failed to reach the chatbot.' };
     setMessages(prev => [...prev, errMessage]);
     console.error(error);
   } finally {
@@ -70,187 +52,104 @@ const handleSend = async () => {
 
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>MyMedix Assistant</Text>
-      </View>
-      
-      <KeyboardAvoidingView
-        style={styles.contentContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+    >
+      <ScrollView
+        style={styles.chatContainer}
+        ref={scrollViewRef}
+        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
       >
-        <ScrollView
-          style={styles.chatContainer}
-          ref={scrollViewRef}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-        >
-          {messages.map((msg, i) => (
-            <View
-              key={i}
+        {messages.map((msg, i) => (
+          <View
+            key={i}
+            style={[
+              styles.messageBubble,
+              msg.role === 'user' ? styles.userBubble : styles.botBubble,
+            ]}
+          >
+            <Text
               style={[
-                styles.messageBubble,
-                msg.role === 'user' ? styles.userBubble : styles.botBubble,
+                styles.messageText,
+                msg.role === 'user' ? styles.userText : styles.botText,
               ]}
             >
-              <Text
-                style={[
-                  styles.messageText,
-                  msg.role === 'user' ? styles.userText : styles.botText,
-                ]}
-              >
-                {msg.content}
-              </Text>
-              {msg.timestamp && (
-                <Text style={styles.timestamp}>
-                  {format(msg.timestamp, 'HH:mm')}
-                </Text>
-              )}
-            </View>
-          ))}
-          {loading && (
-            <View style={[styles.messageBubble, styles.botBubble]}>
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator color={Colors.primary.main} />
-                <Text style={[styles.botText, styles.loadingText]}>Thinking...</Text>
-              </View>
-            </View>
-          )}
-        </ScrollView>
+              {msg.content}
+            </Text>
+          </View>
+        ))}
+        {loading && (
+          <View style={[styles.messageBubble, styles.botBubble]}>
+            <Text style={styles.botText}>...</Text>
+          </View>
+        )}
+      </ScrollView>
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Type your message..."
-            placeholderTextColor={Colors.text.secondary}
-            value={input}
-            onChangeText={setInput}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-            multiline
-          />
-          <TouchableOpacity 
-            style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]} 
-            onPress={handleSend}
-            disabled={!input.trim() || loading}
-          >
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Ask something..."
+          placeholderTextColor={Colors.text.secondary}
+          value={input}
+          onChangeText={setInput}
+          onSubmitEditing={handleSend}
+          returnKeyType="send"
+        />
+        <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
           <Text style={styles.sendText}>{loading ? '...' : 'Send'}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
-    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background.primary
-  },
-  header: {
-    backgroundColor: Colors.primary.main,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.primary.contrast,
-    textAlign: 'center',
-  },
-  contentContainer: {
-    flex: 1,
-  },
-  chatContainer: {
-    flex: 1,
-    padding: 16,
-  },
+  container: { flex: 1, backgroundColor: Colors.background.primary },
+  chatContainer: { flex: 1, padding: 10 },
   messageBubble: {
-    padding: 12,
-    borderRadius: 16,
+    padding: 10,
+    borderRadius: 12,
     marginVertical: 4,
-    maxWidth: '85%',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    maxWidth: '80%',
   },
   userBubble: {
     backgroundColor: Colors.primary.main,
     alignSelf: 'flex-end',
-    borderBottomRightRadius: 4,
   },
   botBubble: {
     backgroundColor: Colors.background.secondary,
     alignSelf: 'flex-start',
-    borderBottomLeftRadius: 4,
   },
-  messageText: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  userText: {
-    color: Colors.primary.contrast,
-  },
-  botText: {
-    color: Colors.text.primary,
-  },
-  timestamp: {
-    fontSize: 11,
-    color: Colors.text.secondary,
-    marginTop: 4,
-    alignSelf: 'flex-end',
-  },
-  loadingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  loadingText: {
-    fontSize: 14,
-    marginLeft: 4,
-  },
+  messageText: { fontSize: 15 },
+  userText: { color: Colors.primary.contrast },
+  botText: { color: Colors.text.primary },
   inputContainer: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     borderTopWidth: 1,
     borderColor: Colors.border.light,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     backgroundColor: Colors.background.secondary,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    maxHeight: 100,
     paddingVertical: 8,
     paddingHorizontal: 12,
     color: Colors.text.primary,
-    backgroundColor: Colors.background.primary,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.border.light,
   },
   sendButton: {
-    marginLeft: 12,
+    marginLeft: 8,
     backgroundColor: Colors.primary.main,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    alignSelf: 'flex-end',
-  },
-  sendButtonDisabled: {
-    opacity: 0.6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
   },
   sendText: {
     color: Colors.primary.contrast,
     fontWeight: '600',
-    fontSize: 15,
   },
 });
