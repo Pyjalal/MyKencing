@@ -21,48 +21,51 @@ import { MEDICATION_TIMING } from '../constants/clinical';
 import { scheduleMedicationReminders } from '../services/notifications';
 import { searchMedicines } from '../services/mymedix-api';
 import { ChevronDown, Search, X } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 
-// Frequency options
-const FREQUENCY_OPTIONS = [
-  { label: 'Once daily', value: 'once', times: 1 },
-  { label: 'Twice daily', value: 'twice', times: 2 },
-  { label: 'Three times daily', value: 'three', times: 3 },
-  { label: 'Every 8 hours', value: 'every_8h', times: 3 },
-  { label: 'Every 6 hours', value: 'every_6h', times: 4 },
-  { label: 'Four times daily', value: 'four', times: 4 },
-];
-
-// Form options
-const FORM_OPTIONS = [
-  { label: 'Tablet', value: 'tablet' },
-  { label: 'Capsule', value: 'capsule' },
-  { label: 'Syrup', value: 'syrup' },
-  { label: 'Injection', value: 'injection' },
-  { label: 'Drops', value: 'drops' },
-  { label: 'Inhaler', value: 'inhaler' },
-  { label: 'Cream', value: 'cream' },
-  { label: 'Ointment', value: 'ointment' },
-];
-
-// Unit options
-const UNIT_OPTIONS = [
-  { label: 'tablet', value: 'tablet' },
-  { label: 'capsule', value: 'capsule' },
-  { label: 'mg', value: 'mg' },
-  { label: 'ml', value: 'ml' },
-  { label: 'drops', value: 'drops' },
-  { label: 'puff', value: 'puff' },
-];
 
 interface RouteParams {
   selectedMedicine?: MIMSSearchResult;
 }
 
 export default function AddMedicineScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<any>();
   const route = useRoute();
   const { selectedMedicine } = (route.params as RouteParams) || {};
   const { addMedication } = useMedicationStore();
+
+  // Frequency options
+  const FREQUENCY_OPTIONS = [
+    { label: t('add_medicine.frequency_once_daily'), value: 'once', times: 1 },
+    { label: t('add_medicine.frequency_twice_daily'), value: 'twice', times: 2 },
+    { label: t('add_medicine.frequency_three_times_daily'), value: 'three', times: 3 },
+    { label: t('add_medicine.frequency_every_8h'), value: 'every_8h', times: 3 },
+    { label: t('add_medicine.frequency_every_6h'), value: 'every_6h', times: 4 },
+    { label: t('add_medicine.frequency_four_times_daily'), value: 'four', times: 4 },
+  ];
+
+  // Form options
+  const FORM_OPTIONS = [
+    { label: t('add_medicine.form_tablet'), value: 'tablet' },
+    { label: t('add_medicine.form_capsule'), value: 'capsule' },
+    { label: t('add_medicine.form_syrup'), value: 'syrup' },
+    { label: t('add_medicine.form_injection'), value: 'injection' },
+    { label: t('add_medicine.form_drops'), value: 'drops' },
+    { label: t('add_medicine.form_inhaler'), value: 'inhaler' },
+    { label: t('add_medicine.form_cream'), value: 'cream' },
+    { label: t('add_medicine.form_ointment'), value: 'ointment' },
+  ];
+
+  // Unit options
+  const UNIT_OPTIONS = [
+    { label: t('add_medicine.unit_tablet'), value: 'tablet' },
+    { label: t('add_medicine.unit_capsule'), value: 'capsule' },
+    { label: t('add_medicine.unit_mg'), value: 'mg' },
+    { label: t('add_medicine.unit_ml'), value: 'ml' },
+    { label: t('add_medicine.unit_drops'), value: 'drops' },
+    { label: t('add_medicine.unit_puff'), value: 'puff' },
+  ];
 
   // Form state
   const [medicationName, setMedicationName] = useState('');
@@ -231,23 +234,23 @@ export default function AddMedicineScreen() {
   const handleSave = useCallback(async () => {
     // Validation
     if (!medicationName.trim()) {
-      alert('Please enter medication name');
+      alert(t('add_medicine.error_name_required'));
       return;
     }
     if (!dosage.trim()) {
-      alert('Please enter dosage');
+      alert(t('add_medicine.error_dosage_required'));
       return;
     }
     if (!form) {
-      alert('Please select medication form');
+      alert(t('add_medicine.error_form_required'));
       return;
     }
     if (!frequency) {
-      alert('Please select frequency');
+      alert(t('add_medicine.error_frequency_required'));
       return;
     }
     if (selectedTimes.length === 0) {
-      alert('Please add at least one time');
+      alert(t('add_medicine.error_time_required'));
       return;
     }
 
@@ -283,7 +286,7 @@ export default function AddMedicineScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [medicationName, dosage, unit, form, frequency, selectedTimes, startDate, endDate, notes, selectedMedicineFromSearch, selectedMedicine, addMedication, navigation]);
+  }, [t, medicationName, dosage, unit, form, frequency, selectedTimes, startDate, endDate, notes, selectedMedicineFromSearch, selectedMedicine, addMedication, navigation, FREQUENCY_OPTIONS]);
 
   const renderPickerModal = (
     visible: boolean,
@@ -353,12 +356,12 @@ export default function AddMedicineScreen() {
         >
         {/* Medicine Search */}
         <View style={styles.section}>
-          <Text style={styles.label}>Search Medicine</Text>
+          <Text style={styles.label}>{t('add_medicine.medicine_name')}</Text>
           <View style={styles.searchContainer}>
             <Search size={20} color={Colors.text.secondary} style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Type medicine name..."
+              placeholder={t('add_medicine.search_placeholder')}
               placeholderTextColor={Colors.text.tertiary}
               value={searchQuery}
               onChangeText={(text) => {
@@ -386,7 +389,7 @@ export default function AddMedicineScreen() {
               {isSearching ? (
                 <View style={styles.searchingContainer}>
                   <ActivityIndicator size="small" color={Colors.primary.main} />
-                  <Text style={styles.searchingText}>Searching...</Text>
+                  <Text style={styles.searchingText}>{t('add_medicine.searching')}</Text>
                 </View>
               ) : (
                 <ScrollView
@@ -425,12 +428,12 @@ export default function AddMedicineScreen() {
           {/* Selected Medicine Display */}
           {selectedMedicineFromSearch && (
             <View style={styles.selectedMedicineContainer}>
-              <Text style={styles.selectedMedicineLabel}>Selected Medicine:</Text>
+              <Text style={styles.selectedMedicineLabel}>{t('add_medicine.selected_medicine')}</Text>
               <Text style={styles.selectedMedicineName}>
                 {selectedMedicineFromSearch.brandName || selectedMedicineFromSearch.genericName}
               </Text>
               <Text style={styles.selectedMedicineDetails}>
-                Registration: {selectedMedicineFromSearch.id}
+                {t('add_medicine.registration')} {selectedMedicineFromSearch.id}
               </Text>
             </View>
           )}
@@ -440,24 +443,24 @@ export default function AddMedicineScreen() {
         <View style={styles.rowSection}>
           <TextInput
             style={[styles.input, styles.flexInput]}
-            placeholder="Insert dosage"
+            placeholder={t('add_medicine.insert_dosage')}
             placeholderTextColor={Colors.text.tertiary}
             value={dosage}
             onChangeText={setDosage}
             keyboardType="numeric"
           />
           <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowUnitPicker(true)}>
-            <Text style={styles.dropdownButtonText}>{unit || 'Unit'}</Text>
+            <Text style={styles.dropdownButtonText}>{unit || t('add_medicine.unit')}</Text>
             <ChevronDown size={20} color={Colors.accent.main} />
           </TouchableOpacity>
         </View>
 
         {/* Form */}
         <View style={styles.section}>
-          <Text style={styles.label}>Form</Text>
+          <Text style={styles.label}>{t('add_medicine.form')}</Text>
           <TouchableOpacity style={styles.dropdownInput} onPress={() => setShowFormPicker(true)}>
             <Text style={[styles.dropdownInputText, !form && styles.placeholderText]}>
-              {form ? FORM_OPTIONS.find((f) => f.value === form)?.label : 'Choose one option'}
+              {form ? FORM_OPTIONS.find((f) => f.value === form)?.label : t('add_medicine.choose_option')}
             </Text>
             <ChevronDown size={20} color={Colors.accent.main} />
           </TouchableOpacity>
@@ -465,14 +468,14 @@ export default function AddMedicineScreen() {
 
         {/* Duration */}
         <View style={styles.section}>
-          <Text style={styles.label}>Duration</Text>
+          <Text style={styles.label}>{t('add_medicine.duration')}</Text>
           <View style={styles.rowSection}>
             <TouchableOpacity
               style={[styles.input, styles.flexInput, styles.dateInput]}
               onPress={() => setShowDatePicker('start')}
             >
               <Text style={styles.dateText}>
-                {startDate ? startDate.toLocaleDateString() : 'Start date'}
+                {startDate ? startDate.toLocaleDateString() : t('add_medicine.start_date')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -480,7 +483,7 @@ export default function AddMedicineScreen() {
               onPress={() => setShowDatePicker('end')}
             >
               <Text style={[styles.dateText, !endDate && styles.placeholderText]}>
-                {endDate ? endDate.toLocaleDateString() : 'End date'}
+                {endDate ? endDate.toLocaleDateString() : t('add_medicine.end_date')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -488,7 +491,7 @@ export default function AddMedicineScreen() {
 
         {/* Frequency */}
         <View style={styles.section}>
-          <Text style={styles.label}>Frequency</Text>
+          <Text style={styles.label}>{t('add_medicine.frequency')}</Text>
           <TouchableOpacity
             style={styles.dropdownInput}
             onPress={() => setShowFrequencyPicker(true)}
@@ -496,7 +499,7 @@ export default function AddMedicineScreen() {
             <Text style={[styles.dropdownInputText, !frequency && styles.placeholderText]}>
               {frequency
                 ? FREQUENCY_OPTIONS.find((f) => f.value === frequency)?.label
-                : 'Choose one option'}
+                : t('add_medicine.choose_option')}
             </Text>
             <ChevronDown size={20} color={Colors.accent.main} />
           </TouchableOpacity>
@@ -504,13 +507,13 @@ export default function AddMedicineScreen() {
 
         {/* Time & Schedule */}
         <View style={styles.section}>
-          <Text style={styles.label}>Time & Schedule</Text>
+          <Text style={styles.label}>{t('add_medicine.time_schedule')}</Text>
           <View style={styles.timeContainer}>
             {[
-              { label: 'After Breakfast', value: '08:00' },
-              { label: 'After Lunch', value: '13:00' },
-              { label: 'After Dinner', value: '19:00' },
-              { label: 'Before Bed', value: '22:00' },
+              { label: t('add_medicine.after_breakfast'), value: '08:00' },
+              { label: t('add_medicine.after_lunch'), value: '13:00' },
+              { label: t('add_medicine.after_dinner'), value: '19:00' },
+              { label: t('add_medicine.before_bed'), value: '22:00' },
             ].map((time) => {
               const isSelected = selectedTimes.includes(time.value);
 
@@ -534,10 +537,10 @@ export default function AddMedicineScreen() {
 
         {/* Notes */}
         <View style={styles.section}>
-          <Text style={styles.label}>Notes</Text>
+          <Text style={styles.label}>{t('add_medicine.notes')}</Text>
           <TextInput
             style={styles.notesInput}
-            placeholder="Insert notes"
+            placeholder={t('add_medicine.insert_notes')}
             placeholderTextColor={Colors.text.tertiary}
             value={notes}
             onChangeText={setNotes}
@@ -556,7 +559,7 @@ export default function AddMedicineScreen() {
           {isSaving ? (
             <ActivityIndicator color={Colors.text.primary} />
           ) : (
-            <Text style={styles.saveButtonText}>Add Medication</Text>
+            <Text style={styles.saveButtonText}>{t('add_medicine.add_medication')}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -567,21 +570,21 @@ export default function AddMedicineScreen() {
         () => setShowUnitPicker(false),
         UNIT_OPTIONS,
         setUnit,
-        'Select Unit'
+        t('add_medicine.select_unit')
       )}
       {renderPickerModal(
         showFormPicker,
         () => setShowFormPicker(false),
         FORM_OPTIONS,
         setForm,
-        'Select Form'
+        t('add_medicine.select_form')
       )}
       {renderPickerModal(
         showFrequencyPicker,
         () => setShowFrequencyPicker(false),
         FREQUENCY_OPTIONS,
         setFrequency,
-        'Select Frequency'
+        t('add_medicine.select_frequency')
       )}
 
       {/* Date Picker */}
