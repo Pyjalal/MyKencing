@@ -5,17 +5,16 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, DoseStatus, VitalType } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { useVitalsStore } from '../stores/vitalsStore';
-import { Colors } from '../constants/theme';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { formatDistanceToNow } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Skeleton } from '../components/ui/skeleton';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -94,10 +93,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const isLoading = isLoadingMeds || isLoadingVitals;
 
   return (
-    <View className="flex-1 bg-gray-100">
+    <View style={styles.container}>
       <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 100 }}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -107,82 +106,285 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           />
         }
       >
-        <TouchableOpacity className="w-10 h-10 items-center justify-center mb-4" onPress={() => navigation.canGoBack() && navigation.goBack()}>
-          <Text className="text-2xl text-black">←</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.canGoBack() && navigation.goBack()}
+        >
+          <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
 
+        {/* Today's Vitals Card */}
         {isLoading ? (
-          <Skeleton className="h-64 w-full rounded-2xl mb-4" />
+          <View style={styles.skeletonCard}>
+            <ActivityIndicator size="large" color={Colors.primary.main} />
+          </View>
         ) : (
-          <Card className="mb-4 bg-white rounded-2xl shadow-md" onPress={handleVitalsCardPress}>
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold text-red-500">{t('home.todays_vitals')}</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <TouchableOpacity
+            style={styles.card}
+            onPress={handleVitalsCardPress}
+            activeOpacity={0.7}
+          >
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitleRed}>{t('home.todays_vitals')}</Text>
+            </View>
+
+            <View style={styles.cardContent}>
               {todayVitalsCount > 0 ? (
-                <View className="items-center justify-center min-h-48">
-                  <Text className="text-lg text-gray-500">{t('home.recorded_today', { count: todayVitalsCount })}</Text>
-                  <Text className="text-sm text-gray-400 italic mt-2">{t('home.tap_to_view_details')}</Text>
+                <View style={styles.vitalsContentCenter}>
+                  <Text style={styles.vitalsCountText}>
+                    {t('home.recorded_today', { count: todayVitalsCount })}
+                  </Text>
+                  <Text style={styles.vitalsHintText}>
+                    {t('home.tap_to_view_details')}
+                  </Text>
                 </View>
               ) : (
-                <View className="items-center justify-center min-h-48">
-                  <Text className="text-base text-gray-400">{t('home.no_vitals_recorded')}</Text>
-                  <Text className="text-sm text-gray-400 italic mt-2">{t('home.tap_to_add_vitals')}</Text>
+                <View style={styles.vitalsContentCenter}>
+                  <Text style={styles.vitalsEmptyText}>
+                    {t('home.no_vitals_recorded')}
+                  </Text>
+                  <Text style={styles.vitalsHintText}>
+                    {t('home.tap_to_add_vitals')}
+                  </Text>
                 </View>
               )}
-            </CardContent>
-            <CardFooter>
-              <View className="w-full">
-                <Text className="text-base font-semibold text-black mb-2">{t('home.quick_add')}</Text>
-                <View className="flex-row gap-2">
-                  <Button className="flex-1 bg-red-500 rounded-lg" onPress={() => navigation.navigate('AddVital', { type: VitalType.BloodPressure })}>
-                    <Text className="text-white font-semibold">{t('home.bp')}</Text>
-                  </Button>
-                  <Button className="flex-1 bg-red-500 rounded-lg" onPress={() => navigation.navigate('AddVital', { type: VitalType.Glucose })}>
-                    <Text className="text-white font-semibold">{t('home.glucose')}</Text>
-                  </Button>
-                  <Button className="flex-1 bg-red-500 rounded-lg" onPress={() => navigation.navigate('AddVital', { type: VitalType.Weight })}>
-                    <Text className="text-white font-semibold">{t('home.weight')}</Text>
-                  </Button>
-                </View>
+            </View>
+
+            <View style={styles.cardFooter}>
+              <Text style={styles.quickAddTitle}>{t('home.quick_add')}</Text>
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={styles.quickAddButton}
+                  onPress={() => navigation.navigate('AddVital', { type: VitalType.BloodPressure })}
+                >
+                  <Text style={styles.quickAddButtonText}>{t('home.bp')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.quickAddButton}
+                  onPress={() => navigation.navigate('AddVital', { type: VitalType.Glucose })}
+                >
+                  <Text style={styles.quickAddButtonText}>{t('home.glucose')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.quickAddButton}
+                  onPress={() => navigation.navigate('AddVital', { type: VitalType.Weight })}
+                >
+                  <Text style={styles.quickAddButtonText}>{t('home.weight')}</Text>
+                </TouchableOpacity>
               </View>
-            </CardFooter>
-          </Card>
+            </View>
+          </TouchableOpacity>
         )}
 
+        {/* Next Dose Card */}
         {isLoading ? (
-          <Skeleton className="h-48 w-full rounded-2xl" />
+          <View style={styles.skeletonCard}>
+            <ActivityIndicator size="large" color={Colors.primary.main} />
+          </View>
         ) : nextDose ? (
-          <Card className="bg-white rounded-2xl shadow-md">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold text-yellow-500">{t('home.next_dose')}</CardTitle>
-            </CardHeader>
-            <CardContent className="items-center">
-              <Button variant="link" onPress={handleDoseDetailsPress}>
-                <Text className="text-xl font-bold text-yellow-600">{nextDose.medication.mims.brandName || nextDose.medication.mims.genericName}</Text>
-              </Button>
-              <Text className="text-base text-black text-center mb-4">{t('home.in')} {timeUntilDose}</Text>
-            </CardContent>
-            <CardFooter className="flex-row gap-4 justify-center">
-              <Button className="bg-yellow-500 min-w-[100px] rounded-lg" onPress={handleTakeDose}>
-                <Text className="text-white font-semibold">{t('home.take')}</Text>
-              </Button>
-              <Button variant="outline" className="min-w-[100px] rounded-lg" onPress={handleSkipDose}>
-                <Text className="text-black font-semibold">{t('home.skip')}</Text>
-              </Button>
-            </CardFooter>
-          </Card>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitleYellow}>{t('home.next_dose')}</Text>
+            </View>
+
+            <View style={styles.cardContentCenter}>
+              <TouchableOpacity onPress={handleDoseDetailsPress}>
+                <Text style={styles.medicationName}>
+                  {nextDose.medication.mims.brandName || nextDose.medication.mims.genericName}
+                </Text>
+              </TouchableOpacity>
+              <Text style={styles.doseTimeText}>
+                {t('home.in')} {timeUntilDose}
+              </Text>
+            </View>
+
+            <View style={styles.cardFooterRow}>
+              <TouchableOpacity
+                style={styles.takeDoseButton}
+                onPress={handleTakeDose}
+              >
+                <Text style={styles.takeDoseButtonText}>{t('home.take')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.skipDoseButton}
+                onPress={handleSkipDose}
+              >
+                <Text style={styles.skipDoseButtonText}>{t('home.skip')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         ) : (
-          <Card className="bg-white rounded-2xl shadow-md">
-            <CardHeader>
-              <CardTitle className="text-2xl font-bold text-yellow-500">{t('home.next_dose')}</CardTitle>
-            </CardHeader>
-            <CardContent className="items-center p-10">
-              <Text className="text-lg text-gray-400">{t('home.no_upcoming_doses')}</Text>
-            </CardContent>
-          </Card>
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitleYellow}>{t('home.next_dose')}</Text>
+            </View>
+            <View style={styles.cardContentCenter}>
+              <Text style={styles.noDosesText}>{t('home.no_upcoming_doses')}</Text>
+            </View>
+          </View>
         )}
       </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.primary,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 60,
+    paddingBottom: 100,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  backIcon: {
+    fontSize: 28,
+    color: Colors.text.primary,
+  },
+  card: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    marginBottom: Spacing.lg,
+    ...Shadows.md,
+  },
+  skeletonCard: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    marginBottom: Spacing.lg,
+    height: 250,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.md,
+  },
+  cardHeader: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  cardTitleRed: {
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.secondary.main,
+  },
+  cardTitleYellow: {
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: '#F5B800',
+  },
+  cardContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
+  },
+  cardContentCenter: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xl,
+    alignItems: 'center',
+  },
+  vitalsContentCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 120,
+  },
+  vitalsCountText: {
+    fontSize: Typography.fontSize.lg,
+    color: Colors.text.secondary,
+  },
+  vitalsEmptyText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.tertiary,
+  },
+  vitalsHintText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.tertiary,
+    fontStyle: 'italic',
+    marginTop: Spacing.sm,
+  },
+  cardFooter: {
+    padding: Spacing.lg,
+    paddingTop: 0,
+  },
+  cardFooterRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    justifyContent: 'center',
+    padding: Spacing.lg,
+    paddingTop: 0,
+  },
+  quickAddTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.sm,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  quickAddButton: {
+    flex: 1,
+    backgroundColor: Colors.secondary.main,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+  },
+  quickAddButtonText: {
+    color: Colors.text.inverse,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  medicationName: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: '#F5B800',
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  doseTimeText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.primary,
+    textAlign: 'center',
+  },
+  takeDoseButton: {
+    backgroundColor: '#F5B800',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.md,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  takeDoseButtonText: {
+    color: Colors.text.inverse,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  skipDoseButton: {
+    backgroundColor: Colors.background.secondary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.md,
+    minWidth: 100,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border.main,
+  },
+  skipDoseButtonText: {
+    color: Colors.text.primary,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  noDosesText: {
+    fontSize: Typography.fontSize.lg,
+    color: Colors.text.tertiary,
+  },
+});
