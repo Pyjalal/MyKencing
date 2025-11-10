@@ -17,7 +17,7 @@ export class StockleyService {
   private static memoryCache = new NodeCache({ stdTTL: 3600, checkperiod: 120 });
 
   async checkInteractions(medicineIds: string[], foodDrinkTobacco: boolean): Promise<DrugInteraction[]> {
-    if (medicineIds.length < 2) {
+    if (medicineIds.length < 2 && !foodDrinkTobacco) {
       return [];
     }
 
@@ -42,7 +42,7 @@ export class StockleyService {
 
     // 3. Fetch ingredients for the medicines
     const ingredients = await this.getIngredientsForMedicines(medicineIds);
-    if (ingredients.length < 2) {
+    if (ingredients.length < 2 && !foodDrinkTobacco) {
       return [];
     }
 
