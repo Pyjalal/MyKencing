@@ -75,6 +75,32 @@ export default function MedicineDetailScreen() {
     );
   }, [highRiskInteractions, med]);
 
+  // Filter acknowledged interactions to only show ones involving this medicine's active ingredients
+  const acknowledgedHighRiskInteractions = useMemo(() => {
+    if (!med) return [];
+    const acknowledgedIds = med.acknowledgedInteractionIds || [];
+    const activeIngredients = med.mims.activeIngredients || [];
+    
+    return highRiskInteractions.filter(interaction => {
+      // Must be acknowledged
+      if (!acknowledgedIds.includes(interaction.interactionId)) return false;
+      
+      // Check if this medicine's active ingredients are involved in the interaction
+      const isInvolved = activeIngredients.some(ingredient => {
+        const ingredientLower = ingredient.toLowerCase();
+        const firstReactantLower = interaction.firstReactant.toLowerCase();
+        const secondReactantLower = interaction.secondReactant.toLowerCase();
+        
+        return firstReactantLower.includes(ingredientLower) || 
+               ingredientLower.includes(firstReactantLower) ||
+               secondReactantLower.includes(ingredientLower) ||
+               ingredientLower.includes(secondReactantLower);
+      });
+      
+      return isInvolved;
+    });
+  }, [highRiskInteractions, med]);
+
   const handleAcknowledgeInteractions = async () => {
     if (!med || unacknowledgedHighRiskInteractions.length === 0) return;
 
@@ -158,15 +184,6 @@ export default function MedicineDetailScreen() {
         {med.notes ? <Text style={styles.text}>{t('add_vital.notes')}: {med.notes}</Text> : null}
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{t('medicine_detail.mims_information')}</Text>
-        {m.instructions ? <Text style={styles.text}>{m.instructions}</Text> : null}
-        {m.foodInstructions ? <Text style={styles.text}>{t('medicine_detail.food_instructions')}: {m.foodInstructions}</Text> : null}
-        {m.warnings ? <Text style={styles.text}>{t('medicine_detail.warnings_label')}: {m.warnings}</Text> : null}
-        {m.sideEffects ? <Text style={styles.text}>{t('medicine_detail.side_effects_label')}: {m.sideEffects}</Text> : null}
-        {m.contraindications ? <Text style={styles.text}>{t('medicine_detail.contraindications_label')}: {m.contraindications}</Text> : null}
-      </View>
-
       {/* Unacknowledged High-Risk Interactions */}
       {unacknowledgedHighRiskInteractions.length > 0 && (
         <View style={styles.dangerCard}>
@@ -206,14 +223,14 @@ export default function MedicineDetailScreen() {
       )}
 
       {/* Acknowledged High-Risk Interactions (informational only) */}
-      {highRiskInteractions.length > 0 && unacknowledgedHighRiskInteractions.length === 0 && (
+      {acknowledgedHighRiskInteractions.length > 0 && (
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>Acknowledged Interactions</Text>
           <Text style={styles.infoSubtitle}>
             You have acknowledged these high-risk interactions. Please follow your doctor's advice.
           </Text>
           
-          {highRiskInteractions.map((interaction, index) => (
+          {acknowledgedHighRiskInteractions.map((interaction, index) => (
             <View key={interaction.interactionId} style={styles.interactionItemInfo}>
               <Text style={styles.interactionDrugs}>
                 {interaction.firstReactant} + {interaction.secondReactant}
