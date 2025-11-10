@@ -88,7 +88,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
 
     checkInteractions();
-  }, [nextDose?.id, nextDose?.medicationId, nextDose?.medication?.acknowledgedInteractionIds?.length]);
+  }, [todayDoses]);
 
   const timeUntilDose = useMemo(() => {
     if (!nextDose) return null;
