@@ -56,8 +56,10 @@ export default function ScreenLayout({
       </View>
 
       {/* Main content slot */}
-      <View style={[styles.content, contentBackgroundColor && { backgroundColor: contentBackgroundColor }]}>
-        {children}
+      <View style={[styles.content, contentBackgroundColor && { backgroundColor: contentBackgroundColor }, { backgroundColor: backgroundColor }]}>
+        <View style={[styles.contentInner, contentBackgroundColor && { backgroundColor: contentBackgroundColor }]}>
+          {children}
+        </View>
       </View>
     </View>
   );
@@ -74,6 +76,11 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentInner: {
+    flex: 1,
+    borderTopLeftRadius: 48,
+    overflow: 'hidden',
   },
   titleRow: {
     flexDirection: 'row',

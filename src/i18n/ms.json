@@ -103,7 +103,16 @@
     "medications_title": "Ubat-ubatan",
     "search_placeholder": "Cari di sini",
     "todays_reminders": "Peringatan Hari Ini",
-    "no_reminders_today": "Tiada peringatan untuk hari ini"
+    "no_reminders_today": "Tiada peringatan untuk hari ini",
+    "today": "Hari Ini",
+    "tomorrow": "Esok",
+    "yesterday": "Semalam",
+    "view_interactions": "Lihat Interaksi",
+    "take": "Ambil",
+    "taken": "Diambil",
+    "skip": "Langkau",
+    "no_medications_found": "Tiada ubat dijumpai",
+    "no_medications_scheduled": "Tiada ubat dijadualkan untuk hari ini"
   },
   "medicine_detail": {
     "medicine_details": "Butiran Ubat",

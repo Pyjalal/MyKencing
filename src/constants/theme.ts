@@ -87,7 +87,7 @@ export const Colors = {
     card: '#FFFFFF',
     elevated: '#FFFFFF',
     vitals: '#E57373', // Coral background for vitals
-    meds: '#F5B800', // Yellow/gold background for meds
+    meds: '#F0C400', // Yellow/gold background for meds
     profile: '#4A8FBD', // Blue background for profile
   },
 

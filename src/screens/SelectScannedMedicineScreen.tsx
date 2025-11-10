@@ -138,7 +138,7 @@ export default function SelectScannedMedicineScreen() {
 
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => navigation.navigate('Home', { screen: 'AddMedicine' })}
+          onPress={() => navigation.navigate('AddMedicine')}
         >
           <Text style={styles.skipButtonText}>{t('scan.skip_and_enter_manually')}</Text>
         </TouchableOpacity>

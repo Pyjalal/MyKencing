@@ -7,30 +7,68 @@ import {
   ScrollView,
   RefreshControl,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, DoseStatus } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useTranslation } from 'react-i18next';
-import { ScreenLayout } from '../components';
-import { addDays, startOfWeek, format, isSameDay, parseISO } from 'date-fns';
+import { ScreenLayout, PillButton } from '../components';
+import { addDays, startOfWeek, format, isSameDay, parseISO, getYear, isToday, isTomorrow, isYesterday } from 'date-fns';
+import { enUS, ms as msLocale } from 'date-fns/locale';
 
 type MedicationsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
 };
 
 export default function MedicationsScreen({ navigation }: MedicationsScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { weekDoses, loadMedications, loadWeekDoses, markDose } = useMedicationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Get current locale for date-fns
+  const dateLocale = i18n.language === 'ms' ? msLocale : enUS;
 
   // Generate week days (Sun-Sat)
   const weekDays = useMemo(() => {
     const start = startOfWeek(selectedDate, { weekStartsOn: 0 }); // Sunday
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }, [selectedDate]);
+
+  // Navigate to previous week
+  const goToPreviousWeek = React.useCallback(() => {
+    setSelectedDate((current) => addDays(current, -7));
+  }, []);
+
+  // Navigate to next week
+  const goToNextWeek = React.useCallback(() => {
+    setSelectedDate((current) => addDays(current, 7));
+  }, []);
+
+  // Create pan gesture for swipe navigation
+  const panGesture = useMemo(() => 
+    Gesture.Pan()
+      .activeOffsetX([-10, 10]) // Require horizontal movement to activate
+      .failOffsetY([-10, 10]) // Cancel if vertical movement is too large
+      .onEnd((event) => {
+        'worklet';
+        const SWIPE_THRESHOLD = 50;
+        const horizontalSwipe = event.translationX;
+
+        if (Math.abs(horizontalSwipe) > SWIPE_THRESHOLD && Math.abs(event.velocityX || 0) > 100) {
+          if (horizontalSwipe > 0) {
+            // Swipe right - go to previous week
+            runOnJS(goToPreviousWeek)();
+          } else {
+            // Swipe left - go to next week
+            runOnJS(goToNextWeek)();
+          }
+        }
+      })
+  , [goToPreviousWeek, goToNextWeek]);
 
   useEffect(() => {
     loadMedications();
@@ -73,6 +111,26 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
     });
   }, [selectedDayDoses, searchQuery]);
 
+  // Format date display with relative labels
+  const getFormattedDateDisplay = React.useCallback((date: Date): string => {
+    let dayPart: string;
+    if (isToday(date)) {
+      dayPart = t('medications.today');
+    } else if (isTomorrow(date)) {
+      dayPart = t('medications.tomorrow');
+    } else if (isYesterday(date)) {
+      dayPart = t('medications.yesterday');
+    } else {
+      dayPart = format(date, 'EEEE', { locale: dateLocale });
+    }
+
+    // Use a universal date format that works well in both languages
+    const datePart = format(date, 'd MMMM', { locale: dateLocale });
+    const yearPart = getYear(date) === getYear(new Date()) ? '' : ` ${format(date, 'yyyy', { locale: dateLocale })}`;
+
+    return `${dayPart}, ${datePart}${yearPart}`;
+  }, [t, dateLocale]);
+
   const handleTakeDose = async (doseId: string) => {
     try {
       console.log('Marking dose as taken:', doseId);
@@ -109,40 +167,29 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
     <ScreenLayout
       backgroundColor={Colors.background.meds}
       contentBackgroundColor="#EFF1FE"
-      title="Medications"
-      searchPlaceholder="Search here"
+      title={t('medications.medications_title')}
+      searchPlaceholder={t('medications.search_placeholder')}
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
       onBackPress={() => navigation.goBack()}
       headerSlot={
-        <TouchableOpacity style={styles.manageButton} onPress={handleManagePress}>
-          <Text style={styles.manageButtonText}>View Interactions</Text>
-        </TouchableOpacity>
+        <PillButton
+          title={t('medications.view_interactions')}
+          onPress={handleManagePress}
+          variant="white"
+          style={styles.manageButton}
+        />
       }
     >
-      {/* Content with light purple background */}
-      <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.accent.main}
-          />
-        }
-      >
-        {/* Reminders Card with Calendar */}
+      {/* Calendar at the top - outside scroll */}
+      <GestureDetector gesture={panGesture}>
         <View style={styles.remindersCard}>
-          <Text style={styles.cardTitle}>Reminders</Text>
-
           {/* Week Calendar */}
           <View style={styles.weekCalendar}>
             {weekDays.map((day, index) => {
               const isSelected = isSameDay(day, selectedDate);
-              const dayName = format(day, 'EEE');
-              const dayNumber = format(day, 'd');
+              const dayName = format(day, 'EEE', { locale: dateLocale });
+              const dayNumber = format(day, 'd', { locale: dateLocale });
 
               return (
                 <TouchableOpacity
@@ -160,64 +207,68 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
               );
             })}
           </View>
+          {/* Selected Date Display */}
+          <Text style={styles.selectedDateText}>
+            {getFormattedDateDisplay(selectedDate)}
+          </Text>
         </View>
+      </GestureDetector>
 
+      {/* Content with light purple background */}
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.accent.main}
+          />
+        }
+      >
         {/* Medication List */}
         {filteredDoses.length > 0 ? (
           filteredDoses.map((dose) => (
-            <TouchableOpacity
+            <View
               key={dose.id}
               style={styles.medicationCard}
-              activeOpacity={0.95}
-              onPress={() => navigation.navigate('MedicineDetail', { medicationId: dose.medicationId })}
             >
-              <View style={styles.medicationInfo}>
+              <TouchableOpacity
+                style={styles.medicationInfo}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate('MedicineDetail', { medicationId: dose.medicationId })}
+              >
                 <Text style={styles.medicationName}>
                   {dose.medication.mims.brandName || dose.medication.mims.genericName}
                 </Text>
                 <Text style={styles.medicationDetails}>
-                  {format(parseISO(dose.scheduledTime), 'h:mm a')}, {dose.medication.userDosage}
+                  {format(parseISO(dose.scheduledTime), 'h:mm a', { locale: dateLocale })}, {dose.medication.userDosage}
                 </Text>
-              </View>
+              </TouchableOpacity>
 
               <View style={styles.medicationActions}>
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton,
-                    styles.takeButton,
-                    dose.status === DoseStatus.Taken && styles.takeButtonDisabled,
-                  ]}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleTakeDose(dose.id);
-                  }}
+                <PillButton
+                  title={dose.status === DoseStatus.Taken ? t('medications.taken') : t('medications.take')}
+                  onPress={() => handleTakeDose(dose.id)}
+                  variant="yellow"
+                  minWidth={80}
                   disabled={dose.status === DoseStatus.Taken}
-                >
-                  <Text style={styles.takeButtonText}>
-                    {dose.status === DoseStatus.Taken ? 'Taken' : 'Take'}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.actionButton,
-                    styles.skipButton,
-                    dose.status === DoseStatus.Skipped && styles.skipButtonDisabled,
-                  ]}
-                  onPress={(e) => {
-                    e.stopPropagation();
-                    handleSkipDose(dose.id);
-                  }}
+                />
+                <PillButton
+                  title={t('medications.skip')}
+                  onPress={() => handleSkipDose(dose.id)}
+                  variant="light"
+                  minWidth={80}
                   disabled={dose.status === DoseStatus.Skipped}
-                >
-                  <Text style={styles.skipButtonText}>Skip</Text>
-                </TouchableOpacity>
+                />
               </View>
-            </TouchableOpacity>
+            </View>
           ))
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
-              {searchQuery ? 'No medications found' : 'No medications scheduled for this day'}
+              {searchQuery ? t('medications.no_medications_found') : t('medications.no_medications_scheduled')}
             </Text>
           </View>
         )}
@@ -228,40 +279,22 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
 
 const styles = StyleSheet.create({
   manageButton: {
-    backgroundColor: Colors.background.card,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.button,
     marginBottom: Spacing.sm,
     ...Shadows.sm,
   },
-  manageButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    textAlign: 'center',
-  },
   content: {
     flex: 1,
+    paddingHorizontal: Spacing.lg,
   },
   contentContainer: {
-    paddingHorizontal: 0,
-    paddingTop: Spacing.lg,
     paddingBottom: 100,
-  },
-  remindersCard: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-    ...Shadows.sm,
   },
   cardTitle: {
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
     marginBottom: Spacing.md,
+    marginLeft: Spacing.md,
   },
   weekCalendar: {
     flexDirection: 'row',
@@ -297,61 +330,32 @@ const styles = StyleSheet.create({
     color: Colors.text.inverse,
   },
   medicationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: Colors.background.card,
     borderRadius: BorderRadius.card,
     padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
     marginBottom: Spacing.md,
     ...Shadows.sm,
   },
   medicationInfo: {
-    marginBottom: Spacing.md,
+    flex: 1,
+    marginRight: Spacing.md,
   },
   medicationName: {
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
-    marginBottom: Spacing.xs,
+    marginBottom: 4,
   },
   medicationDetails: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.secondary,
   },
   medicationActions: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.button,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  takeButton: {
-    backgroundColor: Colors.accent.main,
-  },
-  takeButtonDisabled: {
-    backgroundColor: Colors.neutral[300],
-    opacity: 0.6,
-  },
-  takeButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-  },
-  skipButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.border.main,
-  },
-  skipButtonDisabled: {
-    opacity: 0.5,
-  },
-  skipButtonText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
+    alignItems: 'flex-end',
+    gap: Spacing.xs,
   },
   emptyState: {
     paddingVertical: Spacing['2xl'],
@@ -362,5 +366,17 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     color: Colors.text.tertiary,
     textAlign: 'center',
+  },
+  remindersCard: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.lg,
+  },
+  selectedDateText: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginTop: Spacing.md,
   },
 });
