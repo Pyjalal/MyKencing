@@ -65,11 +65,8 @@ export default function SelectScannedMedicineScreen() {
       return;
     }
 
-    // Navigate to AddMedicine (nested in Home tabs) with the selected medicine
-    navigation.navigate('Home', { 
-      screen: 'AddMedicine', 
-      params: { selectedMedicine } 
-    });
+    // Replace the current screen with AddMedicine so back button goes to Home
+    navigation.replace('AddMedicine', { selectedMedicine });
   };
 
 
@@ -138,7 +135,7 @@ export default function SelectScannedMedicineScreen() {
 
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => navigation.navigate('AddMedicine')}
+          onPress={() => navigation.replace('AddMedicine')}
         >
           <Text style={styles.skipButtonText}>{t('scan.skip_and_enter_manually')}</Text>
         </TouchableOpacity>
