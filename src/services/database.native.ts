@@ -1,7 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
 // Database version for migrations
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 const DB_NAME = 'mykencing.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
@@ -72,6 +72,9 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
   }
   if (currentVersion < 7) {
     await applyMigration7(database);
+  }
+  if (currentVersion < 8) {
+    await applyMigration8(database);
   }
 }
 
@@ -479,6 +482,39 @@ async function applyMigration7(database: SQLite.SQLiteDatabase): Promise<void> {
     console.log('[database.native] Migration 7 applied successfully');
   } catch (error) {
     console.error('[database.native] Migration 7 failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Migration 8: Add acknowledged interaction IDs to medications table
+ */
+async function applyMigration8(database: SQLite.SQLiteDatabase): Promise<void> {
+  console.log('[database.native] Migration 8: Adding acknowledged_interaction_ids field');
+
+  try {
+    // Check if column already exists
+    const result = await database.getAllAsync(`PRAGMA table_info(medications)`);
+    const hasColumn = result.some((col: any) => col.name === 'acknowledged_interaction_ids');
+
+    if (hasColumn) {
+      console.log('[database.native] Migration 8 already applied');
+      return;
+    }
+
+    // Add the column (JSON array of interaction IDs)
+    await database.execAsync(`
+      ALTER TABLE medications ADD COLUMN acknowledged_interaction_ids TEXT DEFAULT '[]';
+    `);
+
+    await database.runAsync(
+      'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+      [8, new Date().toISOString()]
+    );
+
+    console.log('[database.native] Migration 8 applied successfully');
+  } catch (error) {
+    console.error('[database.native] Migration 8 failed:', error);
     throw error;
   }
 }

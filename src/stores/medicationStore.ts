@@ -21,6 +21,7 @@ interface MedicationRow {
   notes?: string;
   created_at: string;
   updated_at: string;
+  acknowledged_interaction_ids?: string; // JSON array
 }
 
 interface DoseRow {
@@ -44,6 +45,7 @@ interface DoseRow {
   medication_notes?: string;
   medication_created_at: string;
   medication_updated_at: string;
+  acknowledged_interaction_ids?: string; // JSON array
 }
 
 interface MedicationState {
@@ -65,6 +67,8 @@ interface MedicationState {
   markDose: (doseId: string, status: DoseStatus, actualTime?: string) => Promise<void>;
   getMedicationById: (id: string) => MedicationWithDetails | undefined;
   generateDosesForMedication: (medicationId: string, times: string[], startDateStr: string, endDateStr?: string) => Promise<void>;
+  acknowledgeInteractions: (medicationId: string, interactionIds: string[]) => Promise<void>;
+  getUnacknowledgedHighRiskInteractions: (medicationId: string) => Promise<string[]>;
 }
 
 // Helper function to get UTC ISO range for a local date
@@ -155,6 +159,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
             notes: row.notes,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
+            acknowledgedInteractionIds: row.acknowledged_interaction_ids ? JSON.parse(row.acknowledged_interaction_ids) : [],
             mims: mimsData,
           };
         })
@@ -199,7 +204,8 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
           m.is_active,
           m.notes AS medication_notes,
           m.created_at AS medication_created_at,
-          m.updated_at AS medication_updated_at
+          m.updated_at AS medication_updated_at,
+          m.acknowledged_interaction_ids
         FROM doses d
         JOIN medications m ON d.medication_id = m.id
         WHERE d.scheduled_time >= ? AND d.scheduled_time <= ?
@@ -256,6 +262,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
             notes: row.medication_notes,
             createdAt: row.medication_created_at,
             updatedAt: row.medication_updated_at,
+            acknowledgedInteractionIds: row.acknowledged_interaction_ids ? JSON.parse(row.acknowledged_interaction_ids) : [],
             mims: medicineDetails,
           },
         };
@@ -301,7 +308,8 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
           m.is_active,
           m.notes AS medication_notes,
           m.created_at AS medication_created_at,
-          m.updated_at AS medication_updated_at
+          m.updated_at AS medication_updated_at,
+          m.acknowledged_interaction_ids
         FROM doses d
         JOIN medications m ON d.medication_id = m.id
         WHERE d.scheduled_time >= ? AND d.scheduled_time <= ?
@@ -358,6 +366,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
             notes: row.medication_notes,
             createdAt: row.medication_created_at,
             updatedAt: row.medication_updated_at,
+            acknowledgedInteractionIds: row.acknowledged_interaction_ids ? JSON.parse(row.acknowledged_interaction_ids) : [],
             mims: medicineDetails,
           },
         };
@@ -414,6 +423,11 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       const endOfWeekDate = new Date(startOfWeekDate);
       endOfWeekDate.setDate(startOfWeekDate.getDate() + 6);
       await get().loadWeekDoses(startOfWeekDate, endOfWeekDate);
+      
+      // Check for high-risk interactions in the background (don't await)
+      get().getUnacknowledgedHighRiskInteractions(id).catch(err => {
+        console.warn('Background interaction check failed:', err);
+      });
       
       try { await logEvent(EventType.MedicationAdded); } catch {}
       return id;
@@ -525,7 +539,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
 
       const values = fields.map((field) => {
         const value = (updates as any)[field as keyof Medication];
-        if (field === 'times') return JSON.stringify(value);
+        if (field === 'times' || field === 'acknowledgedInteractionIds') return JSON.stringify(value);
         if (typeof value === 'boolean') return value ? 1 : 0;
         return value ?? null;
       });
@@ -667,5 +681,142 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
 
   getMedicationById: (id) => {
     return get().medications.find((med) => med.id === id);
+  },
+
+  acknowledgeInteractions: async (medicationId, interactionIds) => {
+    try {
+      const medication = get().getMedicationById(medicationId);
+      if (!medication) {
+        throw new Error('Medication not found');
+      }
+
+      console.log('[medicationStore] Acknowledging interactions for all involved medications');
+      console.log('[medicationStore] Interaction IDs to acknowledge:', interactionIds);
+
+      // Get all active medications
+      const allActiveMeds = get().medications.filter(m => m.isActive);
+      
+      // Get the interaction details to find all involved medications
+      const { useInteractionStore } = await import('./interactionStore');
+      const medIds = allActiveMeds.map(m => m.registrationNo).filter(Boolean) as string[];
+      const result = await useInteractionStore.getState().getInteractions(medIds);
+      
+      // Find which medications are involved in these interactions using active ingredients
+      const medicationsToUpdate = new Set<string>();
+      
+      result.interactions.forEach(interaction => {
+        if (interactionIds.includes(interaction.interactionId)) {
+          const firstReactant = interaction.firstReactant.toLowerCase().trim();
+          const secondReactant = interaction.secondReactant.toLowerCase().trim();
+          
+          // Find medications whose active ingredients match the interaction reactants
+          allActiveMeds.forEach(med => {
+            const activeIngredients = med.mims.activeIngredients.map(ai => ai.toLowerCase().trim());
+            
+            // Check if any active ingredient matches either reactant
+            const hasMatchingIngredient = activeIngredients.some(ingredient => 
+              ingredient === firstReactant || 
+              ingredient === secondReactant ||
+              ingredient.includes(firstReactant) ||
+              ingredient.includes(secondReactant) ||
+              firstReactant.includes(ingredient) ||
+              secondReactant.includes(ingredient)
+            );
+            
+            if (hasMatchingIngredient) {
+              medicationsToUpdate.add(med.id);
+              console.log(`[medicationStore] Medication ${med.id} (${med.mims.brandName || med.mims.genericName}) has matching active ingredient for interaction`);
+            }
+          });
+        }
+      });
+
+      console.log(`[medicationStore] Updating ${medicationsToUpdate.size} medications with acknowledged interactions`);
+
+      // Update all involved medications
+      for (const medId of medicationsToUpdate) {
+        const med = get().getMedicationById(medId);
+        if (med) {
+          const currentAcknowledged = med.acknowledgedInteractionIds || [];
+          const newAcknowledged = [...new Set([...currentAcknowledged, ...interactionIds])];
+          
+          await get().updateMedication(medId, {
+            acknowledgedInteractionIds: newAcknowledged,
+          });
+          
+          console.log(`[medicationStore] Updated medication ${medId} with ${newAcknowledged.length} acknowledged interactions`);
+        }
+      }
+
+      // Reload to get updated state
+      await get().loadMedications();
+      await get().loadTodayDoses();
+      
+      // Also reload week doses for current week to update MedicationsScreen
+      const today = new Date();
+      const startOfWeekDate = new Date(today);
+      startOfWeekDate.setDate(today.getDate() - today.getDay()); // Sunday
+      const endOfWeekDate = new Date(startOfWeekDate);
+      endOfWeekDate.setDate(startOfWeekDate.getDate() + 6); // Saturday
+      await get().loadWeekDoses(startOfWeekDate, endOfWeekDate);
+
+      console.log(`[medicationStore] Successfully acknowledged ${interactionIds.length} interactions for ${medicationsToUpdate.size} medications`);
+    } catch (error) {
+      console.error('[medicationStore] Error acknowledging interactions:', error);
+      throw error;
+    }
+  },
+
+  getUnacknowledgedHighRiskInteractions: async (medicationId) => {
+    try {
+      console.log('[medicationStore] Getting unacknowledged interactions for:', medicationId);
+      const { useInteractionStore } = await import('./interactionStore');
+      const medication = get().getMedicationById(medicationId);
+      
+      if (!medication) {
+        console.log('[medicationStore] Medication not found');
+        return [];
+      }
+
+      // Get all active medications including this one
+      const allActiveMeds = get().medications.filter(m => m.isActive);
+      const medIds = allActiveMeds.map(m => m.registrationNo).filter(Boolean) as string[];
+      console.log('[medicationStore] Checking interactions for meds:', medIds);
+
+      if (medIds.length === 0) {
+        console.log('[medicationStore] No medication IDs to check');
+        return [];
+      }
+
+      // Check interactions
+      const result = await useInteractionStore.getState().getInteractions(medIds);
+      console.log('[medicationStore] Interaction check result:', result);
+
+      if (!result.hasInteractions) {
+        console.log('[medicationStore] No interactions found');
+        return [];
+      }
+
+      // Filter high-risk interactions
+      const highRiskInteractions = result.interactions.filter(interaction => {
+        const severity = interaction.severityRating?.rating || interaction.severity || '';
+        return severity.toLowerCase().includes('severe') || severity.toLowerCase().includes('high');
+      });
+      console.log('[medicationStore] High-risk interactions:', highRiskInteractions.length);
+
+      // Get unacknowledged ones
+      const acknowledgedIds = medication.acknowledgedInteractionIds || [];
+      console.log('[medicationStore] Acknowledged IDs:', acknowledgedIds);
+      
+      const unacknowledgedInteractions = highRiskInteractions.filter(
+        interaction => !acknowledgedIds.includes(interaction.interactionId)
+      );
+      console.log('[medicationStore] Unacknowledged interactions:', unacknowledgedInteractions.length);
+
+      return unacknowledgedInteractions.map(i => i.interactionId);
+    } catch (error) {
+      console.error('[medicationStore] Error getting unacknowledged interactions:', error);
+      return [];
+    }
   },
 }));

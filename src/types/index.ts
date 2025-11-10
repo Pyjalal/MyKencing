@@ -89,6 +89,7 @@ export interface Medication {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  acknowledgedInteractionIds?: string[]; // List of interaction IDs user has acknowledged
 }
 
 /**

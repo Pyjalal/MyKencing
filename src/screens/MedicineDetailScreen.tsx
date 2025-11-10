@@ -1,22 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Colors, Typography, Spacing } from '../constants/theme';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { Colors, Typography, Spacing, BorderRadius } from '../constants/theme';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { useInteractionStore } from '../stores/interactionStore';
-import DrugInteractionWarning from '../components/DrugInteractionWarning';
+import type { ApiInteraction } from '../services/api-client';
 
 export default function MedicineDetailScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'MedicineDetail'>>();
   const medicationId = route.params?.medicationId;
-  const { medications, loadMedications, removeMedication } = useMedicationStore();
+  const { medications, loadMedications, removeMedication, acknowledgeInteractions } = useMedicationStore();
   const { getInteractions } = useInteractionStore();
-  const [interactions, setInteractions] = useState<string[]>([]);
+  const [interactions, setInteractions] = useState<ApiInteraction[]>([]);
   const [isRemoving, setIsRemoving] = useState(false);
+  const [isAcknowledging, setIsAcknowledging] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -30,12 +31,57 @@ export default function MedicineDetailScreen() {
   useEffect(() => {
     (async () => {
       if (!med) return;
+      console.log('[MedicineDetailScreen] Checking interactions for medication:', med.id);
       const registrationNos = [med, ...coMeds].map(m => m.registrationNo).filter(Boolean);
+      console.log('[MedicineDetailScreen] Registration numbers:', registrationNos);
+      
       // Use interaction store which handles caching
       const res = await getInteractions(registrationNos);
+      console.log('[MedicineDetailScreen] Interaction result:', res);
       setInteractions(res.interactions || []);
     })();
   }, [med, coMeds]);
+
+  // Separate high-risk interactions
+  const highRiskInteractions = useMemo(() => {
+    return interactions.filter(interaction => {
+      const severity = interaction.severityRating?.rating || interaction.severity || '';
+      return severity.toLowerCase().includes('severe') || severity.toLowerCase().includes('high');
+    });
+  }, [interactions]);
+
+  // Get unacknowledged high-risk interactions
+  const unacknowledgedHighRiskInteractions = useMemo(() => {
+    if (!med) return [];
+    const acknowledgedIds = med.acknowledgedInteractionIds || [];
+    return highRiskInteractions.filter(
+      interaction => !acknowledgedIds.includes(interaction.interactionId)
+    );
+  }, [highRiskInteractions, med]);
+
+  const handleAcknowledgeInteractions = async () => {
+    if (!med || unacknowledgedHighRiskInteractions.length === 0) return;
+
+    try {
+      setIsAcknowledging(true);
+      const interactionIds = unacknowledgedHighRiskInteractions.map(i => i.interactionId);
+      
+      await acknowledgeInteractions(medicationId, interactionIds);
+      
+      Alert.alert(
+        t('medicine_detail.acknowledged_title', 'Interactions Acknowledged'),
+        t('medicine_detail.acknowledged_message', 'You can now take or skip doses for this medication. Please follow your doctor\'s advice.')
+      );
+    } catch (error) {
+      console.error('Error acknowledging interactions:', error);
+      Alert.alert(
+        t('common.error', 'Error'),
+        t('medicine_detail.acknowledge_error', 'Failed to acknowledge interactions')
+      );
+    } finally {
+      setIsAcknowledging(false);
+    }
+  };
 
   const handleRemoveMedication = async () => {
     if (!med) return;
@@ -105,8 +151,63 @@ export default function MedicineDetailScreen() {
         {m.contraindications ? <Text style={styles.text}>{t('medicine_detail.contraindications_label')}: {m.contraindications}</Text> : null}
       </View>
 
-      {interactions.length > 0 && (
-        <DrugInteractionWarning interactions={interactions} severity="high" />
+      {/* Unacknowledged High-Risk Interactions */}
+      {unacknowledgedHighRiskInteractions.length > 0 && (
+        <View style={styles.dangerCard}>
+          <Text style={styles.dangerTitle}>⚠️ High-Risk Drug Interactions</Text>
+          <Text style={styles.dangerSubtitle}>
+            Please review these interactions and acknowledge that you understand the risks.
+          </Text>
+          
+          {unacknowledgedHighRiskInteractions.map((interaction, index) => (
+            <View key={interaction.interactionId} style={styles.interactionItem}>
+              <Text style={styles.interactionDrugs}>
+                {interaction.firstReactant} + {interaction.secondReactant}
+              </Text>
+              <Text style={styles.interactionSeverity}>
+                Severity: {interaction.severityRating?.rating || interaction.severity || 'Unknown'}
+              </Text>
+              {interaction.explanation && (
+                <Text style={styles.interactionExplanation}>{interaction.explanation}</Text>
+              )}
+            </View>
+          ))}
+
+          <TouchableOpacity
+            style={[styles.acknowledgeButton, isAcknowledging && styles.acknowledgeButtonDisabled]}
+            onPress={handleAcknowledgeInteractions}
+            disabled={isAcknowledging}
+          >
+            {isAcknowledging ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.acknowledgeButtonText}>
+                I Understand - Acknowledge Interactions
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Acknowledged High-Risk Interactions (informational only) */}
+      {highRiskInteractions.length > 0 && unacknowledgedHighRiskInteractions.length === 0 && (
+        <View style={styles.infoCard}>
+          <Text style={styles.infoTitle}>⚠️ Acknowledged Interactions</Text>
+          <Text style={styles.infoSubtitle}>
+            You have acknowledged these high-risk interactions. Please follow your doctor's advice.
+          </Text>
+          
+          {highRiskInteractions.map((interaction, index) => (
+            <View key={interaction.interactionId} style={styles.interactionItemInfo}>
+              <Text style={styles.interactionDrugs}>
+                {interaction.firstReactant} + {interaction.secondReactant}
+              </Text>
+              <Text style={styles.interactionSeverity}>
+                Severity: {interaction.severityRating?.rating || interaction.severity || 'Unknown'}
+              </Text>
+            </View>
+          ))}
+        </View>
       )}
 
       <TouchableOpacity
@@ -137,6 +238,88 @@ const styles = StyleSheet.create({
   cardTitle: { color: Colors.text.primary, fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.semibold, marginBottom: 6 },
   text: { color: Colors.text.secondary, marginTop: 4, lineHeight: Typography.fontSize.base * Typography.lineHeight.normal },
   warn: { color: Colors.status.error },
+  dangerCard: {
+    marginTop: Spacing.lg,
+    backgroundColor: '#FFE8E8',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    borderWidth: 2,
+    borderColor: Colors.status.error,
+  },
+  dangerTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.status.error,
+    marginBottom: Spacing.xs,
+  },
+  dangerSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.md,
+  },
+  infoCard: {
+    marginTop: Spacing.lg,
+    backgroundColor: '#E3F2FD',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: '#2196F3',
+  },
+  infoTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: '#1976D2',
+    marginBottom: Spacing.xs,
+  },
+  infoSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.md,
+  },
+  interactionItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  interactionItemInfo: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  interactionDrugs: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  interactionSeverity: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.status.error,
+    fontWeight: Typography.fontWeight.medium,
+    marginBottom: Spacing.xs,
+  },
+  interactionExplanation: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
+  },
+  acknowledgeButton: {
+    backgroundColor: Colors.status.error,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    alignItems: 'center',
+    marginTop: Spacing.md,
+  },
+  acknowledgeButtonDisabled: {
+    opacity: 0.6,
+  },
+  acknowledgeButtonText: {
+    color: '#FFFFFF',
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
   removeButton: {
     backgroundColor: Colors.status.error,
     padding: Spacing.md,

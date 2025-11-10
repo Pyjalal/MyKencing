@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { getDatabase } from '../services/database';
-import { checkDrugInteractions as checkDrugInteractionsAPI } from '../services/mymedix-api';
+import { apiClient, type ApiInteraction } from '../services/api-client';
 
 // Database row type for interaction cache
 interface InteractionCacheRow {
@@ -10,10 +10,10 @@ interface InteractionCacheRow {
   expires_at: string;
 }
 
-// Interaction result from API
+// Interaction result 
 export interface DrugInteractionResult {
   hasInteractions: boolean;
-  interactions: string[];
+  interactions: ApiInteraction[]; // Full interaction objects with IDs
 }
 
 interface InteractionState {
@@ -78,7 +78,14 @@ export const useInteractionStore = create<InteractionState>((set) => ({
     set({ isLoading: true, error: null });
     try {
       console.log('[interactionStore] Cache miss, fetching from API:', medicationIds);
-      const result = await checkDrugInteractionsAPI(medicationIds);
+      const apiResponse = await apiClient.checkInteractions(medicationIds, false);
+      
+      // Convert to our result format
+      const result: DrugInteractionResult = {
+        hasInteractions: apiResponse.count > 0,
+        interactions: apiResponse.interactions,
+      };
+      
       const now = new Date();
       const expiresAt = new Date(now.getTime() + CACHE_EXPIRATION_MS);
 

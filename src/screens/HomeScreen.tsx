@@ -9,6 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList, DoseStatus, VitalType } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { useVitalsStore } from '../stores/vitalsStore';
@@ -27,16 +28,25 @@ const GLUCOSE_ICON = require('../../assets/home_glucose_icon.png');
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { t } = useTranslation();
-  const { todayDoses, loadMedications, loadTodayDoses, markDose } = useMedicationStore();
+  const { todayDoses, loadMedications, loadTodayDoses, markDose, getUnacknowledgedHighRiskInteractions } = useMedicationStore();
   const { vitals, loadVitals } = useVitalsStore();
-  const profileName = useSettingsStore((state) => state.settings.userName?.trim() || '');
   const [refreshing, setRefreshing] = useState(false);
+  const [hasUnacknowledgedInteraction, setHasUnacknowledgedInteraction] = useState(false);
 
   useEffect(() => {
     loadMedications();
     loadTodayDoses();
     loadVitals();
   }, []);
+
+  // Reload data when screen comes back into focus (e.g., after acknowledging interactions)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[HomeScreen] Screen focused, reloading data');
+      loadMedications();
+      loadTodayDoses();
+    }, [])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -53,6 +63,32 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     const upcoming = todayDoses.find((d) => d.status === DoseStatus.Upcoming);
     return upcoming;
   }, [todayDoses]);
+
+  // Check for unacknowledged interactions for next dose
+  useEffect(() => {
+    async function checkInteractions() {
+      if (!nextDose) {
+        console.log('[HomeScreen] No next dose, clearing interaction flag');
+        setHasUnacknowledgedInteraction(false);
+        return;
+      }
+
+      console.log('[HomeScreen] Checking interactions for next dose medication:', nextDose.medicationId);
+      
+      try {
+        const unacknowledgedIds = await getUnacknowledgedHighRiskInteractions(nextDose.medicationId);
+        console.log('[HomeScreen] Next dose unacknowledged interaction IDs:', unacknowledgedIds);
+        const hasUnack = unacknowledgedIds.length > 0;
+        console.log('[HomeScreen] Next dose has unacknowledged:', hasUnack);
+        setHasUnacknowledgedInteraction(hasUnack);
+      } catch (error) {
+        console.error('[HomeScreen] Error checking next dose interactions:', error);
+        setHasUnacknowledgedInteraction(false);
+      }
+    }
+
+    checkInteractions();
+  }, [nextDose?.id, nextDose?.medicationId, nextDose?.medication?.acknowledgedInteractionIds?.length]);
 
   const timeUntilDose = useMemo(() => {
     if (!nextDose) return null;
@@ -145,7 +181,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           </TouchableOpacity>
 
           <Text style={styles.greetingText}>
-            {greeting},{'\n'}{profileName || t('home.user_name', 'Friend')}
+            {greeting},{'\n'}{t('home.user_name', 'Friend')}
           </Text>
         </View>
 
@@ -177,47 +213,72 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
         <View style={styles.sectionCard}>
           <Text style={styles.nextDoseLabel}>{t('home.next_dose_label', 'Next Dose:')}</Text>
-          {nextDose ? (
-            <TouchableOpacity
-              style={styles.medicationChip}
-              onPress={handleDoseDetailsPress}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.medicationChipText}>
-                {nextDose.medication.mims.brandName || nextDose.medication.mims.genericName}
+          
+          {hasUnacknowledgedInteraction ? (
+            <View style={styles.interactionBlockedContainer}>
+              <View style={styles.warningIconContainer}>
+                <Text style={styles.warningIconLarge}>⚠️</Text>
+              </View>
+              <Text style={styles.interactionBlockedTitle}>
+                High-Risk Drug Interaction Detected
               </Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={[styles.medicationChip, styles.medicationChipInactive]}>
-              <Text style={styles.medicationChipText}>{t('home.no_medication_selected', 'No medication scheduled')}</Text>
+              <Text style={styles.interactionBlockedText}>
+                This medication has a high-risk interaction that requires your acknowledgment.
+              </Text>
+              <TouchableOpacity
+                style={styles.viewDetailsButton}
+                onPress={handleDoseDetailsPress}
+              >
+                <Text style={styles.viewDetailsButtonText}>
+                  View Medicine Details
+                </Text>
+              </TouchableOpacity>
             </View>
+          ) : (
+            <>
+              {nextDose ? (
+                <TouchableOpacity
+                  style={styles.medicationChip}
+                  onPress={handleDoseDetailsPress}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.medicationChipText}>
+                    {nextDose.medication.mims.brandName || nextDose.medication.mims.genericName}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.medicationChip, styles.medicationChipInactive]}>
+                  <Text style={styles.medicationChipText}>{t('home.no_medication_selected', 'No medication scheduled')}</Text>
+                </View>
+              )}
+
+              <Text style={styles.doseTimingText}>
+                {nextDose
+                  ? t('home.dose_in_time', {
+                      defaultValue: 'in {{time}}',
+                      time: timeUntilDose,
+                    })
+                  : t('home.no_upcoming_doses', 'No upcoming doses')}
+              </Text>
+
+              <View style={styles.doseActions}>
+                <TouchableOpacity
+                  style={[styles.primaryActionButton, !nextDose && styles.actionDisabled]}
+                  onPress={handleTakeDose}
+                  disabled={!nextDose}
+                >
+                  <Text style={styles.primaryActionText}>{t('home.take', 'Take')}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.secondaryActionButton, !nextDose && styles.actionDisabledSecondary]}
+                  onPress={handleSkipDose}
+                  disabled={!nextDose}
+                >
+                  <Text style={styles.secondaryActionText}>{t('home.skip', 'Skip')}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           )}
-
-          <Text style={styles.doseTimingText}>
-            {nextDose
-              ? t('home.dose_in_time', {
-                  defaultValue: 'in {{time}}',
-                  time: timeUntilDose,
-                })
-              : t('home.no_upcoming_doses', 'No upcoming doses')}
-          </Text>
-
-          <View style={styles.doseActions}>
-            <TouchableOpacity
-              style={[styles.primaryActionButton, !nextDose && styles.actionDisabled]}
-              onPress={handleTakeDose}
-              disabled={!nextDose}
-            >
-              <Text style={styles.primaryActionText}>{t('home.take', 'Take')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.secondaryActionButton, !nextDose && styles.actionDisabledSecondary]}
-              onPress={handleSkipDose}
-              disabled={!nextDose}
-            >
-              <Text style={styles.secondaryActionText}>{t('home.skip', 'Skip')}</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
     </View>
@@ -283,6 +344,42 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     marginBottom: Spacing.lg,
     ...Shadows.md,
+  },
+  interactionBlockedContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  warningIconContainer: {
+    marginBottom: Spacing.md,
+  },
+  warningIconLarge: {
+    fontSize: 64,
+  },
+  interactionBlockedTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.status.error,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  interactionBlockedText: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+    lineHeight: Typography.fontSize.base * 1.5,
+  },
+  viewDetailsButton: {
+    backgroundColor: Colors.status.error,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: 999,
+  },
+  viewDetailsButtonText: {
+    color: '#FFFFFF',
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
   },
   sectionTitle: {
     fontSize: 20,

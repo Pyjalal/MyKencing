@@ -83,46 +83,49 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
         console.log('Interaction check result:', result);
 
         if (result.hasInteractions && result.interactions.length > 0) {
-          // Parse the interaction strings and categorize them
+          // Process the interaction objects
           const drugDrugInteractions: DrugInteraction[] = [];
           const foodDrugInteractions: FoodInteraction[] = [];
 
-          result.interactions.forEach((interactionText) => {
-            // Parse interaction text format: "Drug1 and Drug2 (severity): explanation"
-            const match = interactionText.match(/^(.+?) and (.+?) \((.+?) severity\)(?:: (.+))?$/);
+          result.interactions.forEach((interaction) => {
+            const drug1 = interaction.firstReactant;
+            const drug2 = interaction.secondReactant;
+            const severity = interaction.severityRating?.rating || interaction.severity || 'moderate';
+            const explanation = interaction.explanation || 'Potential interaction detected';
 
-            if (match) {
-              const [, drug1, drug2, severity, explanation] = match;
+            // Check if it's a food interaction by looking for food keywords
+            const foodKeywords = ['food', 'alcohol', 'grapefruit', 'milk', 'dairy', 'tyramine', 'caffeine'];
+            const isFoodInteraction = foodKeywords.some(keyword =>
+              drug2.toLowerCase().includes(keyword) || drug1.toLowerCase().includes(keyword)
+            );
 
-              // Check if it's a food interaction by looking for food keywords
-              const foodKeywords = ['food', 'alcohol', 'grapefruit', 'milk', 'dairy', 'tyramine', 'caffeine'];
-              const isFoodInteraction = foodKeywords.some(keyword =>
-                drug2.toLowerCase().includes(keyword) || drug1.toLowerCase().includes(keyword)
-              );
+            if (isFoodInteraction) {
+              // This is a food-drug interaction
+              const medication = foodKeywords.some(k => drug2.toLowerCase().includes(k)) ? drug1 : drug2;
+              const food = foodKeywords.some(k => drug2.toLowerCase().includes(k)) ? drug2 : drug1;
 
-              if (isFoodInteraction) {
-                // This is a food-drug interaction
-                const medication = foodKeywords.some(k => drug2.toLowerCase().includes(k)) ? drug1 : drug2;
-                const food = foodKeywords.some(k => drug2.toLowerCase().includes(k)) ? drug2 : drug1;
-
-                foodDrugInteractions.push({
-                  medication,
-                  food,
-                  recommendation: explanation || 'Consult your healthcare provider',
-                  severity: (severity.toLowerCase() as 'low' | 'moderate' | 'high') || 'moderate',
-                });
-              } else {
-                // This is a drug-drug interaction
-                drugDrugInteractions.push({
-                  drug1,
-                  drug2,
-                  risk: explanation || 'Potential interaction detected',
-                  severity: (severity.toLowerCase() as 'low' | 'moderate' | 'high') || 'moderate',
-                });
-              }
+              foodDrugInteractions.push({
+                medication,
+                food,
+                recommendation: explanation,
+                severity: severity.toLowerCase().includes('severe') || severity.toLowerCase().includes('high') 
+                  ? 'high' 
+                  : severity.toLowerCase().includes('moderate') 
+                    ? 'moderate' 
+                    : 'low',
+              });
             } else {
-              // Fallback: treat as general drug interaction
-              console.warn('Could not parse interaction:', interactionText);
+              // This is a drug-drug interaction
+              drugDrugInteractions.push({
+                drug1,
+                drug2,
+                risk: explanation,
+                severity: severity.toLowerCase().includes('severe') || severity.toLowerCase().includes('high') 
+                  ? 'high' 
+                  : severity.toLowerCase().includes('moderate') 
+                    ? 'moderate' 
+                    : 'low',
+              });
             }
           });
 

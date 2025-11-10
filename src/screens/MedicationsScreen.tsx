@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList, DoseStatus } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
@@ -24,10 +25,11 @@ type MedicationsScreenProps = {
 
 export default function MedicationsScreen({ navigation }: MedicationsScreenProps) {
   const { t, i18n } = useTranslation();
-  const { weekDoses, loadMedications, loadWeekDoses, markDose } = useMedicationStore();
+  const { weekDoses, loadMedications, loadWeekDoses, markDose, getUnacknowledgedHighRiskInteractions } = useMedicationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [unacknowledgedMeds, setUnacknowledgedMeds] = useState<Set<string>>(new Set());
 
   // Get current locale for date-fns
   const dateLocale = i18n.language === 'ms' ? msLocale : enUS;
@@ -77,6 +79,17 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
     }
   }, [weekDays]);
 
+  // Reload data when screen comes back into focus (e.g., after acknowledging interactions)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('[MedicationsScreen] Screen focused, reloading data');
+      loadMedications();
+      if (weekDays.length > 0) {
+        loadWeekDoses(weekDays[0], weekDays[weekDays.length - 1]);
+      }
+    }, [weekDays])
+  );
+
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     if (weekDays.length > 0) {
@@ -110,6 +123,43 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
       return medName.includes(query);
     });
   }, [selectedDayDoses, searchQuery]);
+
+  // Check for unacknowledged interactions for all doses
+  useEffect(() => {
+    async function checkInteractions() {
+      if (filteredDoses.length === 0) {
+        setUnacknowledgedMeds(new Set());
+        return;
+      }
+
+      console.log('[MedicationsScreen] Checking interactions for filtered doses');
+      
+      try {
+        const checks = await Promise.all(
+          filteredDoses.map(dose => 
+            getUnacknowledgedHighRiskInteractions(dose.medicationId).then(ids => ({
+              medicationId: dose.medicationId,
+              hasUnacknowledged: ids.length > 0
+            }))
+          )
+        );
+        
+        const medsWithUnacknowledged = new Set(
+          checks.filter(c => c.hasUnacknowledged).map(c => c.medicationId)
+        );
+        
+        console.log('[MedicationsScreen] Medications with unacknowledged interactions:', medsWithUnacknowledged.size);
+        setUnacknowledgedMeds(medsWithUnacknowledged);
+      } catch (error) {
+        console.error('[MedicationsScreen] Error checking interactions:', error);
+      }
+    }
+
+    checkInteractions();
+  }, [
+    filteredDoses.map(d => d.id).join(','), 
+    filteredDoses.map(d => JSON.stringify(d.medication.acknowledgedInteractionIds || [])).join('|')
+  ]);
 
   // Format date display with relative labels
   const getFormattedDateDisplay = React.useCallback((date: Date): string => {
@@ -229,42 +279,55 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
       >
         {/* Medication List */}
         {filteredDoses.length > 0 ? (
-          filteredDoses.map((dose) => (
-            <View
-              key={dose.id}
-              style={styles.medicationCard}
-            >
-              <TouchableOpacity
-                style={styles.medicationInfo}
-                activeOpacity={0.7}
-                onPress={() => navigation.navigate('MedicineDetail', { medicationId: dose.medicationId })}
+          filteredDoses.map((dose) => {
+            const hasUnacknowledged = unacknowledgedMeds.has(dose.medicationId);
+            
+            return (
+              <View
+                key={dose.id}
+                style={[
+                  styles.medicationCard,
+                  hasUnacknowledged && styles.medicationCardDanger
+                ]}
               >
-                <Text style={styles.medicationName}>
-                  {dose.medication.mims.brandName || dose.medication.mims.genericName}
-                </Text>
-                <Text style={styles.medicationDetails}>
-                  {format(parseISO(dose.scheduledTime), 'h:mm a', { locale: dateLocale })}, {dose.medication.userDosage}
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.medicationInfo}
+                  activeOpacity={0.7}
+                  onPress={() => navigation.navigate('MedicineDetail', { medicationId: dose.medicationId })}
+                >
+                  <Text style={styles.medicationName}>
+                    {hasUnacknowledged && '⚠️ '}
+                    {dose.medication.mims.brandName || dose.medication.mims.genericName}
+                  </Text>
+                  <Text style={styles.medicationDetails}>
+                    {format(parseISO(dose.scheduledTime), 'h:mm a', { locale: dateLocale })}, {dose.medication.userDosage}
+                  </Text>
+                  {hasUnacknowledged && (
+                    <Text style={styles.interactionWarning}>
+                      High-risk interaction - Tap to acknowledge
+                    </Text>
+                  )}
+                </TouchableOpacity>
 
-              <View style={styles.medicationActions}>
-                <PillButton
-                  title={dose.status === DoseStatus.Taken ? t('medications.taken') : t('medications.take')}
-                  onPress={() => handleTakeDose(dose.id)}
-                  variant="yellow"
-                  minWidth={80}
-                  disabled={dose.status === DoseStatus.Taken}
-                />
-                <PillButton
-                  title={t('medications.skip')}
-                  onPress={() => handleSkipDose(dose.id)}
-                  variant="light"
-                  minWidth={80}
-                  disabled={dose.status === DoseStatus.Skipped}
-                />
+                <View style={styles.medicationActions}>
+                  <PillButton
+                    title={dose.status === DoseStatus.Taken ? t('medications.taken') : t('medications.take')}
+                    onPress={() => handleTakeDose(dose.id)}
+                    variant="yellow"
+                    minWidth={80}
+                    disabled={dose.status === DoseStatus.Taken || hasUnacknowledged}
+                  />
+                  <PillButton
+                    title={t('medications.skip')}
+                    onPress={() => handleSkipDose(dose.id)}
+                    variant="light"
+                    minWidth={80}
+                    disabled={dose.status === DoseStatus.Skipped || hasUnacknowledged}
+                  />
+                </View>
               </View>
-            </View>
-          ))
+            );
+          })
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
@@ -339,6 +402,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     ...Shadows.sm,
   },
+  medicationCardDanger: {
+    backgroundColor: '#FFE8E8',
+    borderWidth: 2,
+    borderColor: Colors.status.error,
+  },
   medicationInfo: {
     flex: 1,
     marginRight: Spacing.md,
@@ -352,6 +420,12 @@ const styles = StyleSheet.create({
   medicationDetails: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.secondary,
+  },
+  interactionWarning: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.status.error,
+    fontWeight: Typography.fontWeight.semibold,
+    marginTop: Spacing.xs,
   },
   medicationActions: {
     alignItems: 'flex-end',
