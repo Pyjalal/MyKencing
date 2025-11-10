@@ -117,6 +117,8 @@ export default function VitalsScreen() {
       onBackPress={() => navigation.canGoBack() && navigation.goBack()}
       headerSlot={
         <>
+        <View style={styles.headerContainer}>
+          <View>
           {/* Search Bar */}
           <View style={styles.searchContainer}>
             <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
@@ -134,6 +136,8 @@ export default function VitalsScreen() {
               <BotMessageSquare size={24} color={Colors.secondary.main} />
             </View>
           </TouchableOpacity>
+          </View>
+        </View>
         </>
       }
     >
@@ -338,10 +342,13 @@ export default function VitalsScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    paddingBottom: Spacing.xl,
+  },
   aiButton: {
     position: 'absolute',
-    right: Spacing.lg,
-    top: Spacing['2xl'] + 80,
+    right: 0,
+    top: Spacing.md,
   },
   aiIconContainer: {
     width: 56,

@@ -57,7 +57,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: Spacing['2xl'] + 10,
-    paddingBottom: Spacing.xl,
     paddingHorizontal: Spacing.lg,
   },
   content: {

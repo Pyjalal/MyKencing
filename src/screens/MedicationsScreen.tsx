@@ -215,14 +215,6 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
       contentBackgroundColor={Colors.background.primary}
       title={t('medications.medications_title')}
       onBackPress={() => navigation.goBack()}
-      headerSlot={
-        <PillButton
-          title={t('medications.view_interactions')}
-          onPress={handleManagePress}
-          variant="white"
-          style={styles.manageButton}
-        />
-      }
     >
       {/* Calendar at the top - outside scroll */}
       <GestureDetector gesture={panGesture}>
