@@ -72,13 +72,6 @@ export default function SelectScannedMedicineScreen() {
 
     return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{t('scan.select_medicine')}</Text>
-        <Text style={styles.subtitle}>
-          {t('scan.select_best_match', { count: apiMatches.length })}
-        </Text>
-          </View>
-
             <FlatList
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}

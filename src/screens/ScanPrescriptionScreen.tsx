@@ -101,7 +101,7 @@ export default function ScanPrescriptionScreen() {
   if (!permission) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color={Colors.primary.main} />
+        <ActivityIndicator size="large" color={Colors.accent.main} />
         <Text style={styles.message}>{t('add_vital.loading')}</Text>
       </View>
     );
@@ -131,7 +131,7 @@ export default function ScanPrescriptionScreen() {
         <Image source={{ uri: capturedImage }} style={styles.preview} />
         {isProcessing ? (
           <View style={styles.processingOverlay}>
-            <ActivityIndicator size="large" color={Colors.primary.main} />
+            <ActivityIndicator size="large" color={Colors.accent.main} />
             <Text style={styles.processingText}>{t('scan.processing_prescription')}</Text>
           </View>
         ) : (
@@ -194,9 +194,9 @@ const styles = StyleSheet.create({
   },
   guidebox: {
     width: '90%',
-    height: '60%',
+    height: '90%',
     borderWidth: 2,
-    borderColor: Colors.primary.main,
+    borderColor: Colors.accent.main,
     borderRadius: 12,
     borderStyle: 'dashed',
   },
@@ -211,12 +211,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   controls: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: Spacing.xl,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+   padding: Spacing.lg,
+    backgroundColor: '#000000',
     alignItems: 'center',
   },
   captureButton: {
@@ -232,7 +228,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.accent.main,
   },
   manualButton: {
     paddingHorizontal: Spacing.lg,
@@ -271,7 +267,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: 8,
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.accent.main,
   },
   retakeButtonText: {
     fontSize: Typography.fontSize.base,
@@ -290,7 +286,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: 8,
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.accent.main,
   },
   permissionButtonText: {
     fontSize: Typography.fontSize.base,
