@@ -1,4 +1,10 @@
 {
+  "common": {
+    "cancel": "Cancel",
+    "remove": "Remove",
+    "error": "Error",
+    "removing": "Removing..."
+  },
   "settings": {
     "title": "Profile & Settings",
     "searchPlaceholder": "Search here",
@@ -173,7 +179,11 @@
     "food_instructions": "Food Instructions",
     "warnings_label": "Warnings",
     "side_effects_label": "Side Effects",
-    "contraindications_label": "Contraindications"
+    "contraindications_label": "Contraindications",
+    "remove_medicine": "Remove Medicine",
+    "remove_medicine_button": "Remove Medicine",
+    "remove_medicine_confirmation": "Are you sure you want to remove {{name}}? This will cancel all future reminders and doses. Past doses will be kept for your records.",
+    "remove_medicine_error": "Failed to remove medicine. Please try again."
   },
   "onboarding": {
     "skip": "Skip",

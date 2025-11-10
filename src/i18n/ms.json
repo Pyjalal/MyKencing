@@ -1,4 +1,10 @@
 {
+  "common": {
+    "cancel": "Batal",
+    "remove": "Buang",
+    "error": "Ralat",
+    "removing": "Membuang..."
+  },
   "settings": {
     "title": "Profil & Tetapan",
     "searchPlaceholder": "Cari di sini",
@@ -173,7 +179,11 @@
     "food_instructions": "Arahan Makanan",
     "warnings_label": "Amaran",
     "side_effects_label": "Kesan Sampingan",
-    "contraindications_label": "Kontraindikasi"
+    "contraindications_label": "Kontraindikasi",
+    "remove_medicine": "Buang Ubat",
+    "remove_medicine_button": "Buang Ubat",
+    "remove_medicine_confirmation": "Adakah anda pasti mahu membuang {{name}}? Ini akan membatalkan semua peringatan dan dos masa hadapan. Dos lepas akan disimpan untuk rekod anda.",
+    "remove_medicine_error": "Gagal membuang ubat. Sila cuba lagi."
   },
   "onboarding": {
     "skip": "Langkau",

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Colors, Typography, Spacing } from '../constants/theme';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
@@ -10,10 +10,12 @@ import DrugInteractionWarning from '../components/DrugInteractionWarning';
 
 export default function MedicineDetailScreen() {
   const { t } = useTranslation();
+  const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'MedicineDetail'>>();
   const medicationId = route.params?.medicationId;
-  const { medications, loadMedications } = useMedicationStore();
+  const { medications, loadMedications, removeMedication } = useMedicationStore();
   const [interactions, setInteractions] = useState<string[]>([]);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -32,6 +34,41 @@ export default function MedicineDetailScreen() {
       setInteractions(res.interactions || []);
     })();
   }, [med, coMeds]);
+
+  const handleRemoveMedication = async () => {
+    if (!med) return;
+
+    Alert.alert(
+      t('medicine_detail.remove_medicine'),
+      t('medicine_detail.remove_medicine_confirmation', { name: med.mims.brandName || med.mims.genericName }),
+      [
+        {
+          text: t('common.cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('common.remove'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsRemoving(true);
+              await removeMedication(medicationId);
+              // Navigate back after successful removal
+              navigation.goBack();
+            } catch (error) {
+              console.error('Error removing medication:', error);
+              Alert.alert(
+                t('common.error'),
+                t('medicine_detail.remove_medicine_error')
+              );
+            } finally {
+              setIsRemoving(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   if (!med) {
     return (
@@ -69,6 +106,16 @@ export default function MedicineDetailScreen() {
       {interactions.length > 0 && (
         <DrugInteractionWarning interactions={interactions} severity="high" />
       )}
+
+      <TouchableOpacity
+        style={styles.removeButton}
+        onPress={handleRemoveMedication}
+        disabled={isRemoving}
+      >
+        <Text style={styles.removeButtonText}>
+          {isRemoving ? t('common.removing') : t('medicine_detail.remove_medicine_button')}
+        </Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -88,4 +135,17 @@ const styles = StyleSheet.create({
   cardTitle: { color: Colors.text.primary, fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.semibold, marginBottom: 6 },
   text: { color: Colors.text.secondary, marginTop: 4, lineHeight: Typography.fontSize.base * Typography.lineHeight.normal },
   warn: { color: Colors.status.error },
+  removeButton: {
+    backgroundColor: Colors.status.error,
+    padding: Spacing.md,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.xl,
+  },
+  removeButtonText: {
+    color: '#FFFFFF',
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
 });

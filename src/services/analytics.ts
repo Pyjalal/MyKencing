@@ -9,6 +9,7 @@ export enum EventType {
   AppOpened = 'app_opened',
   FeatureUsed = 'feature_used',
   MedicationAdded = 'medication_added',
+  MedicationDeleted = 'medication_deleted',
   DoseLogged = 'dose_logged',
   VitalLogged = 'vital_logged',
   OCRScanned = 'ocr_scanned',

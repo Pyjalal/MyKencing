@@ -3,6 +3,7 @@ import { Medication, MedicationWithDetails, Dose, DoseWithMedication, DoseStatus
 import { getDatabase } from '../services/database';
 import { logEvent, EventType } from '../services/analytics';
 import { getCachedMedicineDetails } from '../services/medicineCache';
+import { cancelMedicationReminders } from '../services/notifications';
 
 // Database row types
 interface MedicationRow {
@@ -60,6 +61,7 @@ interface MedicationState {
   addMedication: (medication: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   updateMedication: (id: string, medication: Partial<Medication>) => Promise<void>;
   deleteMedication: (id: string) => Promise<void>;
+  removeMedication: (id: string) => Promise<void>;
   markDose: (doseId: string, status: DoseStatus, actualTime?: string) => Promise<void>;
   getMedicationById: (id: string) => MedicationWithDetails | undefined;
   generateDosesForMedication: (medicationId: string, times: string[], startDateStr: string, endDateStr?: string) => Promise<void>;
@@ -559,6 +561,65 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
       set({ error: (error as Error).message });
       // Rollback: reload from database on error
       await get().loadMedications();
+    }
+  },
+
+  removeMedication: async (id) => {
+    // Optimistically remove from state immediately
+    const currentMedications = get().medications;
+    const updatedMedications = currentMedications.filter((med) => med.id !== id);
+    set({ medications: updatedMedications });
+
+    try {
+      const db = getDatabase();
+      const now = new Date().toISOString();
+
+      // 1. Cancel all scheduled notifications for this medication
+      try {
+        await cancelMedicationReminders(id);
+        console.log(`Cancelled notifications for medication ${id}`);
+      } catch (notifError) {
+        console.warn('Error cancelling notifications:', notifError);
+        // Continue with removal even if notification cancellation fails
+      }
+
+      // 2. Delete future doses (scheduled_time > now)
+      // Keep past doses for logging purposes
+      const deletedDoses = await db.runAsync(
+        'DELETE FROM doses WHERE medication_id = ? AND scheduled_time > ?',
+        [id, now]
+      );
+      console.log(`Deleted ${deletedDoses.changes} future dose(s) for medication ${id}`);
+
+      // 3. Soft delete the medication (set is_active to 0)
+      await db.runAsync(
+        'UPDATE medications SET is_active = 0, updated_at = ? WHERE id = ?',
+        [now, id]
+      );
+      console.log(`Medication ${id} marked as inactive`);
+
+      // 4. Reload medication lists and today's doses
+      await get().loadMedications();
+      await get().loadTodayDoses();
+      
+      // Reload week doses for current view
+      const today = new Date();
+      const startOfWeekDate = new Date(today);
+      startOfWeekDate.setDate(today.getDate() - today.getDay());
+      const endOfWeekDate = new Date(startOfWeekDate);
+      endOfWeekDate.setDate(startOfWeekDate.getDate() + 6);
+      await get().loadWeekDoses(startOfWeekDate, endOfWeekDate);
+
+      try { 
+        await logEvent(EventType.MedicationDeleted); 
+      } catch {}
+    } catch (error) {
+      console.error('Error removing medication:', error);
+      set({ error: (error as Error).message });
+      // Rollback: reload from database on error
+      await get().loadMedications();
+      await get().loadTodayDoses();
+      throw error;
     }
   },
 
