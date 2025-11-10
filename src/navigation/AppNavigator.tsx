@@ -179,7 +179,7 @@ export default function AppNavigator() {
         <Stack.Screen
           name="ChatBot"
           component={ChatBotScreen}
-          options={{ title: 'Chatbot' }}
+          options={{ title: 'MyMedBot' }}
         />
         <Stack.Screen
           name="MedicationManagement"
