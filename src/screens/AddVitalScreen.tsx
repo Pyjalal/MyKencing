@@ -13,9 +13,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList, VitalType } from '../types';
-import { Colors, Typography, Spacing, BorderRadius } from '../constants/theme';
+import { Colors, Typography, Spacing } from '../constants/theme';
 import { useVitalsStore } from '../stores/vitalsStore';
-import { CONVERSIONS } from '../constants/clinical';
 
 type AddVitalScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'AddVital'>;
@@ -25,15 +24,7 @@ type AddVitalScreenProps = {
 export default function AddVitalScreen({ navigation, route }: AddVitalScreenProps) {
   const { t } = useTranslation();
   const { type } = route.params || {};
-  const {
-    addBloodPressure,
-    addGlucose,
-    addWeight,
-    addWaistCircumference,
-    addTotalCholesterol,
-    addHdlCholesterol,
-    isLoading,
-  } = useVitalsStore();
+  const { addBloodPressure, addGlucose, addWeight, isLoading } = useVitalsStore();
 
   // Blood Pressure fields
   const [systolic, setSystolic] = useState('');
@@ -47,15 +38,8 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
   const [weightValue, setWeightValue] = useState('');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>('kg');
 
-  // Waist circumference fields
-  const [waistValue, setWaistValue] = useState('');
-
-  // Cholesterol fields
-  const [cholesterolValue, setCholesterolValue] = useState('');
-
   // Common fields
   const [notes, setNotes] = useState('');
-  const [error, setError] = useState<string | null>(null);
 
   const getTitle = () => {
     switch (type) {
@@ -65,73 +49,19 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         return t('add_vital.glucose');
       case VitalType.Weight:
         return t('add_vital.weight');
-      case VitalType.WaistCircumference:
-        return t('add_vital.waist_circumference');
-      case VitalType.TotalCholesterol:
-        return t('add_vital.total_cholesterol');
-      case VitalType.HDLCholesterol:
-        return t('add_vital.hdl_cholesterol');
       default:
         return t('add_vital.add_vital');
     }
   };
 
-  const ranges = {
-    bloodPressure: { systolic: { min: 60, max: 220 }, diastolic: { min: 30, max: 120 } },
-    glucoseMmol: { min: 2, max: 11 },
-    weightKg: { min: 25, max: 220 },
-    waistCm: { min: 30, max: 200 },
-  };
-
   const isValid = () => {
     switch (type) {
-      case VitalType.BloodPressure: {
-        const systolicVal = Number(systolic);
-        const diastolicVal = Number(diastolic);
-        return (
-          !isNaN(systolicVal) &&
-          !isNaN(diastolicVal) &&
-          systolicVal >= ranges.bloodPressure.systolic.min &&
-          systolicVal <= ranges.bloodPressure.systolic.max &&
-          diastolicVal >= ranges.bloodPressure.diastolic.min &&
-          diastolicVal <= ranges.bloodPressure.diastolic.max
-        );
-      }
-      case VitalType.Glucose: {
-        const glucoseVal = Number(glucoseValue);
-        if (isNaN(glucoseVal)) return false;
-        const glucoseMmol =
-          glucoseUnit === 'mmol/L'
-            ? glucoseVal
-            : glucoseVal * CONVERSIONS.glucoseMgdlToMmol;
-        return (
-          glucoseMmol >= ranges.glucoseMmol.min &&
-          glucoseMmol <= ranges.glucoseMmol.max
-        );
-      }
-      case VitalType.Weight: {
-        const weightVal = Number(weightValue);
-        if (isNaN(weightVal)) return false;
-        const weightKg =
-          weightUnit === 'kg' ? weightVal : weightVal * CONVERSIONS.lbToKg;
-        return (
-          weightKg >= ranges.weightKg.min &&
-          weightKg <= ranges.weightKg.max
-        );
-      }
-      case VitalType.WaistCircumference: {
-        const waistVal = Number(waistValue);
-        return (
-          !isNaN(waistVal) &&
-          waistVal >= ranges.waistCm.min &&
-          waistVal <= ranges.waistCm.max
-        );
-      }
-      case VitalType.TotalCholesterol:
-      case VitalType.HDLCholesterol: {
-        const cholVal = Number(cholesterolValue);
-        return !isNaN(cholVal) && cholVal > 0;
-      }
+      case VitalType.BloodPressure:
+        return systolic !== '' && diastolic !== '' && !isNaN(Number(systolic)) && !isNaN(Number(diastolic));
+      case VitalType.Glucose:
+        return glucoseValue !== '' && !isNaN(Number(glucoseValue));
+      case VitalType.Weight:
+        return weightValue !== '' && !isNaN(Number(weightValue));
       default:
         return false;
     }
@@ -139,68 +69,21 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
 
   const handleSave = async () => {
     if (!isValid()) {
-      setError(t('add_vital.error_invalid_input'));
       return;
     }
 
     try {
       switch (type) {
-        case VitalType.BloodPressure: {
-          const systolicVal = Number(systolic);
-          const diastolicVal = Number(diastolic);
-          if (
-            systolicVal < 60 ||
-            systolicVal > 220 ||
-            diastolicVal < 30 ||
-            diastolicVal > 120
-          ) {
-            setError(t('add_vital.error_bp_range'));
-            return;
-          }
-          await addBloodPressure(systolicVal, diastolicVal, undefined, notes || undefined);
+        case VitalType.BloodPressure:
+          await addBloodPressure(Number(systolic), Number(diastolic), undefined, notes || undefined);
           break;
-        }
-        case VitalType.Glucose: {
-          const glucoseVal = Number(glucoseValue);
-          const glucoseMmol =
-            glucoseUnit === 'mmol/L'
-              ? glucoseVal
-              : glucoseVal * CONVERSIONS.glucoseMgdlToMmol;
-          if (glucoseMmol < 2 || glucoseMmol > 11) {
-            setError(t('add_vital.error_glucose_range'));
-            return;
-          }
-          await addGlucose(glucoseVal, glucoseUnit, undefined, notes || undefined);
+        case VitalType.Glucose:
+          await addGlucose(Number(glucoseValue), glucoseUnit, undefined, notes || undefined);
           break;
-        }
-        case VitalType.Weight: {
-          const weightVal = Number(weightValue);
-          const weightKg =
-            weightUnit === 'kg' ? weightVal : weightVal * CONVERSIONS.lbToKg;
-          if (weightKg < 25 || weightKg > 220) {
-            setError(t('add_vital.error_weight_range'));
-            return;
-          }
-          await addWeight(weightVal, weightUnit, undefined, notes || undefined);
-          break;
-        }
-        case VitalType.WaistCircumference: {
-          const waistVal = Number(waistValue);
-          if (waistVal < 30 || waistVal > 200) {
-            setError(t('add_vital.error_waist_range'));
-            return;
-          }
-          await addWaistCircumference(waistVal, undefined, notes || undefined);
-          break;
-        }
-        case VitalType.TotalCholesterol:
-          await addTotalCholesterol(Number(cholesterolValue), undefined, notes || undefined);
-          break;
-        case VitalType.HDLCholesterol:
-          await addHdlCholesterol(Number(cholesterolValue), undefined, notes || undefined);
+        case VitalType.Weight:
+          await addWeight(Number(weightValue), weightUnit, undefined, notes || undefined);
           break;
       }
-      setError(null);
       navigation.goBack();
     } catch (error) {
       console.error('Error saving vital:', error);
@@ -214,10 +97,7 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         <TextInput
           style={styles.input}
           value={systolic}
-          onChangeText={(value) => {
-            setError(null);
-            setSystolic(value);
-          }}
+          onChangeText={setSystolic}
           placeholder="120"
           keyboardType="numeric"
           accessibilityLabel={t('add_vital.systolic')}
@@ -230,10 +110,7 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         <TextInput
           style={styles.input}
           value={diastolic}
-          onChangeText={(value) => {
-            setError(null);
-            setDiastolic(value);
-          }}
+          onChangeText={setDiastolic}
           placeholder="80"
           keyboardType="numeric"
           accessibilityLabel={t('add_vital.diastolic')}
@@ -250,10 +127,7 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         <TextInput
           style={styles.input}
           value={glucoseValue}
-          onChangeText={(value) => {
-            setError(null);
-            setGlucoseValue(value);
-          }}
+          onChangeText={setGlucoseValue}
           placeholder="5.5"
           keyboardType="decimal-pad"
           accessibilityLabel={t('add_vital.value')}
@@ -266,10 +140,7 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         <View style={styles.unitSelector}>
           <TouchableOpacity
             style={[styles.unitButton, glucoseUnit === 'mmol/L' && styles.unitButtonActive]}
-            onPress={() => {
-              setError(null);
-              setGlucoseUnit('mmol/L');
-            }}
+            onPress={() => setGlucoseUnit('mmol/L')}
             accessibilityLabel="mmol/L"
             accessibilityRole="button"
             accessibilityState={{ selected: glucoseUnit === 'mmol/L' }}
@@ -280,10 +151,7 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.unitButton, glucoseUnit === 'mg/dL' && styles.unitButtonActive]}
-            onPress={() => {
-              setError(null);
-              setGlucoseUnit('mg/dL');
-            }}
+            onPress={() => setGlucoseUnit('mg/dL')}
             accessibilityLabel="mg/dL"
             accessibilityRole="button"
             accessibilityState={{ selected: glucoseUnit === 'mg/dL' }}
@@ -304,10 +172,7 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         <TextInput
           style={styles.input}
           value={weightValue}
-          onChangeText={(value) => {
-            setError(null);
-            setWeightValue(value);
-          }}
+          onChangeText={setWeightValue}
           placeholder="70"
           keyboardType="decimal-pad"
           accessibilityLabel={t('add_vital.value')}
@@ -320,10 +185,7 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
         <View style={styles.unitSelector}>
           <TouchableOpacity
             style={[styles.unitButton, weightUnit === 'kg' && styles.unitButtonActive]}
-            onPress={() => {
-              setError(null);
-              setWeightUnit('kg');
-            }}
+            onPress={() => setWeightUnit('kg')}
             accessibilityLabel="kg"
             accessibilityRole="button"
             accessibilityState={{ selected: weightUnit === 'kg' }}
@@ -334,10 +196,7 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.unitButton, weightUnit === 'lb' && styles.unitButtonActive]}
-            onPress={() => {
-              setError(null);
-              setWeightUnit('lb');
-            }}
+            onPress={() => setWeightUnit('lb')}
             accessibilityLabel="lb"
             accessibilityRole="button"
             accessibilityState={{ selected: weightUnit === 'lb' }}
@@ -351,42 +210,6 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
     </>
   );
 
-  const renderWaistForm = () => (
-    <View style={styles.formGroup}>
-      <Text style={styles.label}>{t('add_vital.value')} (cm)</Text>
-      <TextInput
-        style={styles.input}
-        value={waistValue}
-        onChangeText={(value) => {
-          setError(null);
-          setWaistValue(value);
-        }}
-        placeholder="85"
-        keyboardType="decimal-pad"
-        accessibilityLabel={t('add_vital.value')}
-        accessibilityRole="none"
-      />
-    </View>
-  );
-
-  const renderCholesterolForm = () => (
-    <View style={styles.formGroup}>
-      <Text style={styles.label}>{t('add_vital.value')} (mmol/L)</Text>
-      <TextInput
-        style={styles.input}
-        value={cholesterolValue}
-        onChangeText={(value) => {
-          setError(null);
-          setCholesterolValue(value);
-        }}
-        placeholder="4.8"
-        keyboardType="decimal-pad"
-        accessibilityLabel={t('add_vital.value')}
-        accessibilityRole="none"
-      />
-    </View>
-  );
-
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -395,28 +218,16 @@ export default function AddVitalScreen({ navigation, route }: AddVitalScreenProp
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>{getTitle()}</Text>
 
-        {error && (
-          <View style={styles.errorBanner} accessibilityLiveRegion="polite">
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
-
         {type === VitalType.BloodPressure && renderBloodPressureForm()}
         {type === VitalType.Glucose && renderGlucoseForm()}
         {type === VitalType.Weight && renderWeightForm()}
-        {type === VitalType.WaistCircumference && renderWaistForm()}
-        {(type === VitalType.TotalCholesterol || type === VitalType.HDLCholesterol) &&
-          renderCholesterolForm()}
 
         <View style={styles.formGroup}>
           <Text style={styles.label}>{t('add_vital.notes')} ({t('add_vital.optional')})</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={notes}
-            onChangeText={(value) => {
-              setError(null);
-              setNotes(value);
-            }}
+            onChangeText={setNotes}
             placeholder={t('add_vital.notes')}
             multiline
             numberOfLines={4}
@@ -473,17 +284,6 @@ const styles = StyleSheet.create({
   },
   formGroup: {
     marginBottom: Spacing.lg,
-  },
-  errorBanner: {
-    backgroundColor: Colors.status.errorLight,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  errorText: {
-    color: Colors.status.errorDark,
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
   },
   label: {
     fontSize: Typography.fontSize.base,

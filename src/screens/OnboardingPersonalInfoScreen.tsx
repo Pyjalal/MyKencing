@@ -36,12 +36,12 @@ export default function OnboardingPersonalInfoScreen({
     const ageNum = parseInt(age, 10);
     const weightNum = parseFloat(weight);
 
-    if (isNaN(ageNum) || ageNum < 8 || ageNum > 120) {
+    if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
       Alert.alert(t('onboarding.valid_age_alert'));
       return;
     }
 
-    if (isNaN(weightNum) || weightNum < 25 || weightNum > 220) {
+    if (isNaN(weightNum) || weightNum < 1 || weightNum > 500) {
       Alert.alert(t('onboarding.valid_weight_alert'));
       return;
     }
@@ -52,14 +52,7 @@ export default function OnboardingPersonalInfoScreen({
   const isFormValid = () => {
     const ageNum = parseInt(age, 10);
     const weightNum = parseFloat(weight);
-    return (
-      !isNaN(ageNum) &&
-      ageNum >= 8 &&
-      ageNum <= 120 &&
-      !isNaN(weightNum) &&
-      weightNum >= 25 &&
-      weightNum <= 220
-    );
+    return !isNaN(ageNum) && ageNum >= 1 && !isNaN(weightNum) && weightNum >= 1;
   };
 
   return (
