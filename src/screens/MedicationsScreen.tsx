@@ -104,11 +104,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
   const selectedDayDoses = useMemo(() => {
     return weekDoses.filter((dose) => {
       const doseDate = parseISO(dose.scheduledTime);
-      if (!isSameDay(doseDate, selectedDate)) {
-        return false;
-      }
-
-      return ![DoseStatus.Taken, DoseStatus.Skipped].includes(dose.status);
+      return isSameDay(doseDate, selectedDate);
     });
   }, [weekDoses, selectedDate]);
 
@@ -287,7 +283,8 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
                 key={dose.id}
                 style={[
                   styles.medicationCard,
-                  hasUnacknowledged && styles.medicationCardDanger
+                  hasUnacknowledged && styles.medicationCardDanger,
+                  (dose.status === DoseStatus.Taken || dose.status === DoseStatus.Skipped) && styles.medicationCardCompleted
                 ]}
               >
                 <TouchableOpacity
@@ -295,10 +292,16 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
                   activeOpacity={0.7}
                   onPress={() => navigation.navigate('MedicineDetail', { medicationId: dose.medicationId })}
                 >
-                  <Text style={styles.medicationName}>
+                  <Text style={[
+                    styles.medicationName,
+                    (dose.status === DoseStatus.Taken || dose.status === DoseStatus.Skipped) && styles.medicationNameCompleted
+                  ]}>
                     {dose.medication.mims.brandName || dose.medication.mims.genericName}
                   </Text>
-                  <Text style={styles.medicationDetails}>
+                  <Text style={[
+                    styles.medicationDetails,
+                    (dose.status === DoseStatus.Taken || dose.status === DoseStatus.Skipped) && styles.medicationDetailsCompleted
+                  ]}>
                     {format(parseISO(dose.scheduledTime), 'h:mm a', { locale: dateLocale })}, {dose.medication.userDosage}
                   </Text>
                   {hasUnacknowledged && (
@@ -309,20 +312,32 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
                 </TouchableOpacity>
 
                 <View style={styles.medicationActions}>
-                  <PillButton
-                    title={dose.status === DoseStatus.Taken ? t('medications.taken') : t('medications.take')}
-                    onPress={() => handleTakeDose(dose.id)}
-                    variant="yellow"
-                    minWidth={80}
-                    disabled={dose.status === DoseStatus.Taken || hasUnacknowledged}
-                  />
-                  <PillButton
-                    title={t('medications.skip')}
-                    onPress={() => handleSkipDose(dose.id)}
-                    variant="light"
-                    minWidth={80}
-                    disabled={dose.status === DoseStatus.Skipped || hasUnacknowledged}
-                  />
+                  {dose.status === DoseStatus.Taken ? (
+                    <View style={styles.statusBadge}>
+                      <Text style={styles.statusText}>{t('medications.taken')}</Text>
+                    </View>
+                  ) : dose.status === DoseStatus.Skipped ? (
+                    <View style={[styles.statusBadge, styles.statusBadgeSkipped]}>
+                      <Text style={[styles.statusText, styles.statusTextSkipped]}>{t('medications.skipped')}</Text>
+                    </View>
+                  ) : (
+                    <>
+                      <PillButton
+                        title={t('medications.take')}
+                        onPress={() => handleTakeDose(dose.id)}
+                        variant="yellow"
+                        minWidth={80}
+                        disabled={hasUnacknowledged}
+                      />
+                      <PillButton
+                        title={t('medications.skip')}
+                        onPress={() => handleSkipDose(dose.id)}
+                        variant="light"
+                        minWidth={80}
+                        disabled={hasUnacknowledged}
+                      />
+                    </>
+                  )}
                 </View>
               </View>
             );
@@ -406,6 +421,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: Colors.status.error,
   },
+  medicationCardCompleted: {
+    opacity: 0.5,
+    backgroundColor: Colors.background.secondary,
+  },
   medicationInfo: {
     flex: 1,
     marginRight: Spacing.md,
@@ -416,9 +435,15 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginBottom: 4,
   },
+  medicationNameCompleted: {
+    color: Colors.text.tertiary,
+  },
   medicationDetails: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.secondary,
+  },
+  medicationDetailsCompleted: {
+    color: Colors.text.tertiary,
   },
   interactionWarning: {
     fontSize: Typography.fontSize.sm,
@@ -429,6 +454,25 @@ const styles = StyleSheet.create({
   medicationActions: {
     alignItems: 'flex-end',
     gap: Spacing.xs,
+  },
+  statusBadge: {
+    backgroundColor: Colors.status.success,
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  statusBadgeSkipped: {
+    backgroundColor: Colors.text.tertiary,
+  },
+  statusText: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.inverse,
+  },
+  statusTextSkipped: {
+    color: Colors.text.inverse,
   },
   emptyState: {
     paddingVertical: Spacing['2xl'],

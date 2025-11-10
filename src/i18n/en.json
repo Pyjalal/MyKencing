@@ -166,6 +166,7 @@
     "take": "Take",
     "taken": "Taken",
     "skip": "Skip",
+    "skipped": "Skipped",
     "no_medications_found": "No medications found",
     "no_medications_scheduled": "No medications scheduled for this day"
   },
