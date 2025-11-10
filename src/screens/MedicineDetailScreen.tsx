@@ -7,6 +7,7 @@ import { RootStackParamList } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { useInteractionStore } from '../stores/interactionStore';
 import type { ApiInteraction } from '../services/api-client';
+import { isHighRiskInteraction, isMedicationInvolvedInInteraction } from '../utils/interactionFilters';
 
 export default function MedicineDetailScreen() {
   const { t } = useTranslation();
@@ -60,19 +61,22 @@ export default function MedicineDetailScreen() {
 
   // Separate high-risk interactions
   const highRiskInteractions = useMemo(() => {
-    return interactions.filter(interaction => {
-      const severity = interaction.severityRating?.rating || interaction.severity || '';
-      return severity.toLowerCase().includes('severe') || severity.toLowerCase().includes('high');
-    });
+    return interactions.filter(isHighRiskInteraction);
   }, [interactions]);
 
-  // Get unacknowledged high-risk interactions
+  // Get unacknowledged high-risk interactions involving this medicine's active ingredients
   const unacknowledgedHighRiskInteractions = useMemo(() => {
     if (!med) return [];
     const acknowledgedIds = med.acknowledgedInteractionIds || [];
-    return highRiskInteractions.filter(
-      interaction => !acknowledgedIds.includes(interaction.interactionId)
-    );
+    const activeIngredients = med.mims.activeIngredients || [];
+    
+    return highRiskInteractions.filter(interaction => {
+      // Must not be acknowledged
+      if (acknowledgedIds.includes(interaction.interactionId)) return false;
+      
+      // Check if this medicine's active ingredients are involved in the interaction
+      return isMedicationInvolvedInInteraction(activeIngredients, interaction);
+    });
   }, [highRiskInteractions, med]);
 
   // Filter acknowledged interactions to only show ones involving this medicine's active ingredients
@@ -86,18 +90,7 @@ export default function MedicineDetailScreen() {
       if (!acknowledgedIds.includes(interaction.interactionId)) return false;
       
       // Check if this medicine's active ingredients are involved in the interaction
-      const isInvolved = activeIngredients.some(ingredient => {
-        const ingredientLower = ingredient.toLowerCase();
-        const firstReactantLower = interaction.firstReactant.toLowerCase();
-        const secondReactantLower = interaction.secondReactant.toLowerCase();
-        
-        return firstReactantLower.includes(ingredientLower) || 
-               ingredientLower.includes(firstReactantLower) ||
-               secondReactantLower.includes(ingredientLower) ||
-               ingredientLower.includes(secondReactantLower);
-      });
-      
-      return isInvolved;
+      return isMedicationInvolvedInInteraction(activeIngredients, interaction);
     });
   }, [highRiskInteractions, med]);
 

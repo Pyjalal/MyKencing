@@ -4,6 +4,7 @@ import { getDatabase } from '../services/database';
 import { logEvent, EventType } from '../services/analytics';
 import { getCachedMedicineDetails } from '../services/medicineCache';
 import { cancelMedicationReminders } from '../services/notifications';
+import { isHighRiskInteraction, isMedicationInvolvedInInteraction } from '../utils/interactionFilters';
 
 // Database row types
 interface MedicationRow {
@@ -801,18 +802,22 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
         return [];
       }
 
-      // Filter high-risk interactions
-      const highRiskInteractions = result.interactions.filter(interaction => {
-        const severity = interaction.severityRating?.rating || interaction.severity || '';
-        return severity.toLowerCase().includes('severe') || severity.toLowerCase().includes('high');
+      // Get this medication's active ingredients
+      const activeIngredients = medication.mims.activeIngredients || [];
+      console.log('[medicationStore] Medication active ingredients:', activeIngredients);
+
+      // Filter to high-risk interactions involving this medication's active ingredients
+      const relevantHighRiskInteractions = result.interactions.filter(interaction => {
+        return isHighRiskInteraction(interaction) && 
+               isMedicationInvolvedInInteraction(activeIngredients, interaction);
       });
-      console.log('[medicationStore] High-risk interactions:', highRiskInteractions.length);
+      console.log('[medicationStore] Relevant high-risk interactions:', relevantHighRiskInteractions.length);
 
       // Get unacknowledged ones
       const acknowledgedIds = medication.acknowledgedInteractionIds || [];
       console.log('[medicationStore] Acknowledged IDs:', acknowledgedIds);
       
-      const unacknowledgedInteractions = highRiskInteractions.filter(
+      const unacknowledgedInteractions = relevantHighRiskInteractions.filter(
         interaction => !acknowledgedIds.includes(interaction.interactionId)
       );
       console.log('[medicationStore] Unacknowledged interactions:', unacknowledgedInteractions.length);
