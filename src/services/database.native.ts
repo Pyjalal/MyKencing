@@ -109,9 +109,10 @@ async function applyMigration1(database: SQLite.SQLiteDatabase): Promise<void> {
       contraindications TEXT,
       drug_interactions TEXT,
       food_interactions TEXT,
-      source TEXT NOT NULL DEFAULT 'MIMS',
+      source TEXT NOT NULL DEFAULT 'PNF',
       last_updated TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      active_ingredients TEXT
     );
 
     -- Medications table (user's active prescriptions)
@@ -304,85 +305,93 @@ async function applyMigration3(database: SQLite.SQLiteDatabase): Promise<void> {
 }
 
 /**
- * Migration 4: Allow "upcoming" dose status
+ * Migration 4: Allow "upcoming" dose status and add active_ingredients column
  */
 async function applyMigration4(database: SQLite.SQLiteDatabase): Promise<void> {
-  console.log('[database.native] Migration 4: Updating doses status constraint');
+  console.log('[database.native] Migration 4: Updating schema for doses and mims_cache');
+
+  let hasUpcomingStatus = false;
+  let hasActiveIngredientsColumn = false;
 
   try {
     const tableSql = await database.getFirstAsync<{ sql: string }>(
       "SELECT sql FROM sqlite_master WHERE type='table' AND name='doses'"
     );
-    if (tableSql?.sql?.includes("'upcoming'")) {
-      console.log('[database.native] Migration 4 already applied');
-      return;
-    }
+    hasUpcomingStatus = tableSql?.sql?.includes("'upcoming'") ?? false;
   } catch (error) {
     console.warn('[database.native] Unable to inspect doses table before Migration 4:', error);
   }
 
   try {
-    await database.execAsync('BEGIN TRANSACTION;');
-    await database.execAsync('PRAGMA foreign_keys = OFF;');
-
-    await database.execAsync(`
-      CREATE TABLE doses_new (
-        id TEXT PRIMARY KEY,
-        medication_id TEXT NOT NULL,
-        scheduled_time TEXT NOT NULL,
-        actual_time TEXT,
-        status TEXT NOT NULL CHECK(status IN ('pending', 'taken', 'skipped', 'late', 'missed', 'upcoming')),
-        notes TEXT,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')),
-        FOREIGN KEY (medication_id) REFERENCES medications(id) ON DELETE CASCADE
-      );
-    `);
-
-    await database.execAsync(`
-      INSERT INTO doses_new (id, medication_id, scheduled_time, actual_time, status, notes, created_at)
-      SELECT id, medication_id, scheduled_time, actual_time, status, notes, created_at
-      FROM doses;
-    `);
-
-    await database.execAsync('DROP TABLE doses;');
-    await database.execAsync('ALTER TABLE doses_new RENAME TO doses;');
-
-    await database.execAsync('CREATE INDEX IF NOT EXISTS idx_doses_medication_id ON doses(medication_id);');
-    await database.execAsync('CREATE INDEX IF NOT EXISTS idx_doses_scheduled_time ON doses(scheduled_time);');
-    await database.execAsync('CREATE INDEX IF NOT EXISTS idx_doses_status ON doses(status);');
-
-    await database.execAsync('PRAGMA foreign_keys = ON;');
-    await database.execAsync('COMMIT;');
-
-    await database.runAsync(
-      'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
-      [4, new Date().toISOString()]
-    );
-
-    console.log('Migration 4 applied successfully');
+    const columns = await database.getAllAsync(`PRAGMA table_info(mims_cache)`);
+    hasActiveIngredientsColumn = columns.some((col: any) => col.name === 'active_ingredients');
   } catch (error) {
-    console.error('[database.native] Migration 4 failed:', error);
-    try {
-      await database.execAsync('ROLLBACK;');
-    } catch {}
-    await database.execAsync('PRAGMA foreign_keys = ON;');
-    throw error;
+    console.warn('[database.native] Unable to inspect mims_cache table before Migration 4:', error);
   }
-}
 
-/**
- * Clear all data (for testing or user data deletion)
- */
-export async function clearAllData(): Promise<void> {
-  const database = getDatabase();
-  await database.execAsync(`
-    DELETE FROM doses;
-    DELETE FROM medications;
-    DELETE FROM vitals;
-    DELETE FROM settings;
-    DELETE FROM events;
-  `);
-  console.log('All data cleared');
+  if (!hasUpcomingStatus) {
+    try {
+      await database.execAsync('BEGIN TRANSACTION;');
+      await database.execAsync('PRAGMA foreign_keys = OFF;');
+
+      await database.execAsync(`
+        CREATE TABLE doses_new (
+          id TEXT PRIMARY KEY,
+          medication_id TEXT NOT NULL,
+          scheduled_time TEXT NOT NULL,
+          actual_time TEXT,
+          status TEXT NOT NULL CHECK(status IN ('pending', 'taken', 'skipped', 'late', 'missed', 'upcoming')),
+          notes TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          FOREIGN KEY (medication_id) REFERENCES medications(id) ON DELETE CASCADE
+        );
+      `);
+
+      await database.execAsync(`
+        INSERT INTO doses_new (id, medication_id, scheduled_time, actual_time, status, notes, created_at)
+        SELECT id, medication_id, scheduled_time, actual_time, status, notes, created_at
+        FROM doses;
+      `);
+
+      await database.execAsync('DROP TABLE doses;');
+      await database.execAsync('ALTER TABLE doses_new RENAME TO doses;');
+
+      await database.execAsync('CREATE INDEX IF NOT EXISTS idx_doses_medication_id ON doses(medication_id);');
+      await database.execAsync('CREATE INDEX IF NOT EXISTS idx_doses_scheduled_time ON doses(scheduled_time);');
+      await database.execAsync('CREATE INDEX IF NOT EXISTS idx_doses_status ON doses(status);');
+
+      await database.execAsync('PRAGMA foreign_keys = ON;');
+      await database.execAsync('COMMIT;');
+    } catch (error) {
+      console.error('[database.native] Migration 4 failed while updating doses table:', error);
+      try {
+        await database.execAsync('ROLLBACK;');
+      } catch {}
+      await database.execAsync('PRAGMA foreign_keys = ON;');
+      throw error;
+    }
+  }
+
+  if (!hasActiveIngredientsColumn) {
+    try {
+      await database.execAsync(`
+        ALTER TABLE mims_cache ADD COLUMN active_ingredients TEXT;
+      `);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes('duplicate column')) {
+        throw error;
+      }
+      console.warn('[database.native] active_ingredients column already exists in mims_cache');
+    }
+  }
+
+  await database.runAsync(
+    'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+    [4, new Date().toISOString()]
+  );
+
+  console.log('[database.native] Migration 4 applied successfully');
 }
 
 /**

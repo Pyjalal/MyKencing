@@ -9,8 +9,9 @@
  */
 
 import React from 'react';
-import { View, Text } from 'react-native';
-import { cn } from '../lib/utils';
+import { View, Text, StyleSheet } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
+import { Colors, Spacing, BorderRadius, Shadows, Typography } from '../constants/theme';
 
 export interface FoodInteraction {
   id: string;
@@ -26,37 +27,60 @@ export interface FoodInteraction {
 
 interface FoodDrugInteractionAlertProps {
   interaction: FoodInteraction;
-  containerClassName?: string;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 export default function FoodDrugInteractionAlert({
   interaction,
-  containerClassName,
+  containerStyle,
 }: FoodDrugInteractionAlertProps) {
   return (
     <View
-      className={cn(
-        'bg-white rounded-[20px] p-5 shadow-md',
-        containerClassName
-      )}
-      style={{ minHeight: 155 }}
+      style={[styles.container, containerStyle]}
       accessibilityRole="alert"
       accessibilityLabel={`Food interaction: ${interaction.riskDescription}`}
     >
-      {/* Interaction Title */}
-      <Text className="text-2xl font-semibold text-warning text-center mb-3">
+      <Text style={styles.title}>
         {interaction.riskDescription}
       </Text>
 
-      {/* Recommendation Label */}
-      <Text className="text-[15px] font-medium text-text-primary text-center mb-1">
+      <Text style={styles.label}>
         Recommendation:
       </Text>
 
-      {/* Recommendation Text */}
-      <Text className="text-[15px] font-medium text-text-primary text-center">
+      <Text style={styles.recommendation}>
         {interaction.recommendation}
       </Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius['3xl'],
+    padding: Spacing.cardPadding,
+    minHeight: 155,
+    ...Shadows.md,
+  },
+  title: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.accent.main,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  label: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  recommendation: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.primary,
+    textAlign: 'center',
+  },
+});

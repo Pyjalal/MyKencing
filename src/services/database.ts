@@ -17,7 +17,10 @@ export async function initDatabase(): Promise<any> {
 }
 
 export async function cleanupInvalidMedications(): Promise<number> {
-  return databaseModule.cleanupInvalidMedications();
+  if (typeof databaseModule.cleanupInvalidMedications === 'function') {
+    return databaseModule.cleanupInvalidMedications();
+  }
+  return 0;
 }
 
 /**

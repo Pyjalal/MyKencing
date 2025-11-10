@@ -2,34 +2,29 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  Image,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, DoseStatus, VitalType } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { useVitalsStore } from '../stores/vitalsStore';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
+import { Colors } from '../constants/theme';
 import { formatDistanceToNow } from 'date-fns';
 import { useTranslation } from 'react-i18next';
-import { Search } from 'lucide-react-native';
-import { useSettingsStore } from '../stores/settingsStore';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Skeleton } from '../components/ui/skeleton';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
 };
 
-const HEART_ICON = require('../../assets/home_calculator_icon.png');
-const GLUCOSE_ICON = require('../../assets/home_glucose_icon.png');
-
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { t } = useTranslation();
-  const { todayDoses, loadMedications, loadTodayDoses, markDose } = useMedicationStore();
-  const { vitals, loadVitals } = useVitalsStore();
-  const profileName = useSettingsStore((state) => state.settings.userName?.trim() || '');
+  const { todayDoses, loadMedications, loadTodayDoses, markDose, isLoading: isLoadingMeds } = useMedicationStore();
+  const { vitals, loadVitals, isLoading: isLoadingVitals } = useVitalsStore();
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -54,6 +49,28 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     return upcoming;
   }, [todayDoses]);
 
+  const handleTakeDose = async () => {
+    if (nextDose) {
+      try {
+        await markDose(nextDose.id, DoseStatus.Taken);
+        await loadTodayDoses();
+      } catch (error) {
+        console.error('HomeScreen: Error marking dose:', error);
+      }
+    }
+  };
+
+  const handleSkipDose = async () => {
+    if (nextDose) {
+      try {
+        await markDose(nextDose.id, DoseStatus.Skipped);
+        await loadTodayDoses();
+      } catch (error) {
+        console.error('HomeScreen: Error skipping dose:', error);
+      }
+    }
+  };
+
   const timeUntilDose = useMemo(() => {
     if (!nextDose) return null;
     return formatDistanceToNow(new Date(nextDose.scheduledTime), { addSuffix: false });
@@ -64,64 +81,23 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     return vitals.filter(v => new Date(v.measuredAt).toDateString() === today).length;
   }, [vitals]);
 
+  const handleVitalsCardPress = () => {
+    navigation.navigate('Vitals');
+  };
+
   const handleDoseDetailsPress = () => {
     if (nextDose) {
       navigation.navigate('MedicineDetail', { medicationId: nextDose.medicationId });
     }
   };
 
-  const handleSearchPress = () => {
-    navigation.navigate('AddMedicine', {} as any);
-  };
-
-  const handleCalculatorPress = (type: 'heart' | 'diabetes') => {
-    if (type === 'heart') {
-      navigation.navigate('RiskAssessment');
-    } else {
-      navigation.navigate('Vitals');
-    }
-  };
-
-  const handleTakeDose = async () => {
-    if (nextDose) {
-      try {
-        console.log('HomeScreen: Marking dose as taken:', nextDose.id);
-        await markDose(nextDose.id, DoseStatus.Taken);
-        // Reload doses to update UI
-        await loadTodayDoses();
-        console.log('HomeScreen: Dose marked and reloaded');
-      } catch (error) {
-        console.error('HomeScreen: Error marking dose:', error);
-      }
-    }
-  };
-
-  const handleSkipDose = async () => {
-    if (nextDose) {
-      try {
-        console.log('HomeScreen: Marking dose as skipped:', nextDose.id);
-        await markDose(nextDose.id, DoseStatus.Skipped);
-        // Reload doses to update UI
-        await loadTodayDoses();
-        console.log('HomeScreen: Dose skipped and reloaded');
-      } catch (error) {
-        console.error('HomeScreen: Error skipping dose:', error);
-      }
-    }
-  };
-
-  const greeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return t('home.greeting_morning', 'Good morning');
-    if (hour < 18) return t('home.greeting_afternoon', 'Good afternoon');
-    return t('home.greeting_evening', 'Good evening');
-  }, [t]);
+  const isLoading = isLoadingMeds || isLoadingVitals;
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-gray-100">
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 60, paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -131,261 +107,82 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           />
         }
       >
-        <View style={styles.heroSection}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.canGoBack() && navigation.goBack()}
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
+        <TouchableOpacity className="w-10 h-10 items-center justify-center mb-4" onPress={() => navigation.canGoBack() && navigation.goBack()}>
+          <Text className="text-2xl text-black">←</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity style={styles.searchBar} activeOpacity={0.8} onPress={handleSearchPress}>
-            <Search size={20} color={Colors.primary.dark} />
-            <Text style={styles.searchPlaceholder}>{t('home.search_placeholder', 'Search here')}</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.greetingText}>
-            {greeting},{'\n'}{profileName || t('home.user_name', 'Friend')}
-          </Text>
-        </View>
-
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>{t('home.health_risk_calculators', 'Health Risk Calculators')}</Text>
-          <View style={styles.calculatorRow}>
-            <TouchableOpacity
-              style={styles.calculatorCard}
-              activeOpacity={0.85}
-              onPress={() => handleCalculatorPress('heart')}
-            >
-              <View style={styles.calculatorIconWrapper}>
-                <Image source={HEART_ICON} style={styles.calculatorIcon} resizeMode="contain" />
+        {isLoading ? (
+          <Skeleton className="h-64 w-full rounded-2xl mb-4" />
+        ) : (
+          <Card className="mb-4 bg-white rounded-2xl shadow-md" onPress={handleVitalsCardPress}>
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-red-500">{t('home.todays_vitals')}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {todayVitalsCount > 0 ? (
+                <View className="items-center justify-center min-h-48">
+                  <Text className="text-lg text-gray-500">{t('home.recorded_today', { count: todayVitalsCount })}</Text>
+                  <Text className="text-sm text-gray-400 italic mt-2">{t('home.tap_to_view_details')}</Text>
+                </View>
+              ) : (
+                <View className="items-center justify-center min-h-48">
+                  <Text className="text-base text-gray-400">{t('home.no_vitals_recorded')}</Text>
+                  <Text className="text-sm text-gray-400 italic mt-2">{t('home.tap_to_add_vitals')}</Text>
+                </View>
+              )}
+            </CardContent>
+            <CardFooter>
+              <View className="w-full">
+                <Text className="text-base font-semibold text-black mb-2">{t('home.quick_add')}</Text>
+                <View className="flex-row gap-2">
+                  <Button className="flex-1 bg-red-500 rounded-lg" onPress={() => navigation.navigate('AddVital', { type: VitalType.BloodPressure })}>
+                    <Text className="text-white font-semibold">{t('home.bp')}</Text>
+                  </Button>
+                  <Button className="flex-1 bg-red-500 rounded-lg" onPress={() => navigation.navigate('AddVital', { type: VitalType.Glucose })}>
+                    <Text className="text-white font-semibold">{t('home.glucose')}</Text>
+                  </Button>
+                  <Button className="flex-1 bg-red-500 rounded-lg" onPress={() => navigation.navigate('AddVital', { type: VitalType.Weight })}>
+                    <Text className="text-white font-semibold">{t('home.weight')}</Text>
+                  </Button>
+                </View>
               </View>
-              <Text style={styles.calculatorTitle}>Framingham{ '\n' }Heart Disease Risk</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.calculatorCard}
-              activeOpacity={0.85}
-              onPress={() => handleCalculatorPress('diabetes')}
-            >
-              <View style={styles.calculatorIconWrapper}>
-                <Image source={GLUCOSE_ICON} style={styles.calculatorIcon} resizeMode="contain" />
-              </View>
-              <Text style={styles.calculatorTitle}>FINDRISC{ '\n' }Diabetes Risk</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+            </CardFooter>
+          </Card>
+        )}
 
-        <View style={styles.sectionCard}>
-          <Text style={styles.nextDoseLabel}>{t('home.next_dose_label', 'Next Dose:')}</Text>
-          {nextDose ? (
-            <TouchableOpacity
-              style={styles.medicationChip}
-              onPress={handleDoseDetailsPress}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.medicationChipText}>
-                {nextDose.medication.mims.brandName || nextDose.medication.mims.genericName}
-              </Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={[styles.medicationChip, styles.medicationChipInactive]}>
-              <Text style={styles.medicationChipText}>{t('home.no_medication_selected', 'No medication scheduled')}</Text>
-            </View>
-          )}
-
-          <Text style={styles.doseTimingText}>
-            {nextDose
-              ? t('home.dose_in_time', {
-                  defaultValue: 'in {{time}}',
-                  time: timeUntilDose,
-                })
-              : t('home.no_upcoming_doses', 'No upcoming doses')}
-          </Text>
-
-          <View style={styles.doseActions}>
-            <TouchableOpacity
-              style={[styles.primaryActionButton, !nextDose && styles.actionDisabled]}
-              onPress={handleTakeDose}
-              disabled={!nextDose}
-            >
-              <Text style={styles.primaryActionText}>{t('home.take', 'Take')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.secondaryActionButton, !nextDose && styles.actionDisabledSecondary]}
-              onPress={handleSkipDose}
-              disabled={!nextDose}
-            >
-              <Text style={styles.secondaryActionText}>{t('home.skip', 'Skip')}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {isLoading ? (
+          <Skeleton className="h-48 w-full rounded-2xl" />
+        ) : nextDose ? (
+          <Card className="bg-white rounded-2xl shadow-md">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-yellow-500">{t('home.next_dose')}</CardTitle>
+            </CardHeader>
+            <CardContent className="items-center">
+              <Button variant="link" onPress={handleDoseDetailsPress}>
+                <Text className="text-xl font-bold text-yellow-600">{nextDose.medication.mims.brandName || nextDose.medication.mims.genericName}</Text>
+              </Button>
+              <Text className="text-base text-black text-center mb-4">{t('home.in')} {timeUntilDose}</Text>
+            </CardContent>
+            <CardFooter className="flex-row gap-4 justify-center">
+              <Button className="bg-yellow-500 min-w-[100px] rounded-lg" onPress={handleTakeDose}>
+                <Text className="text-white font-semibold">{t('home.take')}</Text>
+              </Button>
+              <Button variant="outline" className="min-w-[100px] rounded-lg" onPress={handleSkipDose}>
+                <Text className="text-black font-semibold">{t('home.skip')}</Text>
+              </Button>
+            </CardFooter>
+          </Card>
+        ) : (
+          <Card className="bg-white rounded-2xl shadow-md">
+            <CardHeader>
+              <CardTitle className="text-2xl font-bold text-yellow-500">{t('home.next_dose')}</CardTitle>
+            </CardHeader>
+            <CardContent className="items-center p-10">
+              <Text className="text-lg text-gray-400">{t('home.no_upcoming_doses')}</Text>
+            </CardContent>
+          </Card>
+        )}
       </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background.primary,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    paddingBottom: 120,
-  },
-  heroSection: {
-    backgroundColor: Colors.primary.dark,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.xl * 1.5,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
-    marginBottom: Spacing.lg,
-    ...Shadows.sm,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  backIcon: {
-    fontSize: 26,
-    color: Colors.primary.contrast,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background.card,
-    borderRadius: 30,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
-  searchPlaceholder: {
-    marginLeft: Spacing.md,
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.tertiary,
-  },
-  greetingText: {
-    fontSize: 28,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.contrast,
-    lineHeight: 34,
-  },
-  sectionCard: {
-    backgroundColor: Colors.background.card,
-    marginHorizontal: Spacing.lg,
-    borderRadius: 28,
-    padding: Spacing.xl,
-    marginBottom: Spacing.lg,
-    ...Shadows.md,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.lg,
-  },
-  calculatorRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
-  },
-  calculatorCard: {
-    flex: 1,
-    backgroundColor: '#F8F8FF',
-    borderRadius: 24,
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#EEF0FD',
-  },
-  calculatorIconWrapper: {
-    width: 54,
-    height: 54,
-    borderRadius: 18,
-    backgroundColor: '#FFEDED',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  calculatorIcon: {
-    width: 32,
-    height: 32,
-  },
-  calculatorTitle: {
-    textAlign: 'center',
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.medium,
-    color: Colors.text.primary,
-    lineHeight: 18,
-  },
-  nextDoseLabel: {
-    fontSize: 22,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.primary,
-    marginBottom: Spacing.md,
-  },
-  medicationChip: {
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.accent.main,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
-    borderRadius: 999,
-    marginBottom: Spacing.sm,
-  },
-  medicationChipInactive: {
-    backgroundColor: Colors.neutral[200],
-  },
-  medicationChipText: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.accent.contrast,
-  },
-  doseTimingText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.secondary,
-    marginBottom: Spacing.lg,
-  },
-  doseActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.md,
-  },
-  primaryActionButton: {
-    flex: 1,
-    backgroundColor: Colors.accent.main,
-    paddingVertical: Spacing.md,
-    borderRadius: 999,
-    alignItems: 'center',
-  },
-  primaryActionText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.accent.contrast,
-  },
-  secondaryActionButton: {
-    flex: 1,
-    backgroundColor: '#EEF1FF',
-    paddingVertical: Spacing.md,
-    borderRadius: 999,
-    alignItems: 'center',
-  },
-  secondaryActionText: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.primary.dark,
-  },
-  actionDisabled: {
-    opacity: 0.4,
-  },
-  actionDisabledSecondary: {
-    backgroundColor: Colors.neutral[200],
-  },
-});

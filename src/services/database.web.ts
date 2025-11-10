@@ -577,6 +577,52 @@ export async function exportDatabaseStats(): Promise<any> {
   };
 }
 
+export async function cleanupInvalidMedications(): Promise<number> {
+  const database = getDatabase();
+
+  try {
+    const dedupeNote = 'Auto-disabled: Invalid registration number';
+
+    const result = await database.runAsync(
+      `UPDATE medications
+       SET is_active = 0,
+           notes = CASE
+             WHEN notes IS NULL OR notes = '' THEN ?
+             ELSE notes || ' [' || ? || ']'
+           END,
+           updated_at = datetime('now')
+       WHERE is_active = 1
+         AND (
+           registration_no LIKE 'mims-%'
+           OR registration_no LIKE 'custom_%'
+           OR registration_no LIKE 'med_%'
+           OR registration_no LIKE '%sample%'
+           OR registration_no LIKE '%test%'
+           OR registration_no LIKE '%mock%'
+           OR registration_no = 'Loading...'
+           OR registration_no = 'Unknown'
+           OR registration_no = ''
+           OR registration_no IS NULL
+           OR LENGTH(registration_no) < 6
+         )`,
+      [dedupeNote, dedupeNote]
+    );
+
+    const changed = (result as any)?.changes ?? 0;
+
+    if (changed > 0) {
+      console.log(`[database.web] Cleaned up ${changed} invalid medication(s)`);
+    } else {
+      console.log('[database.web] No invalid medications detected');
+    }
+
+    return changed;
+  } catch (error) {
+    console.error('[database.web] Error cleaning invalid medications:', error);
+    return 0;
+  }
+}
+
 /**
  * Cleanup function to stop auto-persist interval
  * Call this when app is closing to prevent memory leaks
