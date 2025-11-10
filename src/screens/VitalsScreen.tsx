@@ -4,14 +4,17 @@
  * Features hard-coded demo data for presentations
  */
 
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useVitalsStore } from '../stores/vitalsStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { VitalType } from '../types';
-import { Search, BotMessageSquare } from 'lucide-react-native';
+import { Vital, VitalType } from '../types';
+import { BotMessageSquare } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSettingsStore } from '../stores/settingsStore';
+import { RiskScoreCircle, ScreenLayout } from '../components';
+import { calculateFindrisc, calculateFraminghamSimplified } from '../utils/riskScores';
 
 // Hard-coded demo data for 14 days
 const DEMO_DATA = {
@@ -107,39 +110,22 @@ export default function VitalsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header with background */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.canGoBack() && navigation.goBack()}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('vitals.search_here')}
-            placeholderTextColor={Colors.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-
-        {/* Title */}
-        <Text style={styles.headerTitle}>{t('vitals.vitals_tracker')}</Text>
-
-        {/* AI Chat Button */}
+    <ScreenLayout
+      backgroundColor={Colors.background.vitals}
+      contentBackgroundColor="#EFF1FE"
+      title={t('vitals.vitals_tracker')}
+      searchPlaceholder={t('vitals.search_here')}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      onBackPress={() => navigation.canGoBack() && navigation.goBack()}
+      headerSlot={
         <TouchableOpacity style={styles.aiButton} onPress={handleChatPress}>
           <View style={styles.aiIconContainer}>
             <BotMessageSquare size={24} color={Colors.secondary.main} />
           </View>
         </TouchableOpacity>
-      </View>
-
+      }
+    >
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Demo Mode Toggle */}
         <TouchableOpacity
@@ -336,55 +322,11 @@ export default function VitalsScreen() {
           </>
         )}
       </ScrollView>
-    </View>
+    </ScreenLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background.primary,
-  },
-  header: {
-    backgroundColor: Colors.background.vitals,
-    paddingTop: Spacing['2xl'] + 10,
-    paddingBottom: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  backIcon: {
-    fontSize: 28,
-    color: Colors.text.inverse,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm + 2,
-    marginBottom: Spacing.lg,
-  },
-  searchIcon: {
-    marginRight: Spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
-  },
-  headerTitle: {
-    fontSize: 32,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.inverse,
-    marginBottom: Spacing.sm,
-  },
   aiButton: {
     position: 'absolute',
     right: Spacing.lg,

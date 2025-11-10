@@ -12,6 +12,7 @@ export { default as DoseStatusBadge } from './DoseStatusBadge';
 export { PillButton } from './PillButton';
 export { CustomTabBar } from './BottomNavBar';
 export { default as RiskScoreCircle } from './RiskScoreCircle';
+export { default as ScreenLayout } from './ScreenHeader';
 
 // Medication carousel and interaction components
 export { default as MedicationCarousel } from './MedicationCarousel';
