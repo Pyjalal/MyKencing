@@ -214,9 +214,6 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
       backgroundColor={Colors.background.meds}
       contentBackgroundColor={Colors.background.primary}
       title={t('medications.medications_title')}
-      searchPlaceholder={t('medications.search_placeholder')}
-      searchQuery={searchQuery}
-      onSearchChange={setSearchQuery}
       onBackPress={() => navigation.goBack()}
       headerSlot={
         <PillButton
