@@ -835,7 +835,7 @@ const styles = StyleSheet.create({
   selectedMedicineLabel: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
-    color: Colors.accent.main,
+    color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
   selectedMedicineName: {
