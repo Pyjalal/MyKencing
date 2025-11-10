@@ -212,8 +212,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         </View>
 
         <View style={styles.sectionCard}>
-          <Text style={styles.nextDoseLabel}>{t('home.next_dose_label', 'Next Dose:')}</Text>
-          
+          {!hasUnacknowledgedInteraction && (
+            <Text style={styles.nextDoseLabel}>{t('home.next_dose_label', 'Next Dose:')}</Text>
+          )}
           {hasUnacknowledgedInteraction ? (
             <View style={styles.interactionBlockedContainer}>
               <View style={styles.warningIconContainer}>
