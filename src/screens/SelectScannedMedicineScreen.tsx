@@ -97,9 +97,9 @@ export default function SelectScannedMedicineScreen() {
                         <Text style={[styles.matchName, isSelected && styles.matchNameSelected]}>
                           {medicine.brandName || medicine.genericName}
                         </Text>
-                    <Text style={styles.confidenceBadge}>
+                    {/* <Text style={styles.confidenceBadge}>
                       {Math.round((medicine.confidence || 0) * 100)}%
-                    </Text>
+                    </Text> */}
                   </View>
                   <Text style={[styles.matchStrength, isSelected && styles.matchDetailsSelected]}>
                     {medicine.strength && `${medicine.strength}`}
