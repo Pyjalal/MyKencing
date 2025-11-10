@@ -167,14 +167,14 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
     <ScreenLayout
       backgroundColor={Colors.background.meds}
       contentBackgroundColor="#EFF1FE"
-      title="Medications"
-      searchPlaceholder="Search here"
+      title={t('medications.medications_title')}
+      searchPlaceholder={t('medications.search_placeholder')}
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
       onBackPress={() => navigation.goBack()}
       headerSlot={
         <PillButton
-          title="View Interactions"
+          title={t('medications.view_interactions')}
           onPress={handleManagePress}
           variant="white"
           style={styles.manageButton}
@@ -249,14 +249,14 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
 
               <View style={styles.medicationActions}>
                 <PillButton
-                  title={dose.status === DoseStatus.Taken ? 'Taken' : 'Take'}
+                  title={dose.status === DoseStatus.Taken ? t('medications.taken') : t('medications.take')}
                   onPress={() => handleTakeDose(dose.id)}
                   variant="yellow"
                   minWidth={80}
                   disabled={dose.status === DoseStatus.Taken}
                 />
                 <PillButton
-                  title="Skip"
+                  title={t('medications.skip')}
                   onPress={() => handleSkipDose(dose.id)}
                   variant="light"
                   minWidth={80}
@@ -268,7 +268,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
         ) : (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>
-              {searchQuery ? 'No medications found' : 'No medications scheduled for this day'}
+              {searchQuery ? t('medications.no_medications_found') : t('medications.no_medications_scheduled')}
             </Text>
           </View>
         )}

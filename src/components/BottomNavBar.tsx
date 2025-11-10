@@ -16,7 +16,7 @@ const getTabIcon = (routeName: string, isFocused: boolean, activeColor: string) 
   const icons: Record<string, React.ReactNode> = {
     HomeTab: <Home size={size} color={iconColor} />,
     VitalsTab: <Heart size={size} color={iconColor} />,
-    AddMedicine: <Plus size={28} color={Colors.primary.contrast} />,
+    ScanTab: <Plus size={28} color={Colors.primary.contrast} />,
     MedicationsTab: <Pill size={size} color={iconColor} />,
     ProfileTab: <User size={size} color={iconColor} />,
   };
@@ -29,7 +29,7 @@ const getTabLabel = (routeName: string, label: any): string => {
   const labels: Record<string, string> = {
     HomeTab: 'Home',
     VitalsTab: 'Vitals',
-    AddMedicine: '',
+    ScanTab: '',
     MedicationsTab: 'Meds',
     ProfileTab: 'Profile',
   };
@@ -67,8 +67,8 @@ export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarPro
 
           const activeColor = getActiveTabColor(route.name);
 
-          // Special styling for center AddMedicine button
-          if (route.name === 'AddMedicine') {
+          // Special styling for center scan button
+          if (route.name === 'ScanTab') {
             return (
               <TouchableOpacity
                 key={route.key}

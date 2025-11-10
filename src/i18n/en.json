@@ -106,7 +106,13 @@
     "no_reminders_today": "No reminders for today",
     "today": "Today",
     "tomorrow": "Tomorrow",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "view_interactions": "View Interactions",
+    "take": "Take",
+    "taken": "Taken",
+    "skip": "Skip",
+    "no_medications_found": "No medications found",
+    "no_medications_scheduled": "No medications scheduled for this day"
   },
   "medicine_detail": {
     "medicine_details": "Medicine Details",

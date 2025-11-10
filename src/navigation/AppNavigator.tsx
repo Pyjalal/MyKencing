@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, ActivityIndicator } from 'react-native';
@@ -34,6 +34,21 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
 /**
+ * Dummy screen that navigates to ScanPrescription
+ * Used as a placeholder for the center tab button
+ */
+function ScanPrescriptionTabPlaceholder() {
+  const navigation = useNavigation<any>();
+  
+  React.useEffect(() => {
+    // Navigate to the stack screen immediately
+    navigation.navigate('ScanPrescription');
+  }, [navigation]);
+  
+  return null;
+}
+
+/**
  * Main tab navigator (bottom tabs)
  */
 function MainTabs() {
@@ -59,11 +74,19 @@ function MainTabs() {
         }}
       />
       <Tab.Screen
-        name="AddMedicine"
-        component={AddMedicineScreen}
+        name="ScanTab"
+        component={ScanPrescriptionTabPlaceholder}
         options={{
           tabBarLabel: '',
         }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Prevent default tab navigation
+            e.preventDefault();
+            // Navigate to the stack screen instead
+            navigation.navigate('ScanPrescription');
+          },
+        })}
       />
       <Tab.Screen
         name="MedicationsTab"
@@ -142,6 +165,11 @@ export default function AppNavigator() {
           options={{ headerShown: false }}
         />
         <Stack.Screen
+          name="AddMedicine"
+          component={AddMedicineScreen}
+          options={{ title: 'Add Medicine' }}
+        />
+        <Stack.Screen
           name="MedicineDetail"
           component={MedicineDetailScreen}
           options={{ title: 'Medicine Details' }}
@@ -149,7 +177,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="ScanPrescription"
           component={ScanPrescriptionScreen}
-          options={{ title: 'Scan Prescription' }}
+          options={{ 
+            title: 'Scan Prescription',
+            gestureEnabled: true,
+            animation: 'slide_from_bottom',
+          }}
         />
         <Stack.Screen
           name="SelectScannedMedicine"
