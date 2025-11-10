@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import NodeCache from 'node-cache';
 import { config } from '../config.js';
 import type {
   StockleyResponse,
@@ -10,30 +11,56 @@ import { ScrapingError } from '../types.js';
 export class StockleyService {
   private readonly baseUrl = 'https://www.medicinescomplete.com/api/interactions/stockley';
   private supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+  
+  // In-memory cache with 1 hour TTL (3600 seconds)
+  // checkperiod: 120 seconds - automatically removes expired entries
+  private static memoryCache = new NodeCache({ stdTTL: 3600, checkperiod: 120 });
 
   async checkInteractions(medicineIds: string[], foodDrinkTobacco: boolean): Promise<DrugInteraction[]> {
     if (medicineIds.length < 2) {
       return [];
     }
 
-    // Try to get from database cache first
-    const cached = await this.getFromCache(medicineIds, foodDrinkTobacco);
-    if (cached) {
-      return this.transformInteractions(cached);
+    // Generate cache key
+    const cacheKey = this.generateCacheKey(medicineIds, foodDrinkTobacco);
+
+    // 1. Try to get from in-memory cache first (fastest)
+    const memoryCached = StockleyService.memoryCache.get<StockleyResponse>(cacheKey);
+    if (memoryCached) {
+      console.log(`Cache hit (memory): ${cacheKey}`);
+      return this.transformInteractions(memoryCached);
     }
 
-    // Fetch ingredients for the medicines
+    // 2. Try to get from database cache
+    const dbCached = await this.getFromCache(medicineIds, foodDrinkTobacco);
+    if (dbCached) {
+      console.log(`Cache hit (database): ${cacheKey}`);
+      // Store in memory cache for next time
+      StockleyService.memoryCache.set(cacheKey, dbCached);
+      return this.transformInteractions(dbCached);
+    }
+
+    // 3. Fetch ingredients for the medicines
     const ingredients = await this.getIngredientsForMedicines(medicineIds);
     if (ingredients.length < 2) {
       return [];
     }
 
+    // 4. Fetch from API
+    console.log(`Cache miss: ${cacheKey}`);
     const response = await this.fetchInteractions(ingredients, foodDrinkTobacco);
 
-    // Cache the response in database
+    // Cache the response in both memory and database
+    StockleyService.memoryCache.set(cacheKey, response);
     await this.setCache(medicineIds, foodDrinkTobacco, response);
 
     return this.transformInteractions(response);
+  }
+
+  private generateCacheKey(medicineIds: string[], foodDrinkTobacco: boolean): string {
+    // Sort medicine IDs for consistent cache keys regardless of order
+    const sortedIds = [...medicineIds].sort().join(',');
+    return `interactions:${sortedIds}:${foodDrinkTobacco}`;
   }
 
   private async getIngredientsForMedicines(medicineIds: string[]): Promise<string[]> {
@@ -173,36 +200,74 @@ export class StockleyService {
 
   async clearCache(): Promise<void> {
     try {
+      // Clear in-memory cache
+      StockleyService.memoryCache.flushAll();
+      console.log('In-memory cache cleared');
+
+      // Clear database cache
       const { error } = await this.supabase
         .from('drug_interactions_cache')
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows
 
       if (error) {
-        console.warn('Failed to clear cache:', error);
+        console.warn('Failed to clear database cache:', error);
+      } else {
+        console.log('Database cache cleared');
       }
     } catch (error) {
       console.warn('Failed to clear cache:', error);
     }
   }
 
-  async getCacheStats(): Promise<{ size: number; entries: any[] }> {
+  async getCacheStats(): Promise<{ 
+    memory: { 
+      size: number; 
+      hits: number; 
+      misses: number; 
+      keys: string[] 
+    }; 
+    database: { 
+      size: number; 
+      entries: any[] 
+    } 
+  }> {
     try {
+      // Get in-memory cache stats
+      const memoryStats = StockleyService.memoryCache.getStats();
+      const memoryKeys = StockleyService.memoryCache.keys();
+
+      // Get database cache stats
       const { data, error } = await this.supabase
         .from('drug_interactions_cache')
         .select('medicine_ids, food_drink_tobacco, created_at')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        return { size: 0, entries: [] };
-      }
-
       return {
-        size: data?.length || 0,
-        entries: data || []
+        memory: {
+          size: memoryKeys.length,
+          hits: memoryStats.hits,
+          misses: memoryStats.misses,
+          keys: memoryKeys
+        },
+        database: {
+          size: error ? 0 : (data?.length || 0),
+          entries: error ? [] : (data || [])
+        }
       };
     } catch (error) {
-      return { size: 0, entries: [] };
+      return {
+        memory: {
+          size: 0,
+          hits: 0,
+          misses: 0,
+          keys: []
+        },
+        database: {
+          size: 0,
+          entries: []
+        }
+      };
     }
   }
 }
