@@ -178,7 +178,7 @@ export default function AppNavigator() {
           name="ScanPrescription"
           component={ScanPrescriptionScreen}
           options={{ 
-            title: 'Scan Prescription',
+            title: 'Scan Medication',
             gestureEnabled: true,
             animation: 'slide_from_bottom',
           }}
