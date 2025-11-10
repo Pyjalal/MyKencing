@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { Colors } from '../constants/theme';
 
 type UsageDatum = { date: string; count: number };
@@ -10,38 +10,7 @@ export default function UsageChart({ data }: { data: UsageDatum[] }) {
     [data]
   );
 
-  if (Platform.OS === 'web') {
-    return (
-      <View>
-        <Text style={{ fontWeight: '600', marginBottom: 8 }}>Daily activity</Text>
-        {chartData.length === 0 ? (
-          <Text style={{ color: Colors.text.tertiary }}>No activity recorded for this range.</Text>
-        ) : (
-          chartData.map(entry => (
-            <View
-              key={entry.x}
-              style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}
-            >
-              <Text style={{ width: 56 }}>{entry.x}</Text>
-              <View style={{ flex: 1, height: 8, backgroundColor: Colors.neutral[200], borderRadius: 4 }}>
-                <View
-                  style={{
-                    width: `${Math.min(entry.y * 10, 100)}%`,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: Colors.text.link,
-                  }}
-                />
-              </View>
-              <Text style={{ marginLeft: 8 }}>{entry.y}</Text>
-            </View>
-          ))
-        )}
-      </View>
-    );
-  }
-
-  // Lazy-load victory-native to avoid bundling on web where it is unsupported.
+  // Use Victory Native for charts
   try {
     const { VictoryBar, VictoryChart, VictoryTheme, VictoryAxis } = require('victory-native');
 

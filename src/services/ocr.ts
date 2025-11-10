@@ -8,24 +8,20 @@ import { ExtractedMedicine, MIMSSearchResult } from '../types';
 import { parsePrescriptionText } from './ner';
 import { batchSearchMedicines } from './mymedix-api';
 import { logEvent, EventType } from './analytics';
-import { Platform } from 'react-native';
 
 // Import ML Kit Text Recognition
 let textRecognition: any = null;
 try {
-  if (Platform.OS !== 'web') {
-    textRecognition = require('@react-native-ml-kit/text-recognition').default;
-  }
+  textRecognition = require('@react-native-ml-kit/text-recognition').default;
 } catch (error) {
   console.warn('ML Kit Text Recognition not available:', error);
 }
 
 /**
  * Whether native OCR is available in this runtime
- * Note: Expo Go and Web do not support this native module.
  */
 export function isOcrAvailable(): boolean {
-  return !!textRecognition && Platform.OS !== 'web';
+  return !!textRecognition;
 }
 
 /**

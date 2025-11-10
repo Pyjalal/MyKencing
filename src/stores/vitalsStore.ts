@@ -1,5 +1,14 @@
 import { create } from 'zustand';
-import { Vital, VitalType, BloodPressureVital, GlucoseVital, WeightVital, VitalTrend } from '../types';
+import {
+  Vital,
+  VitalType,
+  BloodPressureVital,
+  GlucoseVital,
+  WeightVital,
+  WaistCircumferenceVital,
+  CholesterolVital,
+  VitalTrend,
+} from '../types';
 import { getDatabase } from '../services/database';
 import { logEvent, EventType } from '../services/analytics';
 
@@ -13,6 +22,9 @@ interface VitalsState {
   addBloodPressure: (systolic: number, diastolic: number, measuredAt?: string, notes?: string) => Promise<void>;
   addGlucose: (value: number, unit: 'mmol/L' | 'mg/dL', measuredAt?: string, notes?: string) => Promise<void>;
   addWeight: (value: number, unit: 'kg' | 'lb', measuredAt?: string, notes?: string) => Promise<void>;
+  addWaistCircumference: (value: number, measuredAt?: string, notes?: string) => Promise<void>;
+  addTotalCholesterol: (value: number, measuredAt?: string, notes?: string) => Promise<void>;
+  addHdlCholesterol: (value: number, measuredAt?: string, notes?: string) => Promise<void>;
   deleteVital: (id: string) => Promise<void>;
   getTrend: (type: VitalType, days: number) => Promise<VitalTrend[]>;
   getLatestByType: (type: VitalType) => Vital | undefined;
@@ -43,37 +55,69 @@ export const useVitalsStore = create<VitalsState>((set, get) => ({
       const rows = await db.getAllAsync<any>(query, params);
 
       const vitals: Vital[] = rows.map((row) => {
-        if (row.type === VitalType.BloodPressure) {
-          return {
-            id: row.id,
-            type: VitalType.BloodPressure,
-            systolic: row.systolic,
-            diastolic: row.diastolic,
-            unit: 'mmHg',
-            measuredAt: row.measured_at,
-            notes: row.notes,
-            createdAt: row.created_at,
-          } as BloodPressureVital;
-        } else if (row.type === VitalType.Glucose) {
-          return {
-            id: row.id,
-            type: VitalType.Glucose,
-            value: row.value,
-            unit: row.unit,
-            measuredAt: row.measured_at,
-            notes: row.notes,
-            createdAt: row.created_at,
-          } as GlucoseVital;
-        } else {
-          return {
-            id: row.id,
-            type: VitalType.Weight,
-            value: row.value,
-            unit: row.unit,
-            measuredAt: row.measured_at,
-            notes: row.notes,
-            createdAt: row.created_at,
-          } as WeightVital;
+        switch (row.type) {
+          case VitalType.BloodPressure:
+            return {
+              id: row.id,
+              type: VitalType.BloodPressure,
+              systolic: row.systolic,
+              diastolic: row.diastolic,
+              unit: 'mmHg',
+              measuredAt: row.measured_at,
+              notes: row.notes,
+              createdAt: row.created_at,
+            } as BloodPressureVital;
+          case VitalType.Glucose:
+            return {
+              id: row.id,
+              type: VitalType.Glucose,
+              value: row.value,
+              unit: row.unit,
+              measuredAt: row.measured_at,
+              notes: row.notes,
+              createdAt: row.created_at,
+            } as GlucoseVital;
+          case VitalType.Weight:
+            return {
+              id: row.id,
+              type: VitalType.Weight,
+              value: row.value,
+              unit: row.unit,
+              measuredAt: row.measured_at,
+              notes: row.notes,
+              createdAt: row.created_at,
+            } as WeightVital;
+          case VitalType.WaistCircumference:
+            return {
+              id: row.id,
+              type: VitalType.WaistCircumference,
+              value: row.value,
+              unit: 'cm',
+              measuredAt: row.measured_at,
+              notes: row.notes,
+              createdAt: row.created_at,
+            } as WaistCircumferenceVital;
+          case VitalType.TotalCholesterol:
+          case VitalType.HDLCholesterol:
+            return {
+              id: row.id,
+              type: row.type,
+              value: row.value,
+              unit: 'mmol/L',
+              measuredAt: row.measured_at,
+              notes: row.notes,
+              createdAt: row.created_at,
+            } as CholesterolVital;
+          default:
+            return {
+              id: row.id,
+              type: row.type,
+              value: row.value,
+              unit: row.unit,
+              measuredAt: row.measured_at,
+              notes: row.notes,
+              createdAt: row.created_at,
+            } as Vital;
         }
       });
 
@@ -147,6 +191,75 @@ export const useVitalsStore = create<VitalsState>((set, get) => ({
       set({ isLoading: false });
     } catch (error) {
       console.error('Error adding weight:', error);
+      set({ error: (error as Error).message, isLoading: false });
+    }
+  },
+
+  addWaistCircumference: async (value, measuredAt, notes) => {
+    set({ isLoading: true, error: null });
+    try {
+      const db = getDatabase();
+      const id = `vital_wc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const now = new Date().toISOString();
+      const measured = measuredAt || now;
+
+      await db.runAsync(
+        `INSERT INTO vitals (id, type, value, unit, measured_at, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, VitalType.WaistCircumference, value, 'cm', measured, notes || null, now]
+      );
+
+      await get().loadVitals();
+      try { await logEvent(EventType.VitalLogged, { type: 'waist_circumference' }); } catch {}
+      set({ isLoading: false });
+    } catch (error) {
+      console.error('Error adding waist circumference:', error);
+      set({ error: (error as Error).message, isLoading: false });
+    }
+  },
+
+  addTotalCholesterol: async (value, measuredAt, notes) => {
+    set({ isLoading: true, error: null });
+    try {
+      const db = getDatabase();
+      const id = `vital_tc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const now = new Date().toISOString();
+      const measured = measuredAt || now;
+
+      await db.runAsync(
+        `INSERT INTO vitals (id, type, value, unit, measured_at, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, VitalType.TotalCholesterol, value, 'mmol/L', measured, notes || null, now]
+      );
+
+      await get().loadVitals();
+      try { await logEvent(EventType.VitalLogged, { type: 'total_cholesterol' }); } catch {}
+      set({ isLoading: false });
+    } catch (error) {
+      console.error('Error adding total cholesterol:', error);
+      set({ error: (error as Error).message, isLoading: false });
+    }
+  },
+
+  addHdlCholesterol: async (value, measuredAt, notes) => {
+    set({ isLoading: true, error: null });
+    try {
+      const db = getDatabase();
+      const id = `vital_hdl_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const now = new Date().toISOString();
+      const measured = measuredAt || now;
+
+      await db.runAsync(
+        `INSERT INTO vitals (id, type, value, unit, measured_at, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [id, VitalType.HDLCholesterol, value, 'mmol/L', measured, notes || null, now]
+      );
+
+      await get().loadVitals();
+      try { await logEvent(EventType.VitalLogged, { type: 'hdl_cholesterol' }); } catch {}
+      set({ isLoading: false });
+    } catch (error) {
+      console.error('Error adding HDL cholesterol:', error);
       set({ error: (error as Error).message, isLoading: false });
     }
   },

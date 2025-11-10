@@ -1,39 +1,16 @@
 import * as SQLite from 'expo-sqlite';
-import { Platform } from 'react-native';
 
 // Database version for migrations
-const DB_VERSION = 4;
+const DB_VERSION = 6;
 const DB_NAME = 'mykencing.db';
 
 let db: SQLite.SQLiteDatabase | null = null;
-
-function createInMemoryDatabase(): SQLite.SQLiteDatabase {
-  console.warn('[database] Using in-memory database stub on web. Data will not persist.');
-
-  const noop = async () => {};
-  const emptyArray = async <T>() => [] as T[];
-  const nullValue = async <T>() => null as T | null;
-
-  // The object only implements the methods we call in the app; casting to satisfy typings.
-  return {
-    execAsync: noop,
-    runAsync: async () => ({ changes: { affectedRows: 0, insertId: null } }),
-    getAllAsync: emptyArray,
-    getFirstAsync: nullValue,
-    closeAsync: noop,
-  } as unknown as SQLite.SQLiteDatabase;
-}
 
 /**
  * Initialize the database and run migrations
  */
 export async function initDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (db) return db;
-
-  if (Platform.OS === 'web') {
-    db = createInMemoryDatabase();
-    return db;
-  }
 
   db = await SQLite.openDatabaseAsync(DB_NAME);
 
@@ -86,6 +63,12 @@ async function runMigrations(database: SQLite.SQLiteDatabase): Promise<void> {
   }
   if (currentVersion < 4) {
     await applyMigration4(database);
+  }
+  if (currentVersion < 5) {
+    await applyMigration5(database);
+  }
+  if (currentVersion < 6) {
+    await applyMigration6(database);
   }
 }
 
@@ -148,7 +131,14 @@ async function applyMigration1(database: SQLite.SQLiteDatabase): Promise<void> {
     -- Vitals table (BP, glucose, weight)
     CREATE TABLE IF NOT EXISTS vitals (
       id TEXT PRIMARY KEY,
-      type TEXT NOT NULL CHECK(type IN ('blood_pressure', 'glucose', 'weight')),
+      type TEXT NOT NULL CHECK(type IN (
+        'blood_pressure',
+        'glucose',
+        'weight',
+        'waist_circumference',
+        'total_cholesterol',
+        'hdl_cholesterol'
+      )),
       systolic INTEGER, -- For blood pressure
       diastolic INTEGER, -- For blood pressure
       value REAL, -- For glucose and weight
@@ -281,7 +271,7 @@ async function applyMigration3(database: SQLite.SQLiteDatabase): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_medications_start_date ON medications(start_date);
       CREATE INDEX IF NOT EXISTS idx_medications_registration_no ON medications(registration_no);
     `);
-    
+
     // Re-enable foreign key checks
     await database.execAsync('PRAGMA foreign_keys = ON;');
 
@@ -392,6 +382,159 @@ async function applyMigration4(database: SQLite.SQLiteDatabase): Promise<void> {
   );
 
   console.log('[database.native] Migration 4 applied successfully');
+}
+
+/**
+ * Migration 5: Add 'upcoming' status to doses table
+ * Note: This migration is redundant if Migration 4 already added 'upcoming' status
+ * Keeping it for backward compatibility with existing databases
+ */
+async function applyMigration5(database: SQLite.SQLiteDatabase): Promise<void> {
+  console.log('[database.native] Migration 5: Checking if upcoming status needs to be added');
+
+  try {
+    const tableSql = await database.getFirstAsync<{ sql: string }>(
+      "SELECT sql FROM sqlite_master WHERE type='table' AND name='doses'"
+    );
+    const hasUpcomingStatus = tableSql?.sql?.includes("'upcoming'") ?? false;
+
+    if (hasUpcomingStatus) {
+      console.log('[database.native] Migration 5: upcoming status already present, skipping');
+      await database.runAsync(
+        'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+        [5, new Date().toISOString()]
+      );
+      return;
+    }
+
+    await database.execAsync('BEGIN TRANSACTION;');
+    await database.execAsync('PRAGMA foreign_keys = OFF;');
+
+    await database.execAsync(`
+      CREATE TABLE doses_new (
+        id TEXT PRIMARY KEY,
+        medication_id TEXT NOT NULL,
+        scheduled_time TEXT NOT NULL,
+        actual_time TEXT,
+        status TEXT NOT NULL CHECK(status IN ('upcoming', 'pending', 'taken', 'skipped', 'late', 'missed')),
+        notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        FOREIGN KEY (medication_id) REFERENCES medications(id) ON DELETE CASCADE
+      );
+    `);
+
+    await database.execAsync(`
+      INSERT INTO doses_new (
+        id, medication_id, scheduled_time, actual_time, status, notes, created_at
+      )
+      SELECT
+        id, medication_id, scheduled_time, actual_time, status, notes, created_at
+      FROM doses;
+    `);
+
+    await database.execAsync('DROP TABLE doses;');
+    await database.execAsync('ALTER TABLE doses_new RENAME TO doses;');
+
+    await database.execAsync(`
+      CREATE INDEX IF NOT EXISTS idx_doses_medication_id ON doses(medication_id);
+      CREATE INDEX IF NOT EXISTS idx_doses_scheduled_time ON doses(scheduled_time);
+      CREATE INDEX IF NOT EXISTS idx_doses_status ON doses(status);
+    `);
+
+    await database.execAsync('PRAGMA foreign_keys = ON;');
+    await database.execAsync('COMMIT;');
+
+    await database.runAsync(
+      'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+      [5, new Date().toISOString()]
+    );
+
+    console.log('[database.native] Migration 5 applied successfully');
+  } catch (error) {
+    await database.execAsync('ROLLBACK;');
+    await database.execAsync('PRAGMA foreign_keys = ON;');
+    console.error('[database.native] Migration 5 failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Migration 6: Extend vitals types to include waist circumference and cholesterol
+ */
+async function applyMigration6(database: SQLite.SQLiteDatabase): Promise<void> {
+  console.log('[database.native] Migration 6: Updating vitals type constraints');
+
+  try {
+    await database.execAsync('BEGIN TRANSACTION;');
+
+    await database.execAsync(`
+      CREATE TABLE vitals_new (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL CHECK(type IN (
+          'blood_pressure',
+          'glucose',
+          'weight',
+          'waist_circumference',
+          'total_cholesterol',
+          'hdl_cholesterol'
+        )),
+        systolic INTEGER,
+        diastolic INTEGER,
+        value REAL,
+        unit TEXT NOT NULL,
+        measured_at TEXT NOT NULL,
+        notes TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+
+    await database.execAsync(`
+      INSERT INTO vitals_new (
+        id, type, systolic, diastolic, value, unit, measured_at, notes, created_at
+      )
+      SELECT
+        id, type, systolic, diastolic, value, unit, measured_at, notes, created_at
+      FROM vitals;
+    `);
+
+    await database.execAsync(`
+      DROP TABLE vitals;
+      ALTER TABLE vitals_new RENAME TO vitals;
+    `);
+
+    await database.execAsync(`
+      CREATE INDEX IF NOT EXISTS idx_vitals_type ON vitals(type);
+      CREATE INDEX IF NOT EXISTS idx_vitals_measured_at ON vitals(measured_at);
+    `);
+
+    await database.execAsync('COMMIT;');
+
+    await database.runAsync(
+      'INSERT INTO migrations (version, applied_at) VALUES (?, ?)',
+      [6, new Date().toISOString()]
+    );
+
+    console.log('[database.native] Migration 6 applied successfully');
+  } catch (error) {
+    await database.execAsync('ROLLBACK;');
+    console.error('[database.native] Migration 6 failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Clear all data (for testing or user data deletion)
+ */
+export async function clearAllData(): Promise<void> {
+  const database = getDatabase();
+  await database.execAsync(`
+    DELETE FROM doses;
+    DELETE FROM medications;
+    DELETE FROM vitals;
+    DELETE FROM settings;
+    DELETE FROM events;
+  `);
+  console.log('All data cleared');
 }
 
 /**

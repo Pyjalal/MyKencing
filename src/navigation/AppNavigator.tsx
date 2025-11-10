@@ -27,6 +27,8 @@ import MedicationsScreen from '../screens/MedicationsScreen';
 import ChatBotScreen from '../screens/ChatBotScreen';
 import MedicationManagementScreen from '../screens/MedicationManagementScreen';
 import MedicationInteractionsScreen from '../screens/MedicationInteractionsScreen';
+import RiskAssessmentScreen from '../screens/RiskAssessmentScreen';
+import RiskCalculatorScreen from '../screens/RiskCalculatorScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -188,6 +190,16 @@ export default function AppNavigator() {
           name="MedicationInteractions"
           component={MedicationInteractionsScreen}
           options={{ title: 'Medication Interactions' }}
+        />
+        <Stack.Screen
+          name="RiskCalculators"
+          component={RiskCalculatorScreen}
+          options={{ title: 'Risk Calculators' }}
+        />
+        <Stack.Screen
+          name="RiskAssessment"
+          component={RiskAssessmentScreen}
+          options={{ title: 'Risk Assessment' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

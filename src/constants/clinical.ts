@@ -82,6 +82,36 @@ export const GLUCOSE_THRESHOLDS_MGDL: Threshold = {
 };
 
 /**
+ * Total Cholesterol Thresholds (mmol/L)
+ * Reference: Malaysian CPG on Management of Dyslipidaemia
+ */
+export const TOTAL_CHOLESTEROL_THRESHOLDS: Threshold = {
+  type: VitalType.TotalCholesterol,
+  minNormal: 0,
+  maxNormal: 5.2,
+  minWarning: 5.2,
+  maxWarning: 6.2,
+  minCritical: 6.2,
+  maxCritical: 10,
+  unit: 'mmol/L',
+};
+
+/**
+ * HDL Cholesterol Thresholds (mmol/L)
+ * Reference: Malaysian CPG on Management of Dyslipidaemia
+ */
+export const HDL_CHOLESTEROL_THRESHOLDS: Threshold = {
+  type: VitalType.HDLCholesterol,
+  minNormal: 1.0,
+  maxNormal: 1.55,
+  minWarning: 0.9,
+  maxWarning: 1.0,
+  minCritical: 0,
+  maxCritical: 0.9,
+  unit: 'mmol/L',
+};
+
+/**
  * BMI Thresholds (kg/m²)
  * Reference: WHO for Asian populations
  */

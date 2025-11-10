@@ -14,6 +14,13 @@
  * - Background: Light lavender/purple tint
  */
 export const Colors = {
+  navigatorColors: {
+    "HomeTab": "#377AB1",
+    "VitalsTab": "#E66A6A",
+    "MedicationsTab": "#F0C400",
+    "AddMedicine": "#F5B800",
+    "ProfileTab": "#377AB1",
+  },
   // Primary palette (Blue - trust, healthcare, MyKencing brand)
   primary: {
     50: '#EFF1FE',

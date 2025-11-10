@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AppSettings } from '../types';
+import { AppSettings, RiskFactorSettings, RiskCalculatorSettings } from '../types';
 import { getDatabase } from '../services/database';
 
 interface SettingsState {
@@ -13,6 +13,28 @@ interface SettingsState {
   resetSettings: () => Promise<void>;
 }
 
+const DEFAULT_RISK_FACTORS: RiskFactorSettings = {
+  ageHighRisk: false,
+  genderHighRisk: false,
+  smoking: false,
+  bpMedication: false,
+  bmiHighRisk: false,
+  historyHighGlucose: false,
+  physicalActivity: true,
+  vegetablesDaily: true,
+  familyHistory: 'none',
+  weightKg: null,
+  heightCm: null,
+};
+
+const DEFAULT_RISK_CALCULATORS: RiskCalculatorSettings = {
+  findriscEnabled: false,
+  framinghamEnabled: false,
+  lastFindriscScore: undefined,
+  lastFraminghamScore: undefined,
+  lastUpdated: undefined,
+};
+
 const DEFAULT_SETTINGS: AppSettings = {
   language: 'en',
   reminderEnabled: true,
@@ -24,6 +46,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   weightUnit: 'kg',
   onboardingCompleted: false,
   userName: '',
+  riskFactors: DEFAULT_RISK_FACTORS,
+  riskCalculators: DEFAULT_RISK_CALCULATORS,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -40,8 +64,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         'SELECT key, value FROM settings'
       )) as SettingsRow[];
 
-      const loadedSettings: AppSettings = { ...DEFAULT_SETTINGS };
-      const mutableSettings = loadedSettings as AppSettings & Record<string, unknown>;
+      const settings: AppSettings = {
+        ...DEFAULT_SETTINGS,
+        riskFactors: { ...DEFAULT_RISK_FACTORS },
+        riskCalculators: { ...DEFAULT_RISK_CALCULATORS },
+      };
 
       rows.forEach(({ key, value }) => {
         let parsed: unknown = value;
@@ -51,12 +78,23 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           parsed = value;
         }
 
-        if (Object.prototype.hasOwnProperty.call(loadedSettings, key)) {
-          mutableSettings[key] = parsed;
+        if (Object.prototype.hasOwnProperty.call(settings, key)) {
+          (settings as any)[key] = parsed;
         }
       });
 
-      set({ settings: loadedSettings, isLoading: false });
+      // Ensure risk factors always present
+      settings.riskFactors = {
+        ...DEFAULT_RISK_FACTORS,
+        ...(settings.riskFactors || {}),
+      };
+
+      settings.riskCalculators = {
+        ...DEFAULT_RISK_CALCULATORS,
+        ...(settings.riskCalculators || {}),
+      };
+
+      set({ settings, isLoading: false });
     } catch (error) {
       console.error('Error loading settings:', error);
       set({ error: (error as Error).message, isLoading: false });
