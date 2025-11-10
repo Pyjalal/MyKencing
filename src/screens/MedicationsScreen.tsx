@@ -7,30 +7,68 @@ import {
   ScrollView,
   RefreshControl,
 } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList, DoseStatus } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useTranslation } from 'react-i18next';
 import { ScreenLayout, PillButton } from '../components';
-import { addDays, startOfWeek, format, isSameDay, parseISO } from 'date-fns';
+import { addDays, startOfWeek, format, isSameDay, parseISO, getYear, isToday, isTomorrow, isYesterday } from 'date-fns';
+import { enUS, ms as msLocale } from 'date-fns/locale';
 
 type MedicationsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
 };
 
 export default function MedicationsScreen({ navigation }: MedicationsScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { weekDoses, loadMedications, loadWeekDoses, markDose } = useMedicationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
+
+  // Get current locale for date-fns
+  const dateLocale = i18n.language === 'ms' ? msLocale : enUS;
 
   // Generate week days (Sun-Sat)
   const weekDays = useMemo(() => {
     const start = startOfWeek(selectedDate, { weekStartsOn: 0 }); // Sunday
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }, [selectedDate]);
+
+  // Navigate to previous week
+  const goToPreviousWeek = React.useCallback(() => {
+    setSelectedDate((current) => addDays(current, -7));
+  }, []);
+
+  // Navigate to next week
+  const goToNextWeek = React.useCallback(() => {
+    setSelectedDate((current) => addDays(current, 7));
+  }, []);
+
+  // Create pan gesture for swipe navigation
+  const panGesture = useMemo(() => 
+    Gesture.Pan()
+      .activeOffsetX([-10, 10]) // Require horizontal movement to activate
+      .failOffsetY([-10, 10]) // Cancel if vertical movement is too large
+      .onEnd((event) => {
+        'worklet';
+        const SWIPE_THRESHOLD = 50;
+        const horizontalSwipe = event.translationX;
+
+        if (Math.abs(horizontalSwipe) > SWIPE_THRESHOLD && Math.abs(event.velocityX || 0) > 100) {
+          if (horizontalSwipe > 0) {
+            // Swipe right - go to previous week
+            runOnJS(goToPreviousWeek)();
+          } else {
+            // Swipe left - go to next week
+            runOnJS(goToNextWeek)();
+          }
+        }
+      })
+  , [goToPreviousWeek, goToNextWeek]);
 
   useEffect(() => {
     loadMedications();
@@ -72,6 +110,26 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
       return medName.includes(query);
     });
   }, [selectedDayDoses, searchQuery]);
+
+  // Format date display with relative labels
+  const getFormattedDateDisplay = React.useCallback((date: Date): string => {
+    let dayPart: string;
+    if (isToday(date)) {
+      dayPart = t('medications.today');
+    } else if (isTomorrow(date)) {
+      dayPart = t('medications.tomorrow');
+    } else if (isYesterday(date)) {
+      dayPart = t('medications.yesterday');
+    } else {
+      dayPart = format(date, 'EEEE', { locale: dateLocale });
+    }
+
+    // Use a universal date format that works well in both languages
+    const datePart = format(date, 'd MMMM', { locale: dateLocale });
+    const yearPart = getYear(date) === getYear(new Date()) ? '' : ` ${format(date, 'yyyy', { locale: dateLocale })}`;
+
+    return `${dayPart}, ${datePart}${yearPart}`;
+  }, [t, dateLocale]);
 
   const handleTakeDose = async (doseId: string) => {
     try {
@@ -124,31 +182,37 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
       }
     >
       {/* Calendar at the top - outside scroll */}
-      <View style={styles.remindersCard}>
-        {/* Week Calendar */}
-        <View style={styles.weekCalendar}>
-          {weekDays.map((day, index) => {
-            const isSelected = isSameDay(day, selectedDate);
-            const dayName = format(day, 'EEE');
-            const dayNumber = format(day, 'd');
+      <GestureDetector gesture={panGesture}>
+        <View style={styles.remindersCard}>
+          {/* Week Calendar */}
+          <View style={styles.weekCalendar}>
+            {weekDays.map((day, index) => {
+              const isSelected = isSameDay(day, selectedDate);
+              const dayName = format(day, 'EEE', { locale: dateLocale });
+              const dayNumber = format(day, 'd', { locale: dateLocale });
 
-            return (
-              <TouchableOpacity
-                key={index}
-                style={styles.dayContainer}
-                onPress={() => setSelectedDate(day)}
-              >
-                <Text style={styles.dayName}>{dayName}</Text>
-                <View style={[styles.dayNumberContainer, isSelected && styles.dayNumberSelected]}>
-                  <Text style={[styles.dayNumber, isSelected && styles.dayNumberTextSelected]}>
-                    {dayNumber}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.dayContainer}
+                  onPress={() => setSelectedDate(day)}
+                >
+                  <Text style={styles.dayName}>{dayName}</Text>
+                  <View style={[styles.dayNumberContainer, isSelected && styles.dayNumberSelected]}>
+                    <Text style={[styles.dayNumber, isSelected && styles.dayNumberTextSelected]}>
+                      {dayNumber}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {/* Selected Date Display */}
+          <Text style={styles.selectedDateText}>
+            {getFormattedDateDisplay(selectedDate)}
+          </Text>
         </View>
-      </View>
+      </GestureDetector>
 
       {/* Content with light purple background */}
       <ScrollView
@@ -179,7 +243,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
                   {dose.medication.mims.brandName || dose.medication.mims.genericName}
                 </Text>
                 <Text style={styles.medicationDetails}>
-                  {format(parseISO(dose.scheduledTime), 'h:mm a')}, {dose.medication.userDosage}
+                  {format(parseISO(dose.scheduledTime), 'h:mm a', { locale: dateLocale })}, {dose.medication.userDosage}
                 </Text>
               </TouchableOpacity>
 
@@ -307,5 +371,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.lg,
+  },
+  selectedDateText: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginTop: Spacing.md,
   },
 });
