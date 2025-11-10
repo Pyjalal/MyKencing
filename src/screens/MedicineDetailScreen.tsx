@@ -14,8 +14,9 @@ export default function MedicineDetailScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'MedicineDetail'>>();
   const medicationId = route.params?.medicationId;
   const { medications, loadMedications, removeMedication, acknowledgeInteractions } = useMedicationStore();
-  const { getInteractions } = useInteractionStore();
+  const { getInteractions, getFoodInteractions } = useInteractionStore();
   const [interactions, setInteractions] = useState<ApiInteraction[]>([]);
+  const [foodInteractions, setFoodInteractions] = useState<ApiInteraction[]>([]);
   const [isRemoving, setIsRemoving] = useState(false);
   const [isAcknowledging, setIsAcknowledging] = useState(false);
 
@@ -41,6 +42,21 @@ export default function MedicineDetailScreen() {
       setInteractions(res.interactions || []);
     })();
   }, [med, coMeds]);
+
+  // Fetch food interactions
+  useEffect(() => {
+    (async () => {
+      if (!med) return;
+      console.log('[MedicineDetailScreen] Checking food interactions for medication:', med.id);
+      const registrationNos = [med.registrationNo].filter(Boolean);
+      console.log('[MedicineDetailScreen] Registration numbers for food:', registrationNos);
+      
+      // Fetch food interactions
+      const res = await getFoodInteractions(registrationNos);
+      console.log('[MedicineDetailScreen] Food interaction result:', res);
+      setFoodInteractions(res.interactions || []);
+    })();
+  }, [med]);
 
   // Separate high-risk interactions
   const highRiskInteractions = useMemo(() => {
@@ -192,7 +208,7 @@ export default function MedicineDetailScreen() {
       {/* Acknowledged High-Risk Interactions (informational only) */}
       {highRiskInteractions.length > 0 && unacknowledgedHighRiskInteractions.length === 0 && (
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>⚠️ Acknowledged Interactions</Text>
+          <Text style={styles.infoTitle}>Acknowledged Interactions</Text>
           <Text style={styles.infoSubtitle}>
             You have acknowledged these high-risk interactions. Please follow your doctor's advice.
           </Text>
@@ -205,6 +221,37 @@ export default function MedicineDetailScreen() {
               <Text style={styles.interactionSeverity}>
                 Severity: {interaction.severityRating?.rating || interaction.severity || 'Unknown'}
               </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Food, Drink & Tobacco Interactions */}
+      {foodInteractions.length > 0 && (
+        <View style={styles.foodCard}>
+          <Text style={styles.foodTitle}>Food, Drink & Tobacco Interactions</Text>
+          <Text style={styles.foodSubtitle}>
+            This medication may interact with certain foods, drinks, or tobacco.
+          </Text>
+          
+          {foodInteractions.map((interaction, index) => (
+            <View key={interaction.interactionId} style={styles.foodInteractionItem}>
+              <Text style={styles.foodInteractionDrugs}>
+                {interaction.firstReactant} + {interaction.secondReactant}
+              </Text>
+              {interaction.severityRating?.rating && (
+                <Text style={styles.foodInteractionSeverity}>
+                  Severity: {interaction.severityRating.rating}
+                </Text>
+              )}
+              {interaction.explanation && (
+                <Text style={styles.foodInteractionExplanation}>{interaction.explanation}</Text>
+              )}
+              {interaction.action && (
+                <Text style={styles.foodInteractionAction}>
+                  Recommendation: {interaction.action}
+                </Text>
+              )}
             </View>
           ))}
         </View>
@@ -332,5 +379,55 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
+  },
+  foodCard: {
+    marginTop: Spacing.lg,
+    backgroundColor: '#FFF8E1',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: '#FFC107',
+  },
+  foodTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: '#F57C00',
+    marginBottom: Spacing.xs,
+  },
+  foodSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.md,
+  },
+  foodInteractionItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.sm,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  foodInteractionDrugs: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  foodInteractionSeverity: {
+    fontSize: Typography.fontSize.sm,
+    color: '#F57C00',
+    fontWeight: Typography.fontWeight.medium,
+    marginBottom: Spacing.xs,
+  },
+  foodInteractionExplanation: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
+    marginBottom: Spacing.xs,
+  },
+  foodInteractionAction: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.primary,
+    fontWeight: Typography.fontWeight.medium,
+    fontStyle: 'italic',
+    lineHeight: Typography.fontSize.sm * Typography.lineHeight.normal,
   },
 });

@@ -18,10 +18,12 @@ export interface DrugInteractionResult {
 
 interface InteractionState {
   isLoading: boolean;
+  isFoodLoading: boolean;
   error: string | null;
 
   // Actions
   getInteractions: (medicationIds: string[]) => Promise<DrugInteractionResult>;
+  getFoodInteractions: (medicationIds: string[]) => Promise<DrugInteractionResult>;
   clearCache: () => Promise<void>;
   removeExpiredCache: () => Promise<void>;
 }
@@ -32,9 +34,12 @@ const CACHE_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000;
 /**
  * Generate a cache key from medication IDs
  * Sort IDs to ensure consistent key regardless of order
+ * @param medicationIds - Array of medication registration numbers
+ * @param isFood - Whether this is for food interactions (default: false for drug-drug)
  */
-function generateCacheKey(medicationIds: string[]): string {
-  return medicationIds.sort().join('|');
+function generateCacheKey(medicationIds: string[], isFood: boolean = false): string {
+  const prefix = isFood ? 'food' : 'drug';
+  return `${prefix}|${medicationIds.sort().join('|')}`;
 }
 
 /**
@@ -47,6 +52,7 @@ function isCacheValid(expiresAt: string): boolean {
 
 export const useInteractionStore = create<InteractionState>((set) => ({
   isLoading: false,
+  isFoodLoading: false,
   error: null,
 
   getInteractions: async (medicationIds: string[]) => {
@@ -114,6 +120,76 @@ export const useInteractionStore = create<InteractionState>((set) => ({
     } catch (error) {
       console.error('[interactionStore] Error fetching interactions:', error);
       set({ error: (error as Error).message, isLoading: false });
+      // Return empty result on error
+      return { hasInteractions: false, interactions: [] };
+    }
+  },
+
+  getFoodInteractions: async (medicationIds: string[]) => {
+    // Return empty result for empty input
+    if (medicationIds.length === 0) {
+      return { hasInteractions: false, interactions: [] };
+    }
+
+    const cacheKey = generateCacheKey(medicationIds, true); // true for food interactions
+
+    // Check SQLite cache
+    try {
+      const db = getDatabase();
+      const row = await db.getFirstAsync<InteractionCacheRow>(
+        'SELECT * FROM drug_interactions_cache WHERE medication_ids = ?',
+        [cacheKey]
+      );
+
+      if (row && isCacheValid(row.expires_at)) {
+        console.log('[interactionStore] Food interactions cache hit for:', medicationIds);
+        return JSON.parse(row.interaction_data);
+      }
+    } catch (error) {
+      console.warn('[interactionStore] Error reading food interactions cache:', error);
+      // Continue to API call if cache read fails
+    }
+
+    // No valid cache, fetch from API with foodDrinkTobacco=true
+    set({ isFoodLoading: true, error: null });
+    try {
+      console.log('[interactionStore] Food interactions cache miss, fetching from API:', medicationIds);
+      const apiResponse = await apiClient.checkInteractions(medicationIds, true); // true for food interactions
+      
+      // Convert to our result format
+      const result: DrugInteractionResult = {
+        hasInteractions: apiResponse.count > 0,
+        interactions: apiResponse.interactions,
+      };
+      
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + CACHE_EXPIRATION_MS);
+
+      // Save to database
+      try {
+        const db = getDatabase();
+        await db.runAsync(
+          `INSERT OR REPLACE INTO drug_interactions_cache 
+           (medication_ids, interaction_data, checked_at, expires_at)
+           VALUES (?, ?, ?, ?)`,
+          [
+            cacheKey,
+            JSON.stringify(result),
+            now.toISOString(),
+            expiresAt.toISOString(),
+          ]
+        );
+        console.log('[interactionStore] Food interactions saved to cache');
+      } catch (error) {
+        console.warn('[interactionStore] Error saving food interactions to cache:', error);
+        // Continue even if cache save fails
+      }
+
+      set({ isFoodLoading: false });
+      return result;
+    } catch (error) {
+      console.error('[interactionStore] Error fetching food interactions:', error);
+      set({ error: (error as Error).message, isFoodLoading: false });
       // Return empty result on error
       return { hasInteractions: false, interactions: [] };
     }
