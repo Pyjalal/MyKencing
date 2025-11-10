@@ -10,17 +10,15 @@ import {
   ActivityIndicator,
   Keyboard,
   TouchableWithoutFeedback,
-  Platform,
 } from 'react-native';
 import DatePicker from 'react-native-date-picker';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
+import { Colors, Typography, Spacing, BorderRadius } from '../constants/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Medication, FoodTiming, MIMSSearchResult } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
-import { MEDICATION_TIMING } from '../constants/clinical';
 import { scheduleMedicationReminders } from '../services/notifications';
 import { searchMedicines } from '../services/mymedix-api';
-import { ChevronDown, Search, X } from 'lucide-react-native';
+import { ChevronDown, Search, X, Plus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 
@@ -34,16 +32,6 @@ export default function AddMedicineScreen() {
   const route = useRoute();
   const { selectedMedicine } = (route.params as RouteParams) || {};
   const { addMedication } = useMedicationStore();
-
-  // Frequency options
-  const FREQUENCY_OPTIONS = [
-    { label: t('add_medicine.frequency_once_daily'), value: 'once', times: 1 },
-    { label: t('add_medicine.frequency_twice_daily'), value: 'twice', times: 2 },
-    { label: t('add_medicine.frequency_three_times_daily'), value: 'three', times: 3 },
-    { label: t('add_medicine.frequency_every_8h'), value: 'every_8h', times: 3 },
-    { label: t('add_medicine.frequency_every_6h'), value: 'every_6h', times: 4 },
-    { label: t('add_medicine.frequency_four_times_daily'), value: 'four', times: 4 },
-  ];
 
   // Form options
   const FORM_OPTIONS = [
@@ -74,7 +62,6 @@ export default function AddMedicineScreen() {
   const [form, setForm] = useState('');
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState<Date | null>(null);
-  const [frequency, setFrequency] = useState('');
   const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -160,10 +147,6 @@ export default function AddMedicineScreen() {
     if (medicine.dosageForm) {
       setForm(medicine.dosageForm);
     }
-
-    // Set default frequency to "once daily" for auto-filled medicines
-    setFrequency('once');
-    setSelectedTimes(MEDICATION_TIMING.onceDailyMorning);
   };
 
   // Handle medicine selection from search
@@ -191,43 +174,41 @@ export default function AddMedicineScreen() {
   // Modal states
   const [showUnitPicker, setShowUnitPicker] = useState(false);
   const [showFormPicker, setShowFormPicker] = useState(false);
-  const [showFrequencyPicker, setShowFrequencyPicker] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState<'start' | 'end' | null>(null);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [tempTime, setTempTime] = useState(new Date());
+  const [editingTime, setEditingTime] = useState<string | null>(null);
 
-  const getTimesForFrequency = (freqValue: string): string[] => {
-    switch (freqValue) {
-      case 'once':
-        return MEDICATION_TIMING.onceDailyMorning;
-      case 'twice':
-        return MEDICATION_TIMING.twiceDaily;
-      case 'three':
-      case 'every_8h':
-        return MEDICATION_TIMING.threeTimesDaily;
-      case 'four':
-      case 'every_6h':
-        return MEDICATION_TIMING.fourTimesDaily;
-      default:
-        return MEDICATION_TIMING.onceDailyMorning;
-    }
+  const removeTime = (time: string) => {
+    setSelectedTimes((prev) => prev.filter((t) => t !== time));
   };
 
-  const toggleTime = (time: string) => {
-    setSelectedTimes((prev) => {
-      if (prev.includes(time)) {
-        return prev.filter((t) => t !== time);
-      }
-      return [...prev, time];
-    });
+  const editTime = (time: string) => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    setTempTime(date);
+    setEditingTime(time);
+    setShowTimePicker(true);
   };
 
-  const addCustomTime = () => {
-    const newTime = new Date();
-    const timeString = `${newTime.getHours().toString().padStart(2, '0')}:${newTime
+  const addOrUpdateTime = (date: Date) => {
+    const timeString = `${date.getHours().toString().padStart(2, '0')}:${date
       .getMinutes()
       .toString()
       .padStart(2, '0')}`;
-    if (!selectedTimes.includes(timeString)) {
-      setSelectedTimes([...selectedTimes, timeString]);
+    
+    if (editingTime) {
+      // Update existing time
+      setSelectedTimes((prev) => 
+        prev.map((t) => (t === editingTime ? timeString : t)).sort()
+      );
+      setEditingTime(null);
+    } else {
+      // Add new time
+      if (!selectedTimes.includes(timeString)) {
+        setSelectedTimes([...selectedTimes, timeString].sort());
+      }
     }
   };
 
@@ -245,10 +226,6 @@ export default function AddMedicineScreen() {
       alert(t('add_medicine.error_form_required'));
       return;
     }
-    if (!frequency) {
-      alert(t('add_medicine.error_frequency_required'));
-      return;
-    }
     if (selectedTimes.length === 0) {
       alert(t('add_medicine.error_time_required'));
       return;
@@ -257,14 +234,11 @@ export default function AddMedicineScreen() {
     try {
       setIsSaving(true);
 
-      const freqOption = FREQUENCY_OPTIONS.find((f) => f.value === frequency);
-      const times = selectedTimes.length > 0 ? selectedTimes : getTimesForFrequency(frequency);
-
       const medInput: Omit<Medication, 'id' | 'createdAt' | 'updatedAt'> = {
         registrationNo: selectedMedicineFromSearch?.id || selectedMedicine?.id || `custom_${Date.now()}`,
         userDosage: `${dosage} ${unit}`,
-        frequency: freqOption?.times || 1,
-        times,
+        frequency: selectedTimes.length,
+        times: selectedTimes,
         withFood: FoodTiming.NoPreference,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate ? endDate.toISOString().split('T')[0] : undefined,
@@ -286,7 +260,7 @@ export default function AddMedicineScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [t, medicationName, dosage, unit, form, frequency, selectedTimes, startDate, endDate, notes, selectedMedicineFromSearch, selectedMedicine, addMedication, navigation, FREQUENCY_OPTIONS]);
+  }, [t, medicationName, dosage, unit, form, selectedTimes, startDate, endDate, notes, selectedMedicineFromSearch, selectedMedicine, addMedication, navigation]);
 
   const renderPickerModal = (
     visible: boolean,
@@ -343,6 +317,23 @@ export default function AddMedicineScreen() {
       />
     );
   };
+
+  const renderTimePicker = () => (
+    <DatePicker
+      modal
+      mode="time"
+      open={showTimePicker}
+      date={tempTime}
+      onConfirm={(selectedTime) => {
+        addOrUpdateTime(selectedTime);
+        setShowTimePicker(false);
+      }}
+      onCancel={() => {
+        setShowTimePicker(false);
+        setEditingTime(null);
+      }}
+    />
+  );
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -489,48 +480,42 @@ export default function AddMedicineScreen() {
           </View>
         </View>
 
-        {/* Frequency */}
-        <View style={styles.section}>
-          <Text style={styles.label}>{t('add_medicine.frequency')}</Text>
-          <TouchableOpacity
-            style={styles.dropdownInput}
-            onPress={() => setShowFrequencyPicker(true)}
-          >
-            <Text style={[styles.dropdownInputText, !frequency && styles.placeholderText]}>
-              {frequency
-                ? FREQUENCY_OPTIONS.find((f) => f.value === frequency)?.label
-                : t('add_medicine.choose_option')}
-            </Text>
-            <ChevronDown size={20} color={Colors.accent.main} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Time & Schedule */}
+        {/* Time Schedule */}
         <View style={styles.section}>
           <Text style={styles.label}>{t('add_medicine.time_schedule')}</Text>
           <View style={styles.timeContainer}>
-            {[
-              { label: t('add_medicine.after_breakfast'), value: '08:00' },
-              { label: t('add_medicine.after_lunch'), value: '13:00' },
-              { label: t('add_medicine.after_dinner'), value: '19:00' },
-              { label: t('add_medicine.before_bed'), value: '22:00' },
-            ].map((time) => {
-              const isSelected = selectedTimes.includes(time.value);
-
-              return (
+            {selectedTimes.map((time) => (
+              <View key={time} style={styles.timePillWithRemove}>
                 <TouchableOpacity
-                  key={time.value}
-                  style={[styles.timePill, isSelected && styles.timePillSelected]}
-                  onPress={() => toggleTime(time.value)}
+                  onPress={() => editTime(time)}
+                  style={styles.timeTextButton}
                 >
-                  <Text style={[styles.timePillText, isSelected && styles.timePillTextSelected]}>
-                    {time.label}
-                  </Text>
+                  <Text style={styles.timePillText}>{time}</Text>
                 </TouchableOpacity>
-              );
-            })}
-            <TouchableOpacity style={styles.addTimeButton} onPress={addCustomTime}>
-              <Text style={styles.addTimeButtonText}>+</Text>
+                <TouchableOpacity
+                  onPress={() => removeTime(time)}
+                  style={styles.removeTimeButton}
+                >
+                  <X size={16} color={Colors.text.primary} />
+                </TouchableOpacity>
+              </View>
+            ))}
+            <TouchableOpacity
+              style={selectedTimes.length === 0 ? styles.addTimeButtonWithText : styles.addTimeButton}
+              onPress={() => {
+                setTempTime(new Date());
+                setEditingTime(null);
+                setShowTimePicker(true);
+              }}
+            >
+              {selectedTimes.length === 0 ? (
+                <View style={styles.addTimeButtonContent}>
+                  <Plus size={20} color={Colors.text.primary} />
+                  <Text style={styles.addTimeButtonTextWithLabel}>Add Time</Text>
+                </View>
+              ) : (
+                <Plus size={24} color={Colors.text.primary} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -579,16 +564,12 @@ export default function AddMedicineScreen() {
         setForm,
         t('add_medicine.select_form')
       )}
-      {renderPickerModal(
-        showFrequencyPicker,
-        () => setShowFrequencyPicker(false),
-        FREQUENCY_OPTIONS,
-        setFrequency,
-        t('add_medicine.select_frequency')
-      )}
 
       {/* Date Picker */}
       {renderDatePicker()}
+
+      {/* Time Picker */}
+      {renderTimePicker()}
       </View>
     </TouchableWithoutFeedback>
   );
@@ -676,22 +657,26 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.sm,
   },
-  timePill: {
-    backgroundColor: Colors.background.card,
-    borderRadius: 20,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm + 4,
-  },
-  timePillSelected: {
+  timePillWithRemove: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.accent.main,
+    borderRadius: 20,
+    paddingLeft: Spacing.lg,
+    paddingRight: Spacing.sm,
+    paddingVertical: Spacing.sm + 4,
+    gap: Spacing.sm,
+  },
+  timeTextButton: {
+    // Makes the time text tappable
   },
   timePillText: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.primary,
     fontWeight: Typography.fontWeight.medium,
   },
-  timePillTextSelected: {
-    color: Colors.text.primary,
+  removeTimeButton: {
+    padding: 2,
   },
   addTimeButton: {
     width: 48,
@@ -701,10 +686,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addTimeButtonText: {
-    fontSize: 24,
+  addTimeButtonWithText: {
+    backgroundColor: Colors.accent.main,
+    borderRadius: 20,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm + 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addTimeButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  addTimeButtonTextWithLabel: {
+    fontSize: Typography.fontSize.base,
     color: Colors.text.primary,
-    fontWeight: Typography.fontWeight.bold,
+    fontWeight: Typography.fontWeight.medium,
   },
   notesInput: {
     backgroundColor: Colors.background.card,

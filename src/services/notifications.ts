@@ -226,7 +226,26 @@ export async function scheduleMedicationNotification(
     const body = `${dosage}${foodInstructions ? ` • ${foodInstructions}` : ''}`;
 
     const notificationBody = body.replace(/\u0007/g, '•');
-    const trigger = ({ hour, minute, repeats: true } as unknown) as Notifications.NotificationTriggerInput;
+    
+    // Calculate the next occurrence of this time in LOCAL timezone
+    const now = new Date();
+    const scheduledTime = new Date();
+    scheduledTime.setHours(hour, minute, 0, 0);
+    
+    // If the time has already passed today, schedule for tomorrow
+    if (scheduledTime <= now) {
+      scheduledTime.setDate(scheduledTime.getDate() + 1);
+    }
+    
+    // Calculate seconds until the scheduled time
+    const secondsUntilTrigger = Math.floor((scheduledTime.getTime() - now.getTime()) / 1000);
+    
+    // Use DailyTriggerInput which properly handles local timezone and repeats daily
+    const trigger: Notifications.DailyTriggerInput = {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute,
+    };
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
@@ -244,7 +263,7 @@ export async function scheduleMedicationNotification(
       trigger,
     });
 
-    console.log(`Scheduled notification ${notificationId} for ${time}`);
+    console.log(`Scheduled notification ${notificationId} for ${time} local time (${secondsUntilTrigger}s until first trigger at ${scheduledTime.toLocaleString()})`);
     return notificationId;
   } catch (error) {
     console.error('Error scheduling notification:', error);

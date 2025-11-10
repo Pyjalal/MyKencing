@@ -65,6 +65,17 @@ interface MedicationState {
   generateDosesForMedication: (medicationId: string, times: string[], startDateStr: string, endDateStr?: string) => Promise<void>;
 }
 
+// Helper function to get UTC ISO range for a local date
+function getUTCRangeForLocalDate(localDateStr: string): { start: string; end: string } {
+  const [year, month, day] = localDateStr.split('-').map(Number);
+  const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
+  const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+  return {
+    start: startOfDay.toISOString(),
+    end: endOfDay.toISOString(),
+  };
+}
+
 export const useMedicationStore = create<MedicationState>((set, get) => ({
   medications: [],
   todayDoses: [],
@@ -158,7 +169,12 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const db = getDatabase();
-      const today = new Date().toISOString().split('T')[0];
+      // Get today's date in LOCAL timezone, not UTC
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      
+      // Convert local date to UTC range for proper comparison
+      const { start, end } = getUTCRangeForLocalDate(today);
 
       const doses = await db.getAllAsync(`
         SELECT
@@ -184,9 +200,9 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
           m.updated_at AS medication_updated_at
         FROM doses d
         JOIN medications m ON d.medication_id = m.id
-        WHERE DATE(d.scheduled_time) = ?
+        WHERE d.scheduled_time >= ? AND d.scheduled_time <= ?
         ORDER BY d.scheduled_time ASC
-      `, [today]) as DoseRow[];
+      `, [start, end]) as DoseRow[];
 
       // Fetch medicine details from API for each unique medication
       const uniqueRegistrationNos = [...new Set(doses.map(d => d.registration_no).filter(Boolean))];
@@ -254,8 +270,13 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const db = getDatabase();
-      const start = startDate.toISOString().split('T')[0];
-      const end = endDate.toISOString().split('T')[0];
+      // Format dates in LOCAL timezone, not UTC
+      const startStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+      const endStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+      
+      // Convert local dates to UTC ranges for proper comparison
+      const startRange = getUTCRangeForLocalDate(startStr);
+      const endRange = getUTCRangeForLocalDate(endStr);
 
       const doses = await db.getAllAsync(`
         SELECT
@@ -281,9 +302,9 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
           m.updated_at AS medication_updated_at
         FROM doses d
         JOIN medications m ON d.medication_id = m.id
-        WHERE DATE(d.scheduled_time) BETWEEN ? AND ?
+        WHERE d.scheduled_time >= ? AND d.scheduled_time <= ?
         ORDER BY d.scheduled_time ASC
-      `, [start, end]) as DoseRow[];
+      `, [startRange.start, endRange.end]) as DoseRow[];
 
       // Fetch medicine details from API for each unique medication
       const uniqueRegistrationNos = [...new Set(doses.map(d => d.registration_no).filter(Boolean))];
@@ -404,8 +425,19 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
   generateDosesForMedication: async (medicationId: string, times: string[], startDateStr: string, endDateStr?: string) => {
     try {
       const db = getDatabase();
-      const startDate = new Date(startDateStr);
-      const endDate = endDateStr ? new Date(endDateStr) : new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days default
+      
+      // Parse dates in LOCAL timezone, not UTC
+      // Format: "2025-11-10" should be midnight LOCAL time, not UTC
+      const [startYear, startMonth, startDay] = startDateStr.split('-').map(Number);
+      const startDate = new Date(startYear, startMonth - 1, startDay); // Month is 0-indexed
+      
+      let endDate: Date;
+      if (endDateStr) {
+        const [endYear, endMonth, endDay] = endDateStr.split('-').map(Number);
+        endDate = new Date(endYear, endMonth - 1, endDay);
+      } else {
+        endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days default
+      }
       
       const dosesToInsert: any[] = [];
       
