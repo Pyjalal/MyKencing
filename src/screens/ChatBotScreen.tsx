@@ -235,14 +235,14 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     marginLeft: 12,
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.primary.dark,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
     alignSelf: 'flex-end',
   },
   sendButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   sendText: {
     color: Colors.primary.contrast,

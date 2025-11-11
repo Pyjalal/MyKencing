@@ -215,7 +215,7 @@ function MainTabs() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             e.preventDefault();
-            navigation.navigate('ChatBot');
+            navigation.navigate('ChatBot'); 
           },
         })}
       />
@@ -332,7 +332,13 @@ export default function AppNavigator() {
         <Stack.Screen
           name="ChatBot"
           component={ChatBotScreen}
-          options={{ title: 'MyMedBot' }}
+          options={{
+            title: 'MyMedBot',
+            headerStyle: { backgroundColor: Colors.primary.dark },
+            headerShadowVisible: false,
+            headerTintColor: Colors.primary.contrast,
+            headerTitleStyle: { color: Colors.primary.contrast },
+          }}
         />
         <Stack.Screen
           name="MedicationManagement"
