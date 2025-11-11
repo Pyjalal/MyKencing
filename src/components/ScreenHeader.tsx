@@ -37,20 +37,6 @@ export default function ScreenLayout({
           </View>
         </View>
 
-        {/* Search Bar */}
-        {onSearchChange && (
-          <View style={styles.searchContainer}>
-            <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder={searchPlaceholder}
-              placeholderTextColor={Colors.text.tertiary}
-              value={searchQuery}
-              onChangeText={onSearchChange}
-            />
-          </View>
-        )}
-
         {/* Header slot - for buttons/actions in header */}
         {headerSlot}
       </View>
@@ -71,7 +57,6 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingTop: Spacing['2xl'] + 10,
-    paddingBottom: Spacing.xl,
     paddingHorizontal: Spacing.lg,
   },
   content: {
