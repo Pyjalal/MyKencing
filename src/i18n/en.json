@@ -220,7 +220,7 @@
     "select_gender": "Select Gender",
     "valid_age_alert": "Please enter an age between 8 and 120",
     "valid_weight_alert": "Please enter a weight between 25 and 220 kg",
-    "welcome_title": "Welcome to MyKencing",
+    "welcome_title": "Welcome to MyMedix",
     "welcome_subtitle": "Your personal medication and health tracking companion",
     "feature_scan_title": "Scan & Understand",
     "feature_scan_desc": "Scan prescriptions and get plain-language medicine guidance",

@@ -98,7 +98,7 @@ export default function App() {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={Colors.primary.main} />
-        <Text style={styles.loadingText}>Loading MyKencing...</Text>
+        <Text style={styles.loadingText}>Loading MyMedix...</Text>
       </View>
     );
   }

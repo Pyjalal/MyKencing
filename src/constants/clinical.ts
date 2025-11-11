@@ -228,7 +228,7 @@ export const MISSED_DOSE_WINDOW = {
  * Clinical disclaimers
  */
 export const DISCLAIMERS = {
-  general: 'MyKencing is not a substitute for professional medical advice, diagnosis, or treatment. Always consult your doctor or pharmacist.',
+  general: 'MyMedix is not a substitute for professional medical advice, diagnosis, or treatment. Always consult your doctor or pharmacist.',
 
   vitals: 'These readings are for tracking purposes only. Consult your healthcare provider for medical interpretation.',
 

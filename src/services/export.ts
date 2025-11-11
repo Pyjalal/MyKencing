@@ -30,7 +30,7 @@ function generateReportHTML(data: ExportData): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MyKencing Medical Report</title>
+  <title>MyMedix Medical Report</title>
   <style>
     * {
       margin: 0;
@@ -187,7 +187,7 @@ function generateReportHTML(data: ExportData): string {
 </head>
 <body>
   <div class="header">
-    <h1>MyKencing Medical Report</h1>
+    <h1>MyMedix Medical Report</h1>
     <p class="subtitle">Generated on ${new Date(generatedAt).toLocaleString('en-MY')}</p>
     ${patientName ? `<p class="subtitle">Patient: ${patientName}</p>` : ''}
     <p class="subtitle">Report Period: ${new Date(periodStart).toLocaleDateString('en-MY')} - ${new Date(periodEnd).toLocaleDateString('en-MY')}</p>
@@ -428,13 +428,13 @@ function generateReportHTML(data: ExportData): string {
   }
 
   <div class="disclaimer">
-    <strong>Disclaimer:</strong> This report is generated from self-reported data entered in the MyKencing app.
+    <strong>Disclaimer:</strong> This report is generated from self-reported data entered in the MyMedix app.
     It should be used as a reference only and does not replace professional medical advice.
     Please consult your healthcare provider for medical decisions.
   </div>
 
   <div class="footer">
-    <p>Generated with MyKencing - Personal Medication Management App</p>
+    <p>Generated with MyMedix - Personal Medication Management App</p>
     <p>For healthcare professional use only</p>
   </div>
 </body>
@@ -677,7 +677,7 @@ export async function generateAndShareReport(
     const html = generateReportHTML(data);
 
     // Save HTML to cache (no permissions needed) and share
-    const filename = `MyKencing_Report_${Date.now()}.html`;
+    const filename = `MyMedix_Report_${Date.now()}.html`;
     const file = new File(Paths.cache, filename);
     await file.create();
     await file.write(html);
@@ -708,7 +708,7 @@ export async function saveReportToDevice(
   try {
     const data = await gatherExportData(periodDays);
     const html = generateReportHTML(data);
-    const filename = `MyKencing_Report_${Date.now()}.html`;
+    const filename = `MyMedix_Report_${Date.now()}.html`;
     const file = new File(Paths.cache, filename);
     await file.create();
     await file.write(html);

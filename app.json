@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MyKencing",
+    "name": "MyMedix",
     "slug": "MyKencing",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -30,11 +30,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.mykencing.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "MyKencing needs camera access to scan prescriptions and medicine labels",
-        "NSPhotoLibraryUsageDescription": "MyKencing needs photo library access to save prescription images",
-        "NSRemindersUsageDescription": "MyKencing needs reminder access to schedule medication alerts",
-        "NSHealthShareUsageDescription": "MyKencing can sync your health data for better tracking (optional)",
-        "NSHealthUpdateUsageDescription": "MyKencing can update your health records (optional)"
+        "NSCameraUsageDescription": "MyMedix needs camera access to scan prescriptions and medicine labels",
+        "NSPhotoLibraryUsageDescription": "MyMedix needs photo library access to save prescription images",
+        "NSRemindersUsageDescription": "MyMedix needs reminder access to schedule medication alerts",
+        "NSHealthShareUsageDescription": "MyMedix can sync your health data for better tracking (optional)",
+        "NSHealthUpdateUsageDescription": "MyMedix can update your health records (optional)"
       }
     },
     "android": {
