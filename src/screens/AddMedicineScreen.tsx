@@ -20,7 +20,7 @@ import { scheduleMedicationReminders } from '../services/notifications';
 import { searchMedicines } from '../services/mymedix-api';
 import { ChevronDown, Search, X, Plus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { PillButton } from '../components';
+import { PillButton, TimePickerPill } from '../components';
 
 
 interface RouteParams {
@@ -484,48 +484,30 @@ export default function AddMedicineScreen() {
         {/* Time Schedule */}
         <View style={styles.section}>
           <Text style={styles.label}>{t('add_medicine.time_schedule')}</Text>
-          <View style={styles.timeContainer}>
-            {selectedTimes.map((time) => (
-              <View key={time} style={styles.timePillWithRemove}>
-                <TouchableOpacity
-                  onPress={() => editTime(time)}
-                  style={styles.timeTextButton}
-                >
-                  <Text style={styles.timePillText}>{time}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => removeTime(time)}
-                  style={styles.removeTimeButton}
-                >
-                  <X size={16} color={Colors.text.primary} />
-                </TouchableOpacity>
-              </View>
-            ))}
-            {selectedTimes.length === 0 ? (
-              <PillButton
-                title={t('add_medicine.add_time')}
-                onPress={() => {
-                  setTempTime(new Date());
-                  setEditingTime(null);
-                  setShowTimePicker(true);
-                }}
-                variant="yellow"
-                size="md"
-                icon={<Plus size={20} color={Colors.text.primary} />}
-              />
-            ) : (
-              <TouchableOpacity
-                style={styles.addTimeButton}
-                onPress={() => {
-                  setTempTime(new Date());
-                  setEditingTime(null);
-                  setShowTimePicker(true);
-                }}
-              >
-                <Plus size={24} color={Colors.text.primary} />
-              </TouchableOpacity>
-            )}
-          </View>
+          {selectedTimes.length === 0 ? (
+            <PillButton
+              title={t('add_medicine.add_time')}
+              onPress={() => {
+                setTempTime(new Date());
+                setEditingTime(null);
+                setShowTimePicker(true);
+              }}
+              variant="yellow"
+              size="md"
+              icon={<Plus size={20} color={Colors.text.primary} />}
+            />
+          ) : (
+            <TimePickerPill
+              times={selectedTimes}
+              onEditTime={editTime}
+              onRemoveTime={removeTime}
+              onAddTime={() => {
+                setTempTime(new Date());
+                setEditingTime(null);
+                setShowTimePicker(true);
+              }}
+            />
+          )}
         </View>
 
         {/* Notes */}
@@ -657,40 +639,6 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: Colors.text.tertiary,
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  timePillWithRemove: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.accent.main,
-    borderRadius: 20,
-    paddingLeft: Spacing.lg,
-    paddingRight: Spacing.sm,
-    paddingVertical: Spacing.sm + 4,
-    gap: Spacing.sm,
-  },
-  timeTextButton: {
-    // Makes the time text tappable
-  },
-  timePillText: {
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
-    fontWeight: Typography.fontWeight.medium,
-  },
-  removeTimeButton: {
-    padding: 2,
-  },
-  addTimeButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.accent.main,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   notesInput: {
     backgroundColor: Colors.background.card,

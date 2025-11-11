@@ -184,7 +184,21 @@
     "remove_medicine": "Buang Ubat",
     "remove_medicine_button": "Buang Ubat",
     "remove_medicine_confirmation": "Adakah anda pasti mahu membuang {{name}}? Ini akan membatalkan semua peringatan dan dos masa hadapan. Dos lepas akan disimpan untuk rekod anda.",
-    "remove_medicine_error": "Gagal membuang ubat. Sila cuba lagi."
+    "remove_medicine_error": "Gagal membuang ubat. Sila cuba lagi.",
+    "reschedule": "Jadual Semula",
+    "reschedule_title": "Jadual Semula Ubat",
+    "reschedule_subtitle": "Pilih cara anda mahu menjadualkan semula ubat ini",
+    "reschedule_today_only": "Jadual Semula Hari Ini Sahaja",
+    "reschedule_today_only_desc": "Hanya tukar masa yang dijadualkan hari ini",
+    "reschedule_all_future": "Jadual Semula Semua Dos Akan Datang",
+    "reschedule_all_future_desc": "Kemas kini jadual untuk semua dos akan datang",
+    "select_new_times": "Pilih Masa Baru",
+    "rescheduled_success": "Ubat Dijadual Semula",
+    "rescheduled_success_message": "Masa ubat anda telah dikemas kini dengan jayanya.",
+    "reschedule_error": "Gagal menjadualkan semula ubat. Sila cuba lagi.",
+    "acknowledged_title": "Interaksi Diakui",
+    "acknowledged_message": "Anda kini boleh mengambil atau melangkau dos untuk ubat ini. Sila ikut nasihat doktor anda.",
+    "acknowledge_error": "Gagal mengakui interaksi"
   },
   "onboarding": {
     "skip": "Langkau",

@@ -70,6 +70,7 @@ interface MedicationState {
   generateDosesForMedication: (medicationId: string, times: string[], startDateStr: string, endDateStr?: string) => Promise<void>;
   acknowledgeInteractions: (medicationId: string, interactionIds: string[]) => Promise<void>;
   getUnacknowledgedHighRiskInteractions: (medicationId: string) => Promise<string[]>;
+  rescheduleMedication: (medicationId: string, newTimes: string[], rescheduleAllFuture: boolean) => Promise<void>;
 }
 
 // Helper function to get UTC ISO range for a local date
@@ -826,6 +827,87 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
     } catch (error) {
       console.error('[medicationStore] Error getting unacknowledged interactions:', error);
       return [];
+    }
+  },
+
+  rescheduleMedication: async (medicationId, newTimes, rescheduleAllFuture) => {
+    try {
+      const medication = get().getMedicationById(medicationId);
+      if (!medication) {
+        throw new Error('Medication not found');
+      }
+
+      const db = getDatabase();
+      const now = new Date();
+
+      if (rescheduleAllFuture) {
+        // Update medication times
+        await get().updateMedication(medicationId, { times: newTimes });
+
+        // Delete all future/pending doses
+        await db.runAsync(
+          'DELETE FROM doses WHERE medication_id = ? AND status IN (?, ?)',
+          [medicationId, DoseStatus.Pending, DoseStatus.Upcoming]
+        );
+
+        // Regenerate doses from today onwards
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const endDate = medication.endDate || undefined;
+        await get().generateDosesForMedication(medicationId, newTimes, today, endDate);
+      } else {
+        // Reschedule only today's pending doses
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const { start, end } = getUTCRangeForLocalDate(today);
+
+        // Get today's pending doses for this medication
+        const todayPendingDoses = await db.getAllAsync(
+          `SELECT id FROM doses 
+           WHERE medication_id = ? 
+           AND status IN (?, ?) 
+           AND scheduled_time >= ? 
+           AND scheduled_time <= ?`,
+          [medicationId, DoseStatus.Pending, DoseStatus.Upcoming, start, end]
+        ) as { id: string }[];
+
+        // Delete today's pending doses
+        for (const dose of todayPendingDoses) {
+          await db.runAsync('DELETE FROM doses WHERE id = ?', [dose.id]);
+        }
+
+        // Create new doses for today with new times
+        for (const time of newTimes) {
+          const [hours, minutes] = time.split(':').map(Number);
+          const scheduledDateTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
+          
+          // Only create if not in the past
+          if (scheduledDateTime >= now) {
+            const doseId = `dose_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            const status = scheduledDateTime < now ? DoseStatus.Pending : DoseStatus.Upcoming;
+            
+            await db.runAsync(
+              `INSERT INTO doses (id, medication_id, scheduled_time, status, created_at)
+               VALUES (?, ?, ?, ?, ?)`,
+              [doseId, medicationId, scheduledDateTime.toISOString(), status, now.toISOString()]
+            );
+          }
+        }
+      }
+
+      // Reload data
+      await get().loadMedications();
+      await get().loadTodayDoses();
+      
+      const today = new Date();
+      const startOfWeekDate = new Date(today);
+      startOfWeekDate.setDate(today.getDate() - today.getDay());
+      const endOfWeekDate = new Date(startOfWeekDate);
+      endOfWeekDate.setDate(startOfWeekDate.getDate() + 6);
+      await get().loadWeekDoses(startOfWeekDate, endOfWeekDate);
+
+      console.log(`[medicationStore] Successfully rescheduled medication ${medicationId}`);
+    } catch (error) {
+      console.error('[medicationStore] Error rescheduling medication:', error);
+      throw error;
     }
   },
 }));

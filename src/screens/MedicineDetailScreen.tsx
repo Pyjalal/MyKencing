@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import { Colors, Typography, Spacing, BorderRadius } from '../constants/theme';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal } from 'react-native';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useRoute, RouteProp, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types';
@@ -8,18 +8,27 @@ import { useMedicationStore } from '../stores/medicationStore';
 import { useInteractionStore } from '../stores/interactionStore';
 import type { ApiInteraction } from '../services/api-client';
 import { isHighRiskInteraction, isMedicationInvolvedInInteraction } from '../utils/interactionFilters';
+import { Trash2, Clock } from 'lucide-react-native';
+import DatePicker from 'react-native-date-picker';
+import { TimePickerPill } from '../components';
 
 export default function MedicineDetailScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute<RouteProp<RootStackParamList, 'MedicineDetail'>>();
   const medicationId = route.params?.medicationId;
-  const { medications, loadMedications, removeMedication, acknowledgeInteractions } = useMedicationStore();
+  const { medications, loadMedications, removeMedication, acknowledgeInteractions, rescheduleMedication } = useMedicationStore();
   const { getInteractions, getFoodInteractions } = useInteractionStore();
   const [interactions, setInteractions] = useState<ApiInteraction[]>([]);
   const [foodInteractions, setFoodInteractions] = useState<ApiInteraction[]>([]);
   const [isRemoving, setIsRemoving] = useState(false);
   const [isAcknowledging, setIsAcknowledging] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [rescheduleOption, setRescheduleOption] = useState<'today' | 'all' | null>(null);
+  const [newTimes, setNewTimes] = useState<string[]>([]);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [currentTimeIndex, setCurrentTimeIndex] = useState(0);
+  const [isRescheduling, setIsRescheduling] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -104,17 +113,81 @@ export default function MedicineDetailScreen() {
       await acknowledgeInteractions(medicationId, interactionIds);
       
       Alert.alert(
-        t('medicine_detail.acknowledged_title', 'Interactions Acknowledged'),
-        t('medicine_detail.acknowledged_message', 'You can now take or skip doses for this medication. Please follow your doctor\'s advice.')
+        t('medicine_detail.acknowledged_title'),
+        t('medicine_detail.acknowledged_message')
       );
     } catch (error) {
       console.error('Error acknowledging interactions:', error);
       Alert.alert(
-        t('common.error', 'Error'),
-        t('medicine_detail.acknowledge_error', 'Failed to acknowledge interactions')
+        t('common.error'),
+        t('medicine_detail.acknowledge_error')
       );
     } finally {
       setIsAcknowledging(false);
+    }
+  };
+
+  const handleReschedule = () => {
+    if (!med) return;
+    setNewTimes([...med.times]);
+    setShowRescheduleModal(true);
+  };
+
+  const handleRescheduleOptionSelect = (option: 'today' | 'all') => {
+    setRescheduleOption(option);
+  };
+
+  const handleAddTime = () => {
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    setNewTimes([...newTimes, timeStr]);
+  };
+
+  const handleRemoveTime = (index: number) => {
+    setNewTimes(newTimes.filter((_, i) => i !== index));
+  };
+
+  const handleTimeChange = (selectedDate: Date) => {
+    const timeStr = `${String(selectedDate.getHours()).padStart(2, '0')}:${String(selectedDate.getMinutes()).padStart(2, '0')}`;
+    const updatedTimes = [...newTimes];
+    updatedTimes[currentTimeIndex] = timeStr;
+    setNewTimes(updatedTimes);
+    setShowTimePicker(false);
+  };
+
+  const handleEditTime = (index: number) => {
+    setCurrentTimeIndex(index);
+    setShowTimePicker(true);
+  };
+
+  const handleConfirmReschedule = async () => {
+    if (!rescheduleOption || newTimes.length === 0) {
+      Alert.alert(
+        t('common.error'),
+        rescheduleOption ? 'Please add at least one time' : t('medicine_detail.reschedule_subtitle')
+      );
+      return;
+    }
+
+    try {
+      setIsRescheduling(true);
+      await rescheduleMedication(medicationId, newTimes, rescheduleOption === 'all');
+      
+      setShowRescheduleModal(false);
+      setRescheduleOption(null);
+      
+      Alert.alert(
+        t('medicine_detail.rescheduled_success'),
+        t('medicine_detail.rescheduled_success_message')
+      );
+    } catch (error) {
+      console.error('Error rescheduling medication:', error);
+      Alert.alert(
+        t('common.error'),
+        t('medicine_detail.reschedule_error')
+      );
+    } finally {
+      setIsRescheduling(false);
     }
   };
 
@@ -164,10 +237,19 @@ export default function MedicineDetailScreen() {
 
   const m = med.mims;
 
+  // Parse time for time picker
+  const getDateFromTime = (timeStr: string) => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  };
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: Spacing.lg }}>
-      <Text style={styles.title}>{m.brandName || m.genericName}</Text>
-      <Text style={styles.subtitle}>{m.genericName}</Text>
+    <View style={styles.outerContainer}>
+      <ScrollView style={styles.container} contentContainerStyle={{ padding: Spacing.lg, paddingBottom: 120 }}>
+        <Text style={styles.title}>{m.brandName || m.genericName}</Text>
+        <Text style={styles.subtitle}>{m.genericName}</Text>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>{t('medicine_detail.prescription')}</Text>
@@ -236,51 +318,164 @@ export default function MedicineDetailScreen() {
         </View>
       )}
 
-      {/* Food, Drink & Tobacco Interactions */}
-      {foodInteractions.length > 0 && (
-        <View style={styles.foodCard}>
-          <Text style={styles.foodTitle}>Food, Drink & Tobacco Interactions</Text>
-          <Text style={styles.foodSubtitle}>
-            This medication may interact with certain foods, drinks, or tobacco.
-          </Text>
-          
-          {foodInteractions.map((interaction, index) => (
-            <View key={interaction.interactionId} style={styles.foodInteractionItem}>
-              <Text style={styles.foodInteractionDrugs}>
-                {interaction.firstReactant} + {interaction.secondReactant}
-              </Text>
-              {interaction.severityRating?.rating && (
-                <Text style={styles.foodInteractionSeverity}>
-                  Severity: {interaction.severityRating.rating}
+        {/* Food, Drink & Tobacco Interactions */}
+        {foodInteractions.length > 0 && (
+          <View style={styles.foodCard}>
+            <Text style={styles.foodTitle}>Food, Drink & Tobacco Interactions</Text>
+            <Text style={styles.foodSubtitle}>
+              This medication may interact with certain foods, drinks, or tobacco.
+            </Text>
+            
+            {foodInteractions.map((interaction, index) => (
+              <View key={interaction.interactionId} style={styles.foodInteractionItem}>
+                <Text style={styles.foodInteractionDrugs}>
+                  {interaction.firstReactant} + {interaction.secondReactant}
                 </Text>
-              )}
-              {interaction.explanation && (
-                <Text style={styles.foodInteractionExplanation}>{interaction.explanation}</Text>
-              )}
-              {interaction.action && (
-                <Text style={styles.foodInteractionAction}>
-                  Recommendation: {interaction.action}
-                </Text>
-              )}
-            </View>
-          ))}
-        </View>
-      )}
+                {interaction.severityRating?.rating && (
+                  <Text style={styles.foodInteractionSeverity}>
+                    Severity: {interaction.severityRating.rating}
+                  </Text>
+                )}
+                {interaction.explanation && (
+                  <Text style={styles.foodInteractionExplanation}>{interaction.explanation}</Text>
+                )}
+                {interaction.action && (
+                  <Text style={styles.foodInteractionAction}>
+                    Recommendation: {interaction.action}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
 
-      <TouchableOpacity
-        style={styles.removeButton}
-        onPress={handleRemoveMedication}
-        disabled={isRemoving}
+      {/* Bottom Action Menu */}
+      <View style={styles.bottomMenu}>
+        <View style={styles.bottomMenuBar}>
+          <TouchableOpacity
+            style={styles.bottomMenuItem}
+            onPress={handleReschedule}
+            disabled={isRemoving || isRescheduling}
+          >
+            <Clock size={24} color={Colors.primary.main} />
+            <Text style={styles.bottomMenuLabel}>{t('medicine_detail.reschedule')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.bottomMenuItem}
+            onPress={handleRemoveMedication}
+            disabled={isRemoving || isRescheduling}
+          >
+            <Trash2 size={24} color={Colors.status.error} />
+            <Text style={[styles.bottomMenuLabel, { color: Colors.status.error }]}>
+              {t('common.remove')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Reschedule Modal */}
+      <Modal
+        visible={showRescheduleModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowRescheduleModal(false)}
       >
-        <Text style={styles.removeButtonText}>
-          {isRemoving ? t('common.removing') : t('medicine_detail.remove_medicine_button')}
-        </Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{t('medicine_detail.reschedule_title')}</Text>
+            <Text style={styles.modalSubtitle}>{t('medicine_detail.reschedule_subtitle')}</Text>
+
+            {/* Reschedule Options */}
+            <TouchableOpacity
+              style={[
+                styles.optionCard,
+                rescheduleOption === 'today' && styles.optionCardSelected
+              ]}
+              onPress={() => handleRescheduleOptionSelect('today')}
+            >
+              <Text style={styles.optionTitle}>{t('medicine_detail.reschedule_today_only')}</Text>
+              <Text style={styles.optionDesc}>{t('medicine_detail.reschedule_today_only_desc')}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.optionCard,
+                rescheduleOption === 'all' && styles.optionCardSelected
+              ]}
+              onPress={() => handleRescheduleOptionSelect('all')}
+            >
+              <Text style={styles.optionTitle}>{t('medicine_detail.reschedule_all_future')}</Text>
+              <Text style={styles.optionDesc}>{t('medicine_detail.reschedule_all_future_desc')}</Text>
+            </TouchableOpacity>
+
+            {rescheduleOption && (
+              <>
+                <Text style={styles.timesTitle}>{t('medicine_detail.select_new_times')}</Text>
+                
+                <TimePickerPill
+                  times={newTimes}
+                  onEditTime={(time) => {
+                    const index = newTimes.indexOf(time);
+                    handleEditTime(index);
+                  }}
+                  onRemoveTime={(time) => {
+                    const index = newTimes.indexOf(time);
+                    handleRemoveTime(index);
+                  }}
+                  onAddTime={handleAddTime}
+                />
+              </>
+            )}
+
+            {/* Time Picker Modal */}
+            <DatePicker
+              modal
+              open={showTimePicker}
+              date={newTimes[currentTimeIndex] ? getDateFromTime(newTimes[currentTimeIndex]) : new Date()}
+              mode="time"
+              onConfirm={handleTimeChange}
+              onCancel={() => setShowTimePicker(false)}
+            />
+
+            {/* Modal Actions */}
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => {
+                  setShowRescheduleModal(false);
+                  setRescheduleOption(null);
+                }}
+                disabled={isRescheduling}
+              >
+                <Text style={styles.modalButtonTextCancel}>{t('common.cancel')}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm, isRescheduling && styles.modalButtonDisabled]}
+                onPress={handleConfirmReschedule}
+                disabled={isRescheduling || !rescheduleOption}
+              >
+                {isRescheduling ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.modalButtonTextConfirm}>Confirm</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+    backgroundColor: Colors.background.primary,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background.primary,
@@ -377,15 +572,118 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
   },
-  removeButton: {
-    backgroundColor: Colors.status.error,
-    padding: Spacing.md,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: Spacing.xl,
-    marginBottom: Spacing.xl,
+  bottomMenu: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'transparent',
+    paddingBottom: Spacing.md + 4,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
   },
-  removeButtonText: {
+  bottomMenuBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: Colors.background.card,
+    borderRadius: 100,
+    height: 70,
+    ...Shadows.lg,
+  },
+  bottomMenuItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+  },
+  bottomMenuLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: Colors.text.primary,
+    marginTop: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.background.card,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    maxHeight: '90%',
+  },
+  modalTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  modalSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.lg,
+  },
+  optionCard: {
+    backgroundColor: Colors.background.primary,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  optionCardSelected: {
+    borderColor: Colors.primary.main,
+    backgroundColor: Colors.primary.main + '10',
+  },
+  optionTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginBottom: Spacing.xs,
+  },
+  optionDesc: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+  },
+  timesTitle: {
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.lg,
+    gap: Spacing.md,
+  },
+  modalButton: {
+    flex: 1,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: Colors.background.primary,
+    borderWidth: 1,
+    borderColor: Colors.text.tertiary,
+  },
+  modalButtonConfirm: {
+    backgroundColor: Colors.primary.main,
+  },
+  modalButtonDisabled: {
+    opacity: 0.6,
+  },
+  modalButtonTextCancel: {
+    color: Colors.text.primary,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  modalButtonTextConfirm: {
     color: '#FFFFFF',
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
