@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { RootStackParamList } from '../types';
 import { CustomTabBar } from '../components/BottomNavBar';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Colors } from '../constants/theme';
 import { updateI18nLanguage } from '../services/i18n';
-
+import { User, BotMessageSquare } from 'lucide-react-native';
 // Screens
 import OnboardingScreen from '../screens/OnboardingScreen';
 import PrivacyConsentScreen from '../screens/PrivacyConsentScreen';
@@ -65,6 +65,39 @@ function MainTabs() {
         options={{
           tabBarLabel: 'Home',
         }}
+        listeners={({ navigation }) => ({
+          focus: () => {
+            const parent = navigation.getParent();
+            if (parent) {
+              parent.setOptions({
+                title: '',
+                headerStyle: {
+                  backgroundColor: Colors.primary.dark,
+                },
+                headerTintColor: Colors.primary.contrast,
+                headerTitleStyle: {
+                  color: Colors.primary.contrast,
+                },
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={() => navigation.getParent()?.navigate('Settings')}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    style={{
+                      padding: 6,
+                      borderRadius: 999,
+                    }}
+                    activeOpacity={0.7}
+                    >
+                        <User size={24} color={Colors.primary.contrast} />
+                  </TouchableOpacity>
+                ),
+                headerLeftContainerStyle: {
+                  paddingRight: 16,
+                },
+              });
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="VitalsTab"
@@ -72,6 +105,40 @@ function MainTabs() {
         options={{
           tabBarLabel: 'Vitals',
         }}
+        listeners={({ navigation }) => ({
+          focus: () => {
+            const parent = navigation.getParent();
+            if (parent) {
+              parent.setOptions({
+                title: 'Vitals Tracker',
+                headerStyle: {
+                  backgroundColor: Colors.background.vitals,
+                },
+                headerTintColor: Colors.primary.contrast,
+                headerTitleStyle: {
+                  color: Colors.primary.contrast,
+                },
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={() => navigation.getParent()?.navigate('ChatBot')}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    activeOpacity={0.7}
+                    style={{
+                      padding: 6,
+                      borderRadius: 999,
+                      backgroundColor: Colors.primary.contrast,
+                    }}
+                  >
+                    <BotMessageSquare size={22} color={Colors.background.vitals} />
+                  </TouchableOpacity>
+                ),
+                headerLeftContainerStyle: {
+                  paddingRight: 16,
+                },
+              });
+            }
+          },
+        })}
       />
       <Tab.Screen
         name="ScanTab"
@@ -94,13 +161,39 @@ function MainTabs() {
         options={{
           tabBarLabel: 'Meds',
         }}
-      />
-      <Tab.Screen
-        name="ProfileTab"
-        component={SettingsScreen}
-        options={{
-          tabBarLabel: 'Profile',
-        }}
+        listeners={({ navigation }) => ({
+          focus: () => {
+            const parent = navigation.getParent();
+            if (parent) {
+              parent.setOptions({
+                title: 'Medications',
+                headerStyle: {
+                  backgroundColor: Colors.background.meds,
+                },
+                headerTintColor: Colors.text.primary,
+                headerTitleStyle: {
+                  color: Colors.text.primary,
+                },
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={() => navigation.getParent()?.navigate('Settings')}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    activeOpacity={0.7}
+                    style={{
+                      padding: 6,
+                      borderRadius: 999,
+                    }}
+                    >
+                        <User size={24} color={Colors.text.primary} />
+                  </TouchableOpacity>
+                ),
+                headerLeftContainerStyle: {
+                  paddingRight: 16,
+                },
+              });
+            }
+          },
+        })}
       />
     </Tab.Navigator>
   );
@@ -138,7 +231,7 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator
         initialRouteName={hasCompletedOnboarding ? 'Home' : 'Onboarding'}
-        screenOptions={{
+        screenOptions={({ navigation }) => ({
           headerShown: true,
           headerStyle: {
             backgroundColor: Colors.primary.main,
@@ -147,7 +240,24 @@ export default function AppNavigator() {
           headerTitleStyle: {
             fontWeight: '600',
           },
-        }}
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Settings')}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              activeOpacity={0.7}
+              style={{
+                padding: 6,
+                borderRadius: 999,
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              }}
+            >
+              <User size={22} color={Colors.primary.contrast} />
+            </TouchableOpacity>
+          ),
+          headerLeftContainerStyle: {
+            paddingRight: 12,
+          },
+        })}
       >
         <Stack.Screen
           name="Onboarding"
@@ -162,7 +272,9 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Home"
           component={MainTabs}
-          options={{ headerShown: false }}
+          options={{
+            headerShown: true,
+          }}
         />
         <Stack.Screen
           name="AddMedicine"
@@ -232,6 +344,11 @@ export default function AppNavigator() {
           name="RiskAssessment"
           component={RiskAssessmentScreen}
           options={{ title: 'Risk Assessment' }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ title: 'Profile & Settings' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

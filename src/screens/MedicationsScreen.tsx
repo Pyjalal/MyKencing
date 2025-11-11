@@ -15,7 +15,7 @@ import { RootStackParamList, DoseStatus } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useTranslation } from 'react-i18next';
-import { ScreenLayout, PillButton } from '../components';
+import { PillButton } from '../components';
 import { addDays, startOfWeek, format, isSameDay, parseISO, getYear, isToday, isTomorrow, isYesterday } from 'date-fns';
 import { enUS, ms as msLocale } from 'date-fns/locale';
 
@@ -210,12 +210,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
   };
 
   return (
-    <ScreenLayout
-      backgroundColor={Colors.background.meds}
-      contentBackgroundColor={Colors.background.primary}
-      title={t('medications.medications_title')}
-      onBackPress={() => navigation.goBack()}
-    >
+    <View style={styles.container}>
       {/* Calendar at the top - outside scroll */}
       <GestureDetector gesture={panGesture}>
         <View style={styles.remindersCard}>
@@ -339,11 +334,15 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
           </View>
         )}
       </ScrollView>
-    </ScreenLayout>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.background.primary,
+  },
   manageButton: {
     marginBottom: Spacing.sm,
     ...Shadows.sm,
@@ -474,6 +473,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   remindersCard: {
+    backgroundColor: Colors.background.primary,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.lg,

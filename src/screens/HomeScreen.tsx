@@ -168,13 +168,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         }
       >
         <View style={styles.heroSection}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.canGoBack() && navigation.goBack()}
-          >
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.searchBar} activeOpacity={0.8} onPress={handleSearchPress}>
             <Search size={20} color={Colors.primary.dark} />
             <Text style={styles.searchPlaceholder}>{t('home.search_placeholder', 'Search here')}</Text>
@@ -306,17 +299,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 40,
     marginBottom: Spacing.lg,
     ...Shadows.sm,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  backIcon: {
-    fontSize: 26,
-    color: Colors.primary.contrast,
   },
   searchBar: {
     flexDirection: 'row',

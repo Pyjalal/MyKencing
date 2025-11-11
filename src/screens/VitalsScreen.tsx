@@ -10,10 +10,10 @@ import { useTranslation } from 'react-i18next';
 import { useVitalsStore } from '../stores/vitalsStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { Vital, VitalType } from '../types';
-import { BotMessageSquare, Search } from 'lucide-react-native';
+import { Search } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSettingsStore } from '../stores/settingsStore';
-import { RiskScoreCircle, ScreenLayout } from '../components';
+import { RiskScoreCircle } from '../components';
 import { calculateFindrisc, calculateFraminghamSimplified } from '../utils/riskScores';
 
 // Hard-coded demo data for 14 days
@@ -105,42 +105,21 @@ export default function VitalsScreen() {
   const glucoseAvg = (DEMO_DATA.glucose.reduce((sum, d) => sum + d.value, 0) / 14).toFixed(1);
   const cholesterolAvg = (DEMO_DATA.cholesterol.reduce((sum, d) => sum + d.value, 0) / 14).toFixed(2);
 
-  const handleChatPress = () => {
-    navigation.navigate('ChatBot');
-  };
 
   return (
-    <ScreenLayout
-      backgroundColor={Colors.background.vitals}
-      contentBackgroundColor="#EFF1FE"
-      title={t('vitals.vitals_tracker')}
-      onBackPress={() => navigation.canGoBack() && navigation.goBack()}
-      headerSlot={
-        <>
-        <View style={styles.headerContainer}>
-          <View>
-          {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder={t('vitals.search_here')}
-              placeholderTextColor={Colors.text.tertiary}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-          </View>
+    <View style={styles.container}>
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder={t('vitals.search_here')}
+          placeholderTextColor={Colors.text.tertiary}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+        />
+      </View>
 
-          <TouchableOpacity style={styles.aiButton} onPress={handleChatPress}>
-            <View style={styles.aiIconContainer}>
-              <BotMessageSquare size={24} color={Colors.secondary.main} />
-            </View>
-          </TouchableOpacity>
-          </View>
-        </View>
-        </>
-      }
-    >
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* Demo Mode Toggle */}
         <TouchableOpacity
@@ -337,27 +316,14 @@ export default function VitalsScreen() {
           </>
         )}
       </ScrollView>
-    </ScreenLayout>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerContainer: {
-    paddingBottom: Spacing.xl,
-  },
-  aiButton: {
-    position: 'absolute',
-    right: 0,
-    top: Spacing.md,
-  },
-  aiIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.md,
+  container: {
+    flex: 1,
+    backgroundColor: '#EFF1FE',
   },
   scrollView: {
     flex: 1,
@@ -372,7 +338,9 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingHorizontal: Spacing.md + 4,
     paddingVertical: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   searchIcon: {
     marginRight: Spacing.sm,
