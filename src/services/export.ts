@@ -3,7 +3,7 @@
  * Generates PDF reports for doctors with medication and vitals data
  */
 
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system/next';
 import * as Sharing from 'expo-sharing';
 import { VitalType } from '../types';
 import { getDatabase } from './database';
@@ -676,12 +676,18 @@ export async function generateAndShareReport(
     // Generate HTML
     const html = generateReportHTML(data);
 
-    // Save HTML to file and share
+    // Save HTML to cache (no permissions needed) and share
     const filename = `MyKencing_Report_${Date.now()}.html`;
-    const baseDir: string = (FileSystem as any).documentDirectory || (FileSystem as any).cacheDirectory || '';
-    const filepath = `${baseDir}${filename}`;
-    await FileSystem.writeAsStringAsync(filepath, html);
-    await Sharing.shareAsync(filepath, { mimeType: 'text/html' });
+    const file = new File(Paths.cache, filename);
+    await file.create();
+    await file.write(html);
+    
+    // Share the file - user can choose where to save it
+    await Sharing.shareAsync(file.uri, { 
+      mimeType: 'text/html',
+      dialogTitle: 'Share Medical Report',
+      UTI: 'public.html'
+    });
 
     return { success: true };
   } catch (error) {
@@ -703,10 +709,10 @@ export async function saveReportToDevice(
     const data = await gatherExportData(periodDays);
     const html = generateReportHTML(data);
     const filename = `MyKencing_Report_${Date.now()}.html`;
-    const baseDir: string = (FileSystem as any).documentDirectory || (FileSystem as any).cacheDirectory || '';
-    const filepath = `${baseDir}${filename}`;
-    await FileSystem.writeAsStringAsync(filepath, html);
-    return { success: true, filepath };
+    const file = new File(Paths.cache, filename);
+    await file.create();
+    await file.write(html);
+    return { success: true, filepath: file.uri };
   } catch (error) {
     console.error('Error saving report:', error);
     return {
