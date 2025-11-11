@@ -8,7 +8,7 @@ import { CustomTabBar } from '../components/BottomNavBar';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Colors } from '../constants/theme';
 import { updateI18nLanguage } from '../services/i18n';
-import { User, BotMessageSquare } from 'lucide-react-native';
+import { User, BotMessageSquare, Plus } from 'lucide-react-native';
 // Screens
 import OnboardingScreen from '../screens/OnboardingScreen';
 import PrivacyConsentScreen from '../screens/PrivacyConsentScreen';
@@ -34,15 +34,15 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
 /**
- * Dummy screen that navigates to ScanPrescription
- * Used as a placeholder for the center tab button
+ * Dummy screen that navigates to the ChatBot screen.
+ * Used as a placeholder for the custom chat action tab button.
  */
-function ScanPrescriptionTabPlaceholder() {
+function ChatBotTabPlaceholder() {
   const navigation = useNavigation<any>();
   
   React.useEffect(() => {
     // Navigate to the stack screen immediately
-    navigation.navigate('ScanPrescription');
+    navigation.navigate('ChatBot');
   }, [navigation]);
   
   return null;
@@ -74,6 +74,7 @@ function MainTabs() {
                 headerStyle: {
                   backgroundColor: Colors.primary.dark,
                 },
+                headerShadowVisible: false,
                 headerTintColor: Colors.primary.contrast,
                 headerTitleStyle: {
                   color: Colors.primary.contrast,
@@ -81,17 +82,21 @@ function MainTabs() {
                 headerLeft: () => (
                   <TouchableOpacity
                     onPress={() => navigation.getParent()?.navigate('Settings')}
-                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    activeOpacity={0.7}
                     style={{
                       padding: 6,
                       borderRadius: 999,
                     }}
-                    activeOpacity={0.7}
-                    >
-                        <User size={24} color={Colors.primary.contrast} />
+                  >
+                    <User size={24} color={Colors.primary.contrast} />
                   </TouchableOpacity>
                 ),
                 headerLeftContainerStyle: {
+                  paddingRight: 16,
+                },
+                headerRight: undefined,
+                headerRightContainerStyle: {
                   paddingRight: 16,
                 },
               });
@@ -114,44 +119,33 @@ function MainTabs() {
                 headerStyle: {
                   backgroundColor: Colors.background.vitals,
                 },
+                headerShadowVisible: false,
                 headerTintColor: Colors.primary.contrast,
                 headerTitleStyle: {
                   color: Colors.primary.contrast,
                 },
                 headerLeft: () => (
                   <TouchableOpacity
-                    onPress={() => navigation.getParent()?.navigate('ChatBot')}
+                    onPress={() => navigation.getParent()?.navigate('Settings')}
                     hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                     activeOpacity={0.7}
                     style={{
                       padding: 6,
                       borderRadius: 999,
-                      backgroundColor: Colors.primary.contrast,
                     }}
                   >
-                    <BotMessageSquare size={22} color={Colors.background.vitals} />
+                    <User size={24} color={Colors.primary.contrast} />
                   </TouchableOpacity>
                 ),
                 headerLeftContainerStyle: {
                   paddingRight: 16,
                 },
+                headerRight: undefined,
+                headerRightContainerStyle: {
+                  paddingRight: 16,
+                },
               });
             }
-          },
-        })}
-      />
-      <Tab.Screen
-        name="ScanTab"
-        component={ScanPrescriptionTabPlaceholder}
-        options={{
-          tabBarLabel: '',
-        }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            // Prevent default tab navigation
-            e.preventDefault();
-            // Navigate to the stack screen instead
-            navigation.navigate('ScanPrescription');
           },
         })}
       />
@@ -170,6 +164,7 @@ function MainTabs() {
                 headerStyle: {
                   backgroundColor: Colors.background.meds,
                 },
+                headerShadowVisible: false,
                 headerTintColor: Colors.text.primary,
                 headerTitleStyle: {
                   color: Colors.text.primary,
@@ -183,15 +178,44 @@ function MainTabs() {
                       padding: 6,
                       borderRadius: 999,
                     }}
-                    >
-                        <User size={24} color={Colors.text.primary} />
+                  >
+                    <User size={24} color={Colors.text.primary} />
                   </TouchableOpacity>
                 ),
                 headerLeftContainerStyle: {
                   paddingRight: 16,
                 },
+                headerRight: () => (
+                  <TouchableOpacity
+                    onPress={() => navigation.getParent()?.navigate('ScanPrescription')}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    activeOpacity={0.7}
+                    style={{
+                      padding: 6,
+                      borderRadius: 999,
+                    }}
+                  >
+                    <Plus size={24} color={Colors.text.primary} />
+                  </TouchableOpacity>
+                ),
+                headerRightContainerStyle: {
+                  paddingRight: 16,
+                },
               });
             }
+          },
+        })}
+      />
+      <Tab.Screen
+        name="ChatBotTab"
+        component={ChatBotTabPlaceholder}
+        options={{
+          tabBarLabel: '',
+        }}
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            e.preventDefault();
+            navigation.navigate('ChatBot');
           },
         })}
       />
@@ -231,33 +255,17 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator
         initialRouteName={hasCompletedOnboarding ? 'Home' : 'Onboarding'}
-        screenOptions={({ navigation }) => ({
+        screenOptions={{
           headerShown: true,
           headerStyle: {
             backgroundColor: Colors.primary.main,
           },
+          headerShadowVisible: false,
           headerTintColor: Colors.primary.contrast,
           headerTitleStyle: {
             fontWeight: '600',
           },
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Settings')}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              activeOpacity={0.7}
-              style={{
-                padding: 6,
-                borderRadius: 999,
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-              }}
-            >
-              <User size={22} color={Colors.primary.contrast} />
-            </TouchableOpacity>
-          ),
-          headerLeftContainerStyle: {
-            paddingRight: 12,
-          },
-        })}
+        }}
       >
         <Stack.Screen
           name="Onboarding"
@@ -274,6 +282,7 @@ export default function AppNavigator() {
           component={MainTabs}
           options={{
             headerShown: true,
+            headerLeft: () => null,
           }}
         />
         <Stack.Screen

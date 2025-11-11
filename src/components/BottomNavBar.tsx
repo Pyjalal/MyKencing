@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Home, Heart, Plus, Pill, User } from 'lucide-react-native';
+import { Home, Heart, Pill, User, BotMessageSquare } from 'lucide-react-native';
 import { Colors, Spacing, Shadows } from '../constants/theme';
 
 const getActiveTabColor = (routeName: string): string => {
@@ -16,8 +16,8 @@ const getTabIcon = (routeName: string, isFocused: boolean, activeColor: string) 
   const icons: Record<string, React.ReactNode> = {
     HomeTab: <Home size={size} color={iconColor} />,
     VitalsTab: <Heart size={size} color={iconColor} />,
-    ScanTab: <Plus size={28} color={Colors.primary.contrast} />,
     MedicationsTab: <Pill size={size} color={iconColor} />,
+    ChatBotTab: <BotMessageSquare size={size} color={iconColor} />,
     ProfileTab: <User size={size} color={iconColor} />,
   };
   return icons[routeName] || <Home size={size} color={iconColor} />;
@@ -29,80 +29,103 @@ const getTabLabel = (routeName: string, label: any): string => {
   const labels: Record<string, string> = {
     HomeTab: 'Home',
     VitalsTab: 'Vitals',
-    ScanTab: '',
     MedicationsTab: 'Meds',
+    ChatBotTab: '',
     ProfileTab: 'Profile',
   };
   return labels[routeName] || routeName;
 };
 
 export function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const activeRouteName = state.routes[state.index]?.name;
-  const activeNavigatorColor = activeRouteName ? getActiveTabColor(activeRouteName) : Colors.primary.main;
+  const chatRoute = state.routes.find((route) => route.name === 'ChatBotTab');
+  const regularRoutes = state.routes.filter((route) => route.name !== 'ChatBotTab');
+
+  const renderTab = (route: typeof state.routes[number]) => {
+    const { options } = descriptors[route.key];
+    const label = options.tabBarLabel !== undefined
+      ? options.tabBarLabel
+      : options.title !== undefined
+      ? options.title
+      : route.name;
+
+    const isFocused = state.routes[state.index]?.key === route.key;
+
+    const onPress = () => {
+      const event = navigation.emit({
+        type: 'tabPress',
+        target: route.key,
+        canPreventDefault: true,
+      });
+
+      if (!isFocused && !event.defaultPrevented) {
+        navigation.navigate(route.name);
+      }
+    };
+
+    const activeColor = getActiveTabColor(route.name);
+
+    return (
+      <TouchableOpacity
+        key={route.key}
+        onPress={onPress}
+        style={styles.tabItem}
+        accessibilityRole="button"
+        accessibilityState={isFocused ? { selected: true } : {}}
+      >
+        {getTabIcon(route.name, isFocused, activeColor)}
+        <Text style={[
+          styles.tabLabel,
+          isFocused && styles.tabLabelFocused,
+          isFocused && { color: activeColor }
+        ]}>
+          {getTabLabel(route.name, label)}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderChatButton = () => {
+    if (!chatRoute) return null;
+
+    const isFocused = state.routes[state.index]?.key === chatRoute.key;
+    const activeColor = getActiveTabColor(chatRoute.name);
+    const iconColor = isFocused ? Colors.primary.contrast : Colors.text.tertiary;
+    const backgroundColor = isFocused ? activeColor : Colors.background.card;
+
+    const onPress = () => {
+      const event = navigation.emit({
+        type: 'tabPress',
+        target: chatRoute.key,
+        canPreventDefault: true,
+      });
+
+      if (!isFocused && !event.defaultPrevented) {
+        navigation.navigate(chatRoute.name);
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        key={chatRoute.key}
+        onPress={onPress}
+        style={[styles.chatButtonWrapper, isFocused && styles.chatButtonWrapperActive]}
+        accessibilityRole="button"
+        accessibilityState={isFocused ? { selected: true } : {}}
+      >
+        <View style={[styles.chatButton, { backgroundColor }]}>
+          <BotMessageSquare size={28} color={iconColor} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.tabBar}>
-        {state.routes.map((route, index) => {
-          const { options } = descriptors[route.key];
-          const label = options.tabBarLabel !== undefined
-            ? options.tabBarLabel
-            : options.title !== undefined
-            ? options.title
-            : route.name;
-
-          const isFocused = state.index === index;
-
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
-          };
-
-          const activeColor = getActiveTabColor(route.name);
-
-          // Special styling for center scan button
-          if (route.name === 'ScanTab') {
-            return (
-              <TouchableOpacity
-                key={route.key}
-                onPress={onPress}
-                style={styles.addButton}
-                accessibilityRole="button"
-                accessibilityState={isFocused ? { selected: true } : {}}
-              >
-                <View style={[styles.addButtonCircle, { backgroundColor: activeNavigatorColor }]}>
-                  {getTabIcon(route.name, isFocused, activeColor)}
-                </View>
-              </TouchableOpacity>
-            );
-          }
-
-          return (
-            <TouchableOpacity
-              key={route.key}
-              onPress={onPress}
-              style={styles.tabItem}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-            >
-              {getTabIcon(route.name, isFocused, activeColor)}
-              <Text style={[
-                styles.tabLabel,
-                isFocused && styles.tabLabelFocused,
-                isFocused && { color: activeColor }
-              ]}>
-                {getTabLabel(route.name, label)}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+      <View style={styles.row}>
+        <View style={styles.tabBar}>
+          {regularRoutes.map(renderTab)}
+        </View>
+        {renderChatButton()}
       </View>
     </View>
   );
@@ -116,10 +139,16 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: 'transparent',
     paddingBottom: Spacing.md + 4,
-    paddingHorizontal: Spacing.lg + Spacing.md,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.sm,
   },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   tabBar: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -127,6 +156,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     height: 70,
     ...Shadows.lg,
+    paddingHorizontal: Spacing.md,
   },
   tabItem: {
     flex: 1,
@@ -143,15 +173,18 @@ const styles = StyleSheet.create({
   tabLabelFocused: {
     fontWeight: '600',
   },
-  addButton: {
+  chatButtonWrapper: {
+    marginLeft: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -32,
   },
-  addButtonCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  chatButtonWrapperActive: {
+    transform: [{ scale: 1.04 }],
+  },
+  chatButton: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadows.lg,

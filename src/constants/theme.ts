@@ -18,6 +18,7 @@ export const Colors = {
     "HomeTab": "#377AB1",
     "VitalsTab": "#E66A6A",
     "MedicationsTab": "#F0C400",
+    "ChatBotTab": "#377AB1",
     "AddMedicine": "#F5B800",
     "ProfileTab": "#377AB1",
   },
