@@ -29,6 +29,7 @@ import MedicationManagementScreen from '../screens/MedicationManagementScreen';
 import MedicationInteractionsScreen from '../screens/MedicationInteractionsScreen';
 import RiskAssessmentScreen from '../screens/RiskAssessmentScreen';
 import RiskCalculatorScreen from '../screens/RiskCalculatorScreen';
+import HealthProfileScreen from '../screens/HealthProfileScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -364,6 +365,11 @@ export default function AppNavigator() {
           name="Settings"
           component={SettingsScreen}
           options={{ title: 'Profile & Settings' }}
+        />
+        <Stack.Screen
+          name="HealthProfile"
+          component={HealthProfileScreen}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>

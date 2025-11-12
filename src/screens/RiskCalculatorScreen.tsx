@@ -152,16 +152,14 @@ export default function RiskCalculatorScreen() {
       {(findriscResult || framinghamResult) && (
         <View style={styles.resultsSection}>
           <Text style={styles.resultsTitle}>{t('risk_calculators.results_title')}</Text>
-          {findriscResult && (
-            <View style={styles.resultsItem}>
-              <RiskScoreCircle result={findriscResult} />
-            </View>
-          )}
-          {framinghamResult && (
-            <View style={styles.resultsItem}>
-              <RiskScoreCircle result={framinghamResult} />
-            </View>
-          )}
+          <View style={styles.resultsGrid}>
+            {findriscResult && (
+              <RiskScoreCircle result={findriscResult} style={styles.resultsCard} />
+            )}
+            {framinghamResult && (
+              <RiskScoreCircle result={framinghamResult} style={styles.resultsCard} />
+            )}
+          </View>
           <Text style={styles.resultsHint}>
             {t('risk_calculators.results_hint')}
           </Text>
@@ -227,26 +225,33 @@ const styles = StyleSheet.create({
     color: Colors.primary.contrast,
   },
   resultsSection: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.lg,
-    ...Shadows.sm,
+    marginTop: Spacing['2xl'],
+    gap: Spacing.md,
   },
   resultsTitle: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
-    marginBottom: Spacing.md,
+    textAlign: 'left',
   },
-  resultsItem: {
+  resultsGrid: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    flexWrap: 'wrap',
+  },
+  resultsCard: {
+    flex: 1,
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.md,
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    ...Shadows.sm,
   },
   resultsHint: {
-    marginTop: Spacing.lg,
     fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
-    textAlign: 'center',
+    textAlign: 'left',
   },
 });
 

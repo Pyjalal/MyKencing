@@ -436,6 +436,7 @@ export type RootStackParamList = {
   AddVital: { type: VitalType };
   RiskCalculators: undefined;
   RiskAssessment: undefined;
+  HealthProfile: undefined;
   Export: undefined;
   Settings: undefined;
   Analytics: undefined;
