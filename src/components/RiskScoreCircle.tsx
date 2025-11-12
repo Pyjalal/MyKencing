@@ -1,24 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Typography, Colors, Spacing, Shadows } from '../constants/theme';
+import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { Typography, Colors, Spacing } from '../constants/theme';
 import { RiskScoreResult } from '../utils/riskScores';
 
 interface RiskScoreCircleProps {
   result: RiskScoreResult;
+  style?: StyleProp<ViewStyle>;
 }
 
-export default function RiskScoreCircle({ result }: RiskScoreCircleProps) {
+export default function RiskScoreCircle({ result, style }: RiskScoreCircleProps) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <View style={[styles.circle, { backgroundColor: result.color }]}>
         <Text style={styles.score}>{Math.round(result.score)}</Text>
-        {result.maxScore && (
-          <Text style={styles.ofText}>/ {result.maxScore}</Text>
+        {result.maxScore !== undefined && (
+          <Text style={styles.ofText}>/{result.maxScore}</Text>
         )}
       </View>
-      <Text style={styles.label}>{result.label}</Text>
-      <Text style={styles.category}>{formatCategory(result.category)}</Text>
-      <Text style={styles.description}>{result.description}</Text>
+      <View style={styles.textBlock}>
+        <Text style={styles.label}>{result.label}</Text>
+        <Text style={styles.category}>{formatCategory(result.category)}</Text>
+        <Text style={styles.description}>{result.description}</Text>
+      </View>
     </View>
   );
 }
@@ -40,45 +43,49 @@ function formatCategory(category: RiskScoreResult['category']): string {
 
 const styles = StyleSheet.create({
   container: {
+    width: '100%',
     alignItems: 'center',
-    padding: Spacing.md,
-    backgroundColor: Colors.background.card,
-    borderRadius: 18,
-    ...Shadows.sm,
+  },
+  textBlock: {
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
   circle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
   },
   score: {
     fontSize: Typography.fontSize['3xl'],
     fontWeight: Typography.fontWeight.bold,
-    color: Colors.primary.contrast,
+    color: Colors.text.inverse,
   },
   ofText: {
     fontSize: Typography.fontSize.sm,
-    color: Colors.primary.contrast,
+    color: Colors.text.inverse,
+    marginTop: 2,
   },
   label: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
+    textTransform: 'uppercase',
     color: Colors.text.primary,
-    marginBottom: 4,
   },
   category: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.secondary,
-    marginBottom: Spacing.sm,
   },
   description: {
     fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
     textAlign: 'center',
+    paddingHorizontal: Spacing.md,
   },
 });
 
