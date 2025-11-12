@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,11 +10,14 @@ import {
   StyleSheet,
   ActivityIndicator,
   SafeAreaView,
+  Switch,
 } from 'react-native';
 import { Colors } from '../constants/theme';
 import { sendMessage } from '../services/chatclient';
 import { Message } from '../types';
 import { format } from 'date-fns';
+import { useVitalsStore } from '../stores/vitalsStore';
+import { useMedicationStore } from '../stores/medicationStore';
 
 export default function ChatBotScreen() {
   const [messages, setMessages] = useState<Message[]>([
@@ -23,6 +26,33 @@ export default function ChatBotScreen() {
   const [input, setInput] = useState('');
   const scrollViewRef = useRef<ScrollView>(null);
   const [loading, setLoading] = useState(false);
+  const [includeVitals, setIncludeVitals] = useState(false);
+  const [includeMedications, setIncludeMedications] = useState(false);
+  
+  // Load vitals and medications from stores
+  const vitals = useVitalsStore((state) => state.vitals);
+  const weekDoses = useMedicationStore((state) => state.weekDoses);
+  const loadVitals = useVitalsStore((state) => state.loadVitals);
+  const loadWeekDoses = useMedicationStore((state) => state.loadWeekDoses);
+
+  // Load vitals and this week's medication doses on mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        await loadVitals(undefined, 30); // Load last 30 days of vitals
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        await loadWeekDoses(startOfWeek, endOfWeek);
+        console.log('Vitals and medications loaded for chatbot context.');
+      } catch (error) {
+        console.error('Error loading vitals/medications for chatbot:', error);
+      }
+    };
+    loadData();
+  }, [loadVitals, loadWeekDoses]);
 
 const handleSend = async () => {
   if (!input.trim() || loading) return;
@@ -46,7 +76,8 @@ const handleSend = async () => {
       timestamp: m.timestamp
     }));
 
-    const botReply = await sendMessage(history);
+    // Send message with flags indicating which context to include
+    const botReply = await sendMessage(history, includeVitals, includeMedications);
     const botMessage: Message = {
       role: 'assistant',
       content: botReply,
@@ -115,23 +146,50 @@ const handleSend = async () => {
         </ScrollView>
 
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Type your message..."
-            placeholderTextColor={Colors.text.secondary}
-            value={input}
-            onChangeText={setInput}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-            multiline
-          />
-          <TouchableOpacity 
-            style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]} 
-            onPress={handleSend}
-            disabled={!input.trim() || loading}
-          >
-          <Text style={styles.sendText}>{loading ? '...' : 'Send'}</Text>
-        </TouchableOpacity>
+          <View style={styles.pillsRow}>
+            <TouchableOpacity
+              style={[
+                styles.pillButton,
+                includeVitals ? styles.pillEnabled : styles.pillDisabled,
+              ]}
+              onPress={() => setIncludeVitals(!includeVitals)}
+            >
+              <Text style={[styles.pillText, includeVitals ? styles.pillTextEnabled : styles.pillTextDisabled]}>
+                📊 Vitals
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.pillButton,
+                includeMedications ? styles.pillEnabled : styles.pillDisabled,
+              ]}
+              onPress={() => setIncludeMedications(!includeMedications)}
+            >
+              <Text style={[styles.pillText, includeMedications ? styles.pillTextEnabled : styles.pillTextDisabled]}>
+                💊 Meds
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.input}
+              placeholder="Type your message..."
+              placeholderTextColor={Colors.text.secondary}
+              value={input}
+              onChangeText={setInput}
+              onSubmitEditing={handleSend}
+              returnKeyType="send"
+              multiline
+            />
+            <TouchableOpacity 
+              style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]} 
+              onPress={handleSend}
+              disabled={!input.trim() || loading}
+            >
+              <Text style={styles.sendText}>{loading ? '...' : 'Send'}</Text>
+            </TouchableOpacity>
+          </View>
       </View>
     </KeyboardAvoidingView>
     </SafeAreaView>
@@ -165,6 +223,41 @@ const styles = StyleSheet.create({
   chatContainer: {
     flex: 1,
     padding: 16,
+  },
+  pillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    flexWrap: 'wrap',
+  },
+  pillButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillEnabled: {
+    backgroundColor: Colors.primary.main,
+    borderColor: Colors.primary.main,
+  },
+  pillDisabled: {
+    backgroundColor: 'transparent',
+    borderColor: Colors.border.light,
+    borderStyle: 'dashed',
+  },
+  pillText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  pillTextEnabled: {
+    color: Colors.primary.contrast,
+  },
+  pillTextDisabled: {
+    color: Colors.text.secondary,
   },
   messageBubble: {
     padding: 12,
@@ -213,13 +306,19 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: 'column',
     borderTopWidth: 1,
     borderColor: Colors.border.light,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    backgroundColor: Colors.background.secondary,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: Colors.background.secondary,
+    gap: 8,
   },
   input: {
     flex: 1,
