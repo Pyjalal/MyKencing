@@ -91,7 +91,8 @@ const handleSend = async () => {
       content: '⚠️ Failed to reach the chatbot.',
       timestamp: new Date()
     };
-    setMessages(prev => [...prev, errMessage]);
+    // Remove the error message and the last user message from history
+    setMessages(prev => prev.slice(0, -1)); // Remove the user message we just added
     console.error(error);
   } finally {
     setLoading(false);
