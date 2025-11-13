@@ -5,7 +5,15 @@
  */
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+} from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useVitalsStore } from '../stores/vitalsStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
@@ -18,7 +26,6 @@ import {
   CholesterolVital,
   WaistCircumferenceVital,
 } from '../types';
-import { Search, BotMessageSquare } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useSettingsStore } from '../stores/settingsStore';
 import { CONVERSIONS } from '../constants/clinical';
@@ -196,8 +203,8 @@ export default function VitalsScreen() {
   const { vitals, loadVitals } = useVitalsStore();
   const settings = useSettingsStore((state) => state.settings);
   const navigation = useNavigation<any>();
-  const [searchQuery, setSearchQuery] = useState('');
   const [isDemoMode, setIsDemoMode] = useState(true); // Toggle for demo data
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   useEffect(() => {
     loadVitals();
@@ -1018,49 +1025,30 @@ export default function VitalsScreen() {
     }
   }
 
-  const handleChatPress = () => {
-    navigation.navigate('ChatBot');
-  };
-
   const handleManageRiskPress = () => {
     navigation.navigate('RiskCalculators');
   };
 
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setIsHeaderCollapsed(offsetY > 40);
+  }, []);
+
   return (
     <View style={styles.container}>
-      {/* Header with background */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.canGoBack() && navigation.goBack()}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Search size={20} color={Colors.text.tertiary} style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t('vitals.search_here')}
-            placeholderTextColor={Colors.text.tertiary}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-
-        {/* Title */}
-        <Text style={styles.headerTitle}>{t('vitals.vitals_tracker')}</Text>
-
-        {/* AI Chat Button */}
-        <TouchableOpacity style={styles.aiButton} onPress={handleChatPress}>
-          <View style={styles.aiIconContainer}>
-            <BotMessageSquare size={24} color={Colors.secondary.main} />
-          </View>
-        </TouchableOpacity>
+      <View style={[styles.header, isHeaderCollapsed && styles.headerCollapsed]}>
+        <Text style={[styles.headerTitle, isHeaderCollapsed && styles.headerTitleCollapsed]}>
+          {t('vitals.vitals_tracker')}
+        </Text>
       </View>
 
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
         <View style={styles.profileCtaCard}>
           <View style={{ flex: 1 }}>
             <Text style={styles.profileCtaTitle}>{t('vitals.profile_cta_title')}</Text>
@@ -1459,60 +1447,25 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: Colors.background.vitals,
-    paddingTop: Spacing['2xl'] + 10,
-    paddingBottom: Spacing.xl,
     paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    marginBottom: Spacing.lg,
     borderBottomLeftRadius: BorderRadius['3xl'],
     borderBottomRightRadius: BorderRadius['3xl'],
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerCollapsed: {
+    paddingVertical: Spacing.sm,
     marginBottom: Spacing.md,
   },
-  backIcon: {
-    fontSize: 28,
-    color: Colors.text.inverse,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    marginBottom: Spacing.lg,
-    ...Shadows.sm,
-  },
-  searchIcon: {
-    marginRight: Spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: Typography.fontSize.base,
-    color: Colors.text.primary,
-  },
   headerTitle: {
-    fontSize: 32,
+    fontSize: Typography.fontSize['2xl'],
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.inverse,
     marginBottom: Spacing.sm,
   },
-  aiButton: {
-    position: 'absolute',
-    right: Spacing.lg,
-    top: Spacing['2xl'] + 80,
-  },
-  aiIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.background.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.md,
+  headerTitleCollapsed: {
+    fontSize: Typography.fontSize.xl,
+    marginBottom: 0,
   },
   scrollView: {
     flex: 1,

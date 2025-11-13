@@ -73,6 +73,35 @@ interface MedicationState {
   rescheduleMedication: (medicationId: string, newTimes: string[], rescheduleAllFuture: boolean) => Promise<void>;
 }
 
+let registrationColumnEnsured = false;
+
+async function ensureRegistrationColumn() {
+  if (registrationColumnEnsured) return;
+
+  try {
+    const db = getDatabase();
+    const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(medications)');
+    const hasRegistrationNo = columns.some((column) => column.name === 'registration_no');
+
+    if (!hasRegistrationNo) {
+      console.log('[medicationStore] Adding registration_no column to medications table');
+      await db.runAsync('ALTER TABLE medications ADD COLUMN registration_no TEXT');
+      await db.runAsync(
+        `UPDATE medications
+         SET registration_no = mims_id
+         WHERE registration_no IS NULL OR registration_no = ''`
+      );
+      await db.runAsync(
+        'CREATE INDEX IF NOT EXISTS idx_medications_registration_no ON medications(registration_no)'
+      );
+    }
+
+    registrationColumnEnsured = true;
+  } catch (error) {
+    console.error('[medicationStore] Failed to ensure registration_no column:', error);
+  }
+}
+
 // Helper function to get UTC ISO range for a local date
 function getUTCRangeForLocalDate(localDateStr: string): { start: string; end: string } {
   const [year, month, day] = localDateStr.split('-').map(Number);
@@ -110,6 +139,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
+      await ensureRegistrationColumn();
       const db = getDatabase();
 
       const medications = await db.getAllAsync(`
@@ -177,6 +207,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
   loadTodayDoses: async () => {
     set({ isLoading: true, error: null });
     try {
+      await ensureRegistrationColumn();
       const db = getDatabase();
       // Get today's date in LOCAL timezone, not UTC
       const now = new Date();
@@ -280,6 +311,7 @@ export const useMedicationStore = create<MedicationState>((set, get) => ({
   loadWeekDoses: async (startDate, endDate) => {
     set({ isLoading: true, error: null });
     try {
+      await ensureRegistrationColumn();
       const db = getDatabase();
       // Format dates in LOCAL timezone, not UTC
       const startStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
