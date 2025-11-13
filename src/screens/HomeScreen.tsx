@@ -627,9 +627,8 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
   },
   riskTrendList: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
+    flexDirection: 'column',
+    gap: Spacing.lg,
   },
   riskScoresCard: {
     marginHorizontal: Spacing.lg,

@@ -1651,9 +1651,8 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
   },
   riskTrendList: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
+    flexDirection: 'column',
+    gap: Spacing.lg,
   },
   riskScoresEmpty: {
     gap: Spacing.sm,
