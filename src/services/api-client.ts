@@ -176,7 +176,12 @@ class ApiClient {
         queries,
         limit,
       });
-      throw new Error('Failed to batch search medicines.');
+
+      if (error instanceof Error) {
+        throw error;
+      }
+
+      throw new Error(`Failed to batch search medicines: ${String(error)}`);
     }
   }
 
