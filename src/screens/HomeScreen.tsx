@@ -13,7 +13,7 @@ import {
 import { useMedicationStore } from '../stores/medicationStore';
 import { useVitalsStore } from '../stores/vitalsStore';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../stores/settingsStore';
 import { Search } from 'lucide-react-native';
@@ -26,6 +26,7 @@ type HomeScreenProps = {
 };
 
 const RISK_TREND_DAYS = 14;
+const VITALS_CALENDAR_DAYS = 7;
 
 const convertWeightToKg = (value: number, unit: 'kg' | 'lb') =>
   unit === 'kg' ? value : value * CONVERSIONS.lbToKg;
@@ -254,6 +255,33 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const hasRiskScores = Boolean(findriscResult || framinghamResult);
   const riskScoresEnabled = Boolean(calculators?.findriscEnabled || calculators?.framinghamEnabled);
 
+  const vitalsCalendarDays = useMemo(() => {
+    const today = new Date();
+    return Array.from({ length: VITALS_CALENDAR_DAYS }, (_, index) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (VITALS_CALENDAR_DAYS - 1 - index));
+      return date;
+    });
+  }, []);
+
+  const vitalsLoggedByDay = useMemo(() => {
+    const set = new Set<string>();
+    vitals.forEach((vital) => {
+      const key = new Date(vital.measuredAt).toDateString();
+      set.add(key);
+    });
+    return set;
+  }, [vitals]);
+
+  const vitalsCalendarItems = useMemo(
+    () =>
+      vitalsCalendarDays.map((date) => ({
+        date,
+        recorded: vitalsLoggedByDay.has(date.toDateString()),
+      })),
+    [vitalsCalendarDays, vitalsLoggedByDay]
+  );
+
   const findriscTrend = useMemo(() => {
     if (!findriscResult || !riskFactors) return null;
     const heightMeters = riskFactors.heightCm ? riskFactors.heightCm / 100 : null;
@@ -406,6 +434,46 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         </View>
 
         <View style={styles.riskScoresCard}>
+          <View style={styles.vitalsCalendarCard}>
+            <View style={styles.vitalsCalendarRow}>
+              {vitalsCalendarItems.map(({ date, recorded }) => (
+                <View key={date.toDateString()} style={styles.vitalsCalendarDay}>
+                  <Text style={styles.vitalsCalendarDayName}>{format(date, 'EEE')}</Text>
+                  <View
+                    style={[
+                      styles.vitalsCalendarDayCircle,
+                      recorded
+                        ? styles.vitalsCalendarDayCircleRecorded
+                        : styles.vitalsCalendarDayCircleMissing,
+                    ]}
+                  >
+                    <Text style={styles.vitalsCalendarDayText}>{format(date, 'd')}</Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.vitalsCalendarStatus,
+                      recorded
+                        ? styles.vitalsCalendarStatusRecorded
+                        : styles.vitalsCalendarStatusMissing,
+                    ]}
+                  >
+                    {recorded ? '✓' : '✕'}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <View style={styles.vitalsCalendarLegendRow}>
+              <View style={styles.vitalsLegendItem}>
+                <View style={[styles.vitalsLegendDot, styles.vitalsLegendDotRecorded]} />
+                <Text style={styles.vitalsCalendarLegendLabel}>✓</Text>
+              </View>
+              <View style={styles.vitalsLegendItem}>
+                <View style={[styles.vitalsLegendDot, styles.vitalsLegendDotMissing]} />
+                <Text style={styles.vitalsCalendarLegendLabel}>✕</Text>
+              </View>
+            </View>
+          </View>
+
           <View style={styles.riskScoresHeader}>
             <Text style={styles.riskScoresTitle}>{t('vitals.risk_scores_title')}</Text>
             <TouchableOpacity onPress={handleManageRiskPress}>
@@ -629,6 +697,93 @@ const styles = StyleSheet.create({
   riskTrendList: {
     flexDirection: 'column',
     gap: Spacing.lg,
+  },
+  vitalsCalendarCard: {
+    backgroundColor: Colors.background.primary,
+    borderRadius: BorderRadius.card,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.neutral[100],
+  },
+  vitalsCalendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  vitalsCalendarTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+  },
+  vitalsCalendarLegendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  vitalsLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  vitalsCalendarLegendLabel: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  vitalsLegendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  vitalsLegendDotRecorded: {
+    backgroundColor: Colors.status.success,
+  },
+  vitalsLegendDotMissing: {
+    backgroundColor: Colors.status.error,
+  },
+  vitalsCalendarRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  vitalsCalendarDay: {
+    flex: 1,
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  vitalsCalendarDayName: {
+    fontSize: Typography.fontSize.xs,
+    color: Colors.text.secondary,
+    textTransform: 'uppercase',
+  },
+  vitalsCalendarDayCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vitalsCalendarDayCircleRecorded: {
+    backgroundColor: Colors.status.successLight,
+  },
+  vitalsCalendarDayCircleMissing: {
+    backgroundColor: Colors.status.errorLight,
+  },
+  vitalsCalendarDayText: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.primary,
+  },
+  vitalsCalendarStatus: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.bold,
+  },
+  vitalsCalendarStatusRecorded: {
+    color: Colors.status.success,
+  },
+  vitalsCalendarStatusMissing: {
+    color: Colors.status.error,
   },
   riskScoresCard: {
     marginHorizontal: Spacing.lg,

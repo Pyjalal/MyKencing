@@ -152,7 +152,14 @@
     "in": "dalam",
     "take": "Ambil",
     "skip": "Langkau",
-    "no_upcoming_doses": "Tiada dos akan datang"
+    "no_upcoming_doses": "Tiada dos akan datang",
+    "vitals_calendar_title": "Jejak Vital",
+    "vitals_calendar_subtitle": "Catat sekurang-kurangnya satu vital setiap hari",
+    "vitals_calendar_legend": "✓ dicatat • ✕ terlepas",
+    "vitals_logged": "Direkod",
+    "vitals_missed": "Terlepas",
+    "vitals_logged_short": "Direkod",
+    "vitals_missed_short": "Terlepas"
   },
   "medications": {
     "medications_title": "Ubat-ubatan",

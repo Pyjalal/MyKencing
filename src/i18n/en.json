@@ -152,7 +152,14 @@
     "in": "in",
     "take": "Take",
     "skip": "Skip",
-    "no_upcoming_doses": "No upcoming doses"
+    "no_upcoming_doses": "No upcoming doses",
+    "vitals_calendar_title": "Vitals Tracking",
+    "vitals_calendar_subtitle": "Log at least one vital each day",
+    "vitals_calendar_legend": "✓ logged • ✕ missing",
+    "vitals_logged": "Logged",
+    "vitals_missed": "Missed",
+    "vitals_logged_short": "Logged",
+    "vitals_missed_short": "Missed"
   },
   "medications": {
     "medications_title": "Medications",
