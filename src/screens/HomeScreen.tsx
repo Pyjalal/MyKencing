@@ -16,6 +16,7 @@ import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants
 import { formatDistanceToNow } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '../stores/settingsStore';
+import { Search } from 'lucide-react-native';
 import { RiskScoreTrendCard } from '../components';
 import { calculateFindrisc, calculateFraminghamSimplified, RiskScoreResult } from '../utils/riskScores';
 import { CONVERSIONS } from '../constants/clinical';
@@ -332,6 +333,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
   };
 
+  const handleSearchPress = () => {
+    navigation.navigate('AddMedicine', {} as any);
+  };
+
   const handleManageRiskPress = () => {
     navigation.navigate('RiskCalculators');
   };
@@ -368,6 +373,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     }
   };
 
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return t('home.greeting_morning', 'Good morning');
+    if (hour < 18) return t('home.greeting_afternoon', 'Good afternoon');
+    return t('home.greeting_evening', 'Good evening');
+  }, [t]);
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -382,63 +394,65 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           />
         }
       >
-        <View style={styles.sectionCard}>
-          <View style={styles.sectionHeaderRow}>
-            <Text style={styles.sectionTitle}>{t('home.health_risk_calculators', 'Health Risk Calculators')}</Text>
+        <View style={styles.heroSection}>
+          <TouchableOpacity style={styles.searchBar} activeOpacity={0.8} onPress={handleSearchPress}>
+            <Search size={20} color={Colors.primary.dark} />
+            <Text style={styles.searchPlaceholder}>{t('home.search_placeholder', 'Search here')}</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.greetingText}>
+            {greeting},{'\n'}{t('home.user_name', 'Friend')}
+          </Text>
+        </View>
+
+        <View style={styles.riskScoresCard}>
+          <View style={styles.riskScoresHeader}>
+            <Text style={styles.riskScoresTitle}>{t('vitals.risk_scores_title')}</Text>
             <TouchableOpacity onPress={handleManageRiskPress}>
               <Text style={styles.sectionLink}>{t('vitals.manage_risk_inputs')}</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.riskScoresCard}>
-            <View style={styles.riskScoresHeader}>
-              <Text style={styles.riskScoresTitle}>{t('vitals.risk_scores_title')}</Text>
-              <TouchableOpacity onPress={handleUpdateRiskInputs}>
-                <Text style={styles.sectionLink}>{t('vitals.update_risk_inputs')}</Text>
+          {hasRiskScores ? (
+            <View style={styles.riskTrendList}>
+              {findriscResult && findriscTrend && (
+                <RiskScoreTrendCard
+                  title={findriscResult.label}
+                  trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
+                  averageLabel={t('vitals.fourteen_day_average', '14-day average')}
+                  color={findriscResult.color}
+                  latestPercent={findriscTrend.latestPercent}
+                  averagePercent={findriscTrend.averagePercent}
+                  percentages={findriscTrend.percentages}
+                  category={findriscResult.category}
+                  description={findriscResult.description}
+                />
+              )}
+              {framinghamResult && framinghamTrend && (
+                <RiskScoreTrendCard
+                  title={framinghamResult.label}
+                  trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
+                  averageLabel={t('vitals.fourteen_day_average', '14-day average')}
+                  color={framinghamResult.color}
+                  latestPercent={framinghamTrend.latestPercent}
+                  averagePercent={framinghamTrend.averagePercent}
+                  percentages={framinghamTrend.percentages}
+                  category={framinghamResult.category}
+                  description={framinghamResult.description}
+                />
+              )}
+            </View>
+          ) : (
+            <View style={styles.riskScoresEmpty}>
+              <Text style={styles.riskScoresHint}>
+                {riskScoresEnabled
+                  ? t('risk_calculators.results_hint')
+                  : t('vitals.enable_scores_hint')}
+              </Text>
+              <TouchableOpacity style={styles.riskScoresButton} onPress={handleManageRiskPress}>
+                <Text style={styles.riskScoresButtonText}>{t('risk_calculators.update_button')}</Text>
               </TouchableOpacity>
             </View>
-            {hasRiskScores ? (
-              <View style={styles.riskTrendList}>
-                {findriscResult && findriscTrend && (
-                  <RiskScoreTrendCard
-                    title={findriscResult.label}
-                    trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
-                    averageLabel={t('vitals.fourteen_day_average', '14-day average')}
-                    color={findriscResult.color}
-                    latestPercent={findriscTrend.latestPercent}
-                    averagePercent={findriscTrend.averagePercent}
-                    percentages={findriscTrend.percentages}
-                    category={findriscResult.category}
-                    description={findriscResult.description}
-                  />
-                )}
-                {framinghamResult && framinghamTrend && (
-                  <RiskScoreTrendCard
-                    title={framinghamResult.label}
-                    trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
-                    averageLabel={t('vitals.fourteen_day_average', '14-day average')}
-                    color={framinghamResult.color}
-                    latestPercent={framinghamTrend.latestPercent}
-                    averagePercent={framinghamTrend.averagePercent}
-                    percentages={framinghamTrend.percentages}
-                    category={framinghamResult.category}
-                    description={framinghamResult.description}
-                  />
-                )}
-              </View>
-            ) : (
-              <View style={styles.riskScoresEmpty}>
-                <Text style={styles.riskScoresHint}>
-                  {riskScoresEnabled
-                    ? t('risk_calculators.results_hint')
-                    : t('vitals.enable_scores_hint')}
-                </Text>
-                <TouchableOpacity style={styles.riskScoresButton} onPress={handleManageRiskPress}>
-                  <Text style={styles.riskScoresButtonText}>{t('risk_calculators.update_button')}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
+          )}
         </View>
 
         <View style={styles.sectionCard}>
@@ -526,8 +540,37 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingBottom: 120,
-    paddingTop: Spacing.lg,
     gap: Spacing.lg,
+  },
+  heroSection: {
+    backgroundColor: Colors.primary.dark,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.xl * 1.3,
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
+    marginBottom: Spacing.lg,
+    ...Shadows.sm,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background.card,
+    borderRadius: 30,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  searchPlaceholder: {
+    marginLeft: Spacing.md,
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.tertiary,
+  },
+  greetingText: {
+    fontSize: 28,
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary.contrast,
+    lineHeight: 34,
   },
   sectionCard: {
     backgroundColor: Colors.background.card,
@@ -536,12 +579,6 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
     marginBottom: Spacing.lg,
     ...Shadows.md,
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
   },
   interactionBlockedContainer: {
     alignItems: 'center',
@@ -590,9 +627,12 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
   },
   riskTrendList: {
-    gap: Spacing.lg,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
   },
   riskScoresCard: {
+    marginHorizontal: Spacing.lg,
     marginBottom: Spacing.xl,
     padding: Spacing.lg,
     backgroundColor: Colors.background.primary,
@@ -600,11 +640,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.neutral[100],
     gap: Spacing.md,
+    ...Shadows.md,
   },
   riskScoresHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: Spacing.md,
   },
   riskScoresTitle: {
     fontSize: Typography.fontSize.lg,

@@ -91,20 +91,24 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.background.card,
     borderRadius: BorderRadius['3xl'],
-    padding: Spacing.lg,
-    gap: Spacing.sm,
+    padding: Spacing.xs,
+    gap: Spacing.xs,
+    flex: 1,
+    flexBasis: '48%',
+    maxWidth: '48%',
+    minWidth: '0%',
     ...Shadows.sm,
   },
   title: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
   },
   circleOuter: {
-    width: 132,
-    height: 132,
-    borderRadius: 66,
-    borderWidth: 6,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 5,
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
@@ -112,12 +116,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.primary,
   },
   circleValue: {
-    fontSize: Typography.fontSize['2xl'],
+    fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
   },
   trendLabel: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.medium,
     color: Colors.text.secondary,
     textAlign: 'center',
@@ -139,12 +143,12 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.md,
   },
   averageLabel: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: Typography.fontSize.xs,
     color: Colors.text.secondary,
     textAlign: 'center',
   },
   averageValue: {
-    fontSize: Typography.fontSize['2xl'],
+    fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.bold,
     textAlign: 'center',
   },
@@ -158,12 +162,11 @@ const styles = StyleSheet.create({
   categoryPillText: {
     color: Colors.primary.contrast,
     fontWeight: Typography.fontWeight.semibold,
-    fontSize: Typography.fontSize.sm,
+    fontSize: Typography.fontSize.xs,
   },
   description: {
     textAlign: 'center',
     color: Colors.text.secondary,
-    fontSize: Typography.fontSize.sm,
+    fontSize: Typography.fontSize.xs,
   },
 });
-
