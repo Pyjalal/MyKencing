@@ -10,10 +10,17 @@ import {
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
+import { CONVERSIONS } from '../constants/clinical';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useVitalsStore } from '../stores/vitalsStore';
 import { RiskScoreCircle } from '../components';
-import { RootStackParamList, VitalType } from '../types';
+import {
+  RootStackParamList,
+  VitalType,
+  WeightVital,
+  WaistCircumferenceVital,
+  BloodPressureVital,
+} from '../types';
 import {
   calculateFindrisc,
   calculateFraminghamSimplified,
@@ -36,18 +43,36 @@ export default function RiskCalculatorScreen() {
   const calculators = settings.riskCalculators;
   const riskFactors = settings.riskFactors;
 
-  const latestWaist = getLatestByType(VitalType.WaistCircumference);
-  const latestWeightVital = getLatestByType(VitalType.Weight);
-  const latestBloodPressure = getLatestByType(VitalType.BloodPressure);
+  const latestWaist = useMemo(() => {
+    const vital = getLatestByType(VitalType.WaistCircumference);
+    return vital && vital.type === VitalType.WaistCircumference ? (vital as WaistCircumferenceVital) : undefined;
+  }, [getLatestByType]);
+
+  const latestWeightVital = useMemo(() => {
+    const vital = getLatestByType(VitalType.Weight);
+    return vital && vital.type === VitalType.Weight ? (vital as WeightVital) : undefined;
+  }, [getLatestByType]);
+
+  const latestBloodPressure = useMemo(() => {
+    const vital = getLatestByType(VitalType.BloodPressure);
+    return vital && vital.type === VitalType.BloodPressure ? (vital as BloodPressureVital) : undefined;
+  }, [getLatestByType]);
+
+  const latestWeightKg = useMemo(() => {
+    if (!latestWeightVital) return null;
+    return latestWeightVital.unit === 'kg'
+      ? latestWeightVital.value
+      : latestWeightVital.value * CONVERSIONS.lbToKg;
+  }, [latestWeightVital]);
 
   const bmi = useMemo(() => {
-    const weight = riskFactors?.weightKg ?? latestWeightVital?.value ?? settings.userWeight;
+    const weight = riskFactors?.weightKg ?? settings.userWeight ?? latestWeightKg;
     const height = riskFactors?.heightCm;
     if (!weight || !height) return null;
     const heightMeters = height / 100;
     if (heightMeters <= 0) return null;
     return weight / (heightMeters * heightMeters);
-  }, [latestWeightVital?.value, riskFactors?.heightCm, riskFactors?.weightKg, settings.userWeight]);
+  }, [latestWeightKg, riskFactors?.heightCm, riskFactors?.weightKg, settings.userWeight]);
 
   const waistCircumference = useMemo(() => latestWaist?.value ?? null, [latestWaist?.value]);
 
@@ -254,4 +279,3 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
 });
-

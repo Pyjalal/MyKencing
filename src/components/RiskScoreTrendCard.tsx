@@ -8,9 +8,10 @@ interface RiskScoreTrendCardProps {
   trendLabel: string;
   averageLabel: string;
   color: string;
-  latestPercent: number | null;
-  averagePercent: number | null;
   percentages: number[];
+  latestScore: number | null;
+  averageScore: number | null;
+  maxScore?: number;
   category: RiskScoreResult['category'];
   description: string;
 }
@@ -20,8 +21,9 @@ export default function RiskScoreTrendCard({
   trendLabel,
   averageLabel,
   color,
-  latestPercent,
-  averagePercent,
+  latestScore,
+  averageScore,
+  maxScore,
   percentages,
   category,
   description,
@@ -31,7 +33,10 @@ export default function RiskScoreTrendCard({
       <Text style={styles.title}>{title}</Text>
 
       <View style={[styles.circleOuter, { borderColor: color }]}>        
-        <Text style={styles.circleValue}>{formatPercent(latestPercent)}</Text>
+        <Text style={styles.circleValue}>{formatScore(latestScore)}</Text>
+        {maxScore !== undefined && maxScore !== null && (
+          <Text style={styles.circleMax}>/ {maxScore}</Text>
+        )}
       </View>
 
       <Text style={styles.trendLabel}>{trendLabel}</Text>
@@ -56,7 +61,10 @@ export default function RiskScoreTrendCard({
       )}
 
       <Text style={styles.averageLabel}>{averageLabel}</Text>
-      <Text style={[styles.averageValue, { color }]}>{formatPercent(averagePercent)}</Text>
+      <Text style={[styles.averageValue, { color }]}>
+        {formatScore(averageScore)}
+        {maxScore !== undefined && maxScore !== null ? ` / ${maxScore}` : ''}
+      </Text>
 
       <View style={[styles.categoryPill, { backgroundColor: color }]}>
         <Text style={styles.categoryPillText}>{formatCategory(category)}</Text>
@@ -67,9 +75,9 @@ export default function RiskScoreTrendCard({
   );
 }
 
-function formatPercent(value: number | null) {
+function formatScore(value: number | null) {
   if (value === null || Number.isNaN(value)) return '--';
-  return `${value.toFixed(1)}%`;
+  return value % 1 === 0 ? `${value}` : value.toFixed(1);
 }
 
 function formatCategory(category: RiskScoreResult['category']): string {
@@ -116,6 +124,10 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize['2xl'],
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
+  },
+  circleMax: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
   },
   trendLabel: {
     fontSize: Typography.fontSize.sm,

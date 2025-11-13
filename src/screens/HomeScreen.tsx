@@ -43,8 +43,8 @@ const percentFromResult = (result?: RiskScoreResult | null) => {
 
 type RiskTrendMeta = {
   percentages: number[];
-  latestPercent: number | null;
-  averagePercent: number | null;
+  latestScore: number | null;
+  averageScore: number | null;
 };
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
@@ -217,23 +217,30 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     (series: RiskScoreResult[], fallback?: RiskScoreResult | null): RiskTrendMeta | null => {
       if (!series.length && !fallback) return null;
       const basePercent = percentFromResult(fallback ?? null) ?? 0;
+      const baseScore = fallback?.score ?? 0;
       const percentages = series.length
         ? series.map((item) => percentFromResult(item) ?? basePercent)
         : Array(dayBuckets.length).fill(basePercent);
+      const scores = series.length
+        ? series.map((item) => item?.score ?? baseScore)
+        : Array(dayBuckets.length).fill(baseScore);
 
       const sanitized = percentages.map((value) =>
         Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : basePercent
       );
+      const scoreSanitized = scores.map((value) =>
+        Number.isFinite(value) ? value : baseScore
+      );
 
-      const latestPercent = sanitized[sanitized.length - 1] ?? basePercent;
-      const averagePercent = sanitized.length
-        ? sanitized.reduce((sum, value) => sum + value, 0) / sanitized.length
-        : latestPercent;
+      const latestScore = scoreSanitized[scoreSanitized.length - 1] ?? baseScore;
+      const averageScore = scoreSanitized.length
+        ? scoreSanitized.reduce((sum, value) => sum + value, 0) / scoreSanitized.length
+        : latestScore;
 
       return {
         percentages: sanitized,
-        latestPercent,
-        averagePercent,
+        latestScore,
+        averageScore,
       };
     },
     [dayBuckets.length]
@@ -252,15 +259,20 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     [getLatestByType, vitals]
   );
 
+  const latestWeightKg = useMemo(() => {
+    if (!latestWeight) return null;
+    return convertWeightToKg(latestWeight.value, latestWeight.unit);
+  }, [latestWeight]);
+
   const bmi = useMemo(() => {
     if (!riskFactors) return null;
-    const weight = riskFactors.weightKg ?? settings.userWeight ?? latestWeight?.value;
+    const weight = latestWeightKg ?? riskFactors.weightKg ?? settings.userWeight;
     const height = riskFactors.heightCm;
     if (!weight || !height) return null;
     const heightMeters = height / 100;
     if (heightMeters <= 0) return null;
     return weight / (heightMeters * heightMeters);
-  }, [latestWeight?.value, riskFactors, settings.userWeight]);
+  }, [latestWeightKg, riskFactors, settings.userWeight]);
 
   const findriscResult = useMemo(() => {
     if (!calculators?.findriscEnabled || !riskFactors) return null;
@@ -553,7 +565,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
               <View style={styles.dailyVitalsSummaryRow}>
                 <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_weight', 'Weight')}</Text>
                 <Text style={styles.dailyVitalsSummaryValue}>
-                  {todaysWeight ? `${todaysWeight.value.toFixed(1)} ${todaysWeight.unit}` : '--'}
+                  {todaysWeight
+                    ? `${convertWeightToKg(todaysWeight.value, todaysWeight.unit).toFixed(1)} kg`
+                    : '--'}
                 </Text>
               </View>
               <View style={styles.dailyVitalsSummaryRow}>
@@ -599,9 +613,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                   trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
                   averageLabel={t('vitals.fourteen_day_average', '14-day average')}
                   color={findriscResult.color}
-                  latestPercent={findriscTrend.latestPercent}
-                  averagePercent={findriscTrend.averagePercent}
                   percentages={findriscTrend.percentages}
+                  latestScore={findriscTrend.latestScore}
+                  averageScore={findriscTrend.averageScore}
+                  maxScore={findriscResult.maxScore}
                   category={findriscResult.category}
                   description={findriscResult.description}
                 />
@@ -612,9 +627,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                   trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
                   averageLabel={t('vitals.fourteen_day_average', '14-day average')}
                   color={framinghamResult.color}
-                  latestPercent={framinghamTrend.latestPercent}
-                  averagePercent={framinghamTrend.averagePercent}
                   percentages={framinghamTrend.percentages}
+                  latestScore={framinghamTrend.latestScore}
+                  averageScore={framinghamTrend.averageScore}
+                  maxScore={framinghamResult.maxScore}
                   category={framinghamResult.category}
                   description={framinghamResult.description}
                 />
