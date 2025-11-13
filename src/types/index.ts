@@ -442,6 +442,7 @@ export type RootStackParamList = {
   Analytics: undefined;
   RamadanMode: undefined;
   ChatBot: undefined;
+  DailyVitalsLog: undefined;
 };
 
 // ----------------------------------------------------------------------------
