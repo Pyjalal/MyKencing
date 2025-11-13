@@ -255,7 +255,14 @@ export default function AddMedicineScreen() {
         mims: { genericName: medicationName },
       } as any);
 
-      navigation.goBack();
+      // Check for high-risk interactions after adding medication
+      const { checkHighRiskInteractionsAfterAdd } = await import('../utils/interactionChecker');
+      const shouldNavigateBack = await checkHighRiskInteractionsAfterAdd(newId, navigation);
+
+      // Only navigate back if user didn't choose to view details
+      if (shouldNavigateBack) {
+        navigation.goBack();
+      }
     } catch (e) {
       alert((e as Error).message);
     } finally {
