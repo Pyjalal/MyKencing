@@ -9,6 +9,8 @@ import {
   BloodPressureVital,
   WeightVital,
   WaistCircumferenceVital,
+  GlucoseVital,
+  CholesterolVital,
 } from '../types';
 import { useMedicationStore } from '../stores/medicationStore';
 import { useVitalsStore } from '../stores/vitalsStore';
@@ -48,7 +50,15 @@ type RiskTrendMeta = {
 export default function HomeScreen({ navigation }: HomeScreenProps) {
   const { t } = useTranslation();
   const { todayDoses, loadMedications, loadTodayDoses, markDose, getUnacknowledgedHighRiskInteractions } = useMedicationStore();
-  const { vitals, loadVitals, getLatestByType } = useVitalsStore();
+  const {
+    vitals,
+    loadVitals,
+    getLatestByType,
+    addBloodPressure,
+    addGlucose,
+    addWaistCircumference,
+    addWeight,
+  } = useVitalsStore();
   const settings = useSettingsStore((state) => state.settings);
   const [refreshing, setRefreshing] = useState(false);
   const [hasUnacknowledgedInteraction, setHasUnacknowledgedInteraction] = useState(false);
@@ -150,6 +160,30 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     () =>
       vitals
         .filter((v): v is BloodPressureVital => v.type === VitalType.BloodPressure)
+        .sort((a, b) => new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime()),
+    [vitals]
+  );
+
+  const glucoseVitals = useMemo(
+    () =>
+      vitals
+        .filter((v): v is GlucoseVital => v.type === VitalType.Glucose)
+        .sort((a, b) => new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime()),
+    [vitals]
+  );
+
+  const totalCholesterolVitals = useMemo(
+    () =>
+      vitals
+        .filter((v): v is CholesterolVital => v.type === VitalType.TotalCholesterol)
+        .sort((a, b) => new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime()),
+    [vitals]
+  );
+
+  const hdlCholesterolVitals = useMemo(
+    () =>
+      vitals
+        .filter((v): v is CholesterolVital => v.type === VitalType.HDLCholesterol)
         .sort((a, b) => new Date(b.measuredAt).getTime() - new Date(a.measuredAt).getTime()),
     [vitals]
   );
@@ -282,6 +316,31 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     [vitalsCalendarDays, vitalsLoggedByDay]
   );
 
+  const todayKey = useMemo(() => new Date().toDateString(), []);
+  const todaysBloodPressure = useMemo(
+    () => bloodPressureVitals.find((entry) => new Date(entry.measuredAt).toDateString() === todayKey),
+    [bloodPressureVitals, todayKey]
+  );
+  const todaysWeight = useMemo(
+    () => weightVitals.find((entry) => new Date(entry.measuredAt).toDateString() === todayKey),
+    [todayKey, weightVitals]
+  );
+  const todaysGlucose = useMemo(
+    () => glucoseVitals.find((entry) => new Date(entry.measuredAt).toDateString() === todayKey),
+    [glucoseVitals, todayKey]
+  );
+  const todaysTotalCholesterol = useMemo(
+    () => totalCholesterolVitals.find((entry) => new Date(entry.measuredAt).toDateString() === todayKey),
+    [todayKey, totalCholesterolVitals]
+  );
+  const todaysHdlCholesterol = useMemo(
+    () => hdlCholesterolVitals.find((entry) => new Date(entry.measuredAt).toDateString() === todayKey),
+    [hdlCholesterolVitals, todayKey]
+  );
+
+  const hasLoggedVitalsToday = vitalsLoggedByDay.has(todayKey);
+
+
   const findriscTrend = useMemo(() => {
     if (!findriscResult || !riskFactors) return null;
     const heightMeters = riskFactors.heightCm ? riskFactors.heightCm / 100 : null;
@@ -373,6 +432,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     navigation.navigate('RiskAssessment');
   };
 
+  const handleLogVitalsPress = () => {
+    navigation.navigate('DailyVitalsLog');
+  };
+
   const handleTakeDose = async () => {
     if (nextDose) {
       try {
@@ -462,17 +525,65 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 </View>
               ))}
             </View>
-            <View style={styles.vitalsCalendarLegendRow}>
-              <View style={styles.vitalsLegendItem}>
-                <View style={[styles.vitalsLegendDot, styles.vitalsLegendDotRecorded]} />
-                <Text style={styles.vitalsCalendarLegendLabel}>✓</Text>
-              </View>
-              <View style={styles.vitalsLegendItem}>
-                <View style={[styles.vitalsLegendDot, styles.vitalsLegendDotMissing]} />
-                <Text style={styles.vitalsCalendarLegendLabel}>✕</Text>
-              </View>
+          <View style={styles.vitalsCalendarLegendRow}>
+            <View style={styles.vitalsLegendItem}>
+              <View style={[styles.vitalsLegendDot, styles.vitalsLegendDotRecorded]} />
+              <Text style={styles.vitalsCalendarLegendLabel}>✓</Text>
+            </View>
+            <View style={styles.vitalsLegendItem}>
+              <View style={[styles.vitalsLegendDot, styles.vitalsLegendDotMissing]} />
+              <Text style={styles.vitalsCalendarLegendLabel}>✕</Text>
             </View>
           </View>
+          {hasLoggedVitalsToday ? (
+            <View style={styles.dailyVitalsSummary}>
+              <Text style={styles.dailyVitalsSummaryTitle}>{t('home.daily_vitals_summary_title', 'Today’s vitals')}</Text>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_bp', 'Blood pressure')}</Text>
+                <Text style={styles.dailyVitalsSummaryValue}>
+                  {todaysBloodPressure ? `${todaysBloodPressure.systolic}/${todaysBloodPressure.diastolic} mmHg` : '--'}
+                </Text>
+              </View>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_glucose', 'Glucose')}</Text>
+                <Text style={styles.dailyVitalsSummaryValue}>
+                  {todaysGlucose ? `${todaysGlucose.value.toFixed(1)} ${todaysGlucose.unit}` : '--'}
+                </Text>
+              </View>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_weight', 'Weight')}</Text>
+                <Text style={styles.dailyVitalsSummaryValue}>
+                  {todaysWeight ? `${todaysWeight.value.toFixed(1)} ${todaysWeight.unit}` : '--'}
+                </Text>
+              </View>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_total_cholesterol', 'Total cholesterol')}</Text>
+                <Text style={styles.dailyVitalsSummaryValue}>
+                  {todaysTotalCholesterol ? `${todaysTotalCholesterol.value.toFixed(1)} mmol/L` : '--'}
+                </Text>
+              </View>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_hdl_cholesterol', 'HDL cholesterol')}</Text>
+                <Text style={styles.dailyVitalsSummaryValue}>
+                  {todaysHdlCholesterol ? `${todaysHdlCholesterol.value.toFixed(1)} mmol/L` : '--'}
+                </Text>
+              </View>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_height', 'Height')}</Text>
+                <Text style={styles.dailyVitalsSummaryValue}>
+                  {settings.riskFactors?.heightCm ? `${settings.riskFactors.heightCm} cm` : '--'}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.vitalsCalendarButton} onPress={handleLogVitalsPress}>
+                <Text style={styles.vitalsCalendarButtonText}>{t('home.update_vitals_button', 'Update today’s vitals')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.vitalsCalendarButton} onPress={handleLogVitalsPress}>
+              <Text style={styles.vitalsCalendarButtonText}>{t('home.log_vitals_button', 'Log today’s vitals')}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
           <View style={styles.riskScoresHeader}>
             <Text style={styles.riskScoresTitle}>{t('vitals.risk_scores_title')}</Text>
@@ -743,6 +854,17 @@ const styles = StyleSheet.create({
   vitalsLegendDotMissing: {
     backgroundColor: Colors.status.error,
   },
+  vitalsCalendarButton: {
+    marginTop: Spacing.md,
+    backgroundColor: Colors.primary.main,
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  vitalsCalendarButtonText: {
+    color: Colors.primary.contrast,
+    fontWeight: Typography.fontWeight.semibold,
+  },
   vitalsCalendarRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -784,6 +906,27 @@ const styles = StyleSheet.create({
   },
   vitalsCalendarStatusMissing: {
     color: Colors.status.error,
+  },
+  dailyVitalsSummary: {
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  dailyVitalsSummaryTitle: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+  },
+  dailyVitalsSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dailyVitalsSummaryLabel: {
+    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.sm,
+  },
+  dailyVitalsSummaryValue: {
+    color: Colors.text.primary,
+    fontWeight: Typography.fontWeight.semibold,
   },
   riskScoresCard: {
     marginHorizontal: Spacing.lg,
