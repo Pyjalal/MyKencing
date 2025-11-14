@@ -368,7 +368,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   );
 
   const hasLoggedVitalsToday = vitalsLoggedByDay.has(todayKey);
-  const hasCompletedQuestionnaire = settings.riskQuestionnaireCompleted ?? false;
 
   const dailyVitalsDisplay = useMemo(() => {
     const invalidText = t('home.vitals_invalid_value', 'Recheck value');
@@ -510,9 +509,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     navigation.navigate('DailyVitalsLog');
   };
 
-  const handleQuestionnairePress = () => {
-    navigation.navigate('RiskAssessment');
-  };
 
   const handleTakeDose = async () => {
     if (nextDose) {
@@ -651,66 +647,52 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           )}
         </View>
 
-          {hasCompletedQuestionnaire ? (
-            <>
-              <View style={styles.riskScoresHeader}>
-                <Text style={styles.riskScoresTitle}>{t('vitals.risk_scores_title')}</Text>
-                <TouchableOpacity onPress={handleManageRiskPress}>
-                  <Text style={styles.sectionLink}>{t('vitals.manage_risk_inputs')}</Text>
-                </TouchableOpacity>
-              </View>
-              {hasRiskScores ? (
-                <View style={styles.riskTrendList}>
-                  {findriscResult && findriscTrend && (
-                    <RiskScoreTrendCard
-                      title={findriscResult.label}
-                      trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
-                      averageLabel={t('vitals.fourteen_day_average', '14-day average')}
-                      color={findriscResult.color}
-                      percentages={findriscTrend.percentages}
-                      latestScore={findriscTrend.latestScore}
-                      averageScore={findriscTrend.averageScore}
-                      maxScore={findriscResult.maxScore}
-                      category={findriscResult.category}
-                      description={findriscResult.description}
-                    />
-                  )}
-                  {framinghamResult && framinghamTrend && (
-                    <RiskScoreTrendCard
-                      title={framinghamResult.label}
-                      trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
-                      averageLabel={t('vitals.fourteen_day_average', '14-day average')}
-                      color={framinghamResult.color}
-                      percentages={framinghamTrend.percentages}
-                      latestScore={framinghamTrend.latestScore}
-                      averageScore={framinghamTrend.averageScore}
-                      maxScore={framinghamResult.maxScore}
-                      category={framinghamResult.category}
-                      description={framinghamResult.description}
-                    />
-                  )}
-                </View>
-              ) : (
-                <View style={styles.riskScoresEmpty}>
-                  <Text style={styles.riskScoresHint}>
-                    {riskScoresEnabled
-                      ? t('risk_calculators.results_hint')
-                      : t('vitals.enable_scores_hint')}
-                  </Text>
-                  <TouchableOpacity style={styles.riskScoresButton} onPress={handleManageRiskPress}>
-                    <Text style={styles.riskScoresButtonText}>{t('risk_calculators.update_button')}</Text>
-                  </TouchableOpacity>
-                </View>
+          <View style={styles.riskScoresHeader}>
+            <Text style={styles.riskScoresTitle}>{t('vitals.risk_scores_title')}</Text>
+            <TouchableOpacity onPress={handleManageRiskPress}>
+              <Text style={styles.sectionLink}>{t('vitals.manage_risk_inputs')}</Text>
+            </TouchableOpacity>
+          </View>
+          {hasRiskScores ? (
+            <View style={styles.riskTrendList}>
+              {findriscResult && findriscTrend && (
+                <RiskScoreTrendCard
+                  title={findriscResult.label}
+                  trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
+                  averageLabel={t('vitals.fourteen_day_average', '14-day average')}
+                  color={findriscResult.color}
+                  percentages={findriscTrend.percentages}
+                  latestScore={findriscTrend.latestScore}
+                  averageScore={findriscTrend.averageScore}
+                  maxScore={findriscResult.maxScore}
+                  category={findriscResult.category}
+                  description={findriscResult.description}
+                />
               )}
-            </>
+              {framinghamResult && framinghamTrend && (
+                <RiskScoreTrendCard
+                  title={framinghamResult.label}
+                  trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
+                  averageLabel={t('vitals.fourteen_day_average', '14-day average')}
+                  color={framinghamResult.color}
+                  percentages={framinghamTrend.percentages}
+                  latestScore={framinghamTrend.latestScore}
+                  averageScore={framinghamTrend.averageScore}
+                  maxScore={framinghamResult.maxScore}
+                  category={framinghamResult.category}
+                  description={framinghamResult.description}
+                />
+              )}
+            </View>
           ) : (
-            <View style={styles.riskQuestionnaireCard}>
-              <Text style={styles.riskQuestionnaireTitle}>{t('home.risk_questionnaire_title', 'Tell us about your health')}</Text>
-              <Text style={styles.riskQuestionnaireSubtitle}>
-                {t('home.risk_questionnaire_subtitle', 'Answer a few questions to unlock your personalised risk scores.')}
+            <View style={styles.riskScoresEmpty}>
+              <Text style={styles.riskScoresHint}>
+                {riskScoresEnabled
+                  ? t('risk_calculators.results_hint')
+                  : t('vitals.enable_scores_hint')}
               </Text>
-              <TouchableOpacity style={styles.riskQuestionnaireButton} onPress={handleQuestionnairePress}>
-                <Text style={styles.riskQuestionnaireButtonText}>{t('home.start_questionnaire', 'Start questionnaire')}</Text>
+              <TouchableOpacity style={styles.riskScoresButton} onPress={handleManageRiskPress}>
+                <Text style={styles.riskScoresButtonText}>{t('risk_calculators.update_button')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1039,33 +1021,6 @@ const styles = StyleSheet.create({
   riskScoresHint: {
     fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
-  },
-  riskQuestionnaireCard: {
-    backgroundColor: Colors.background.card,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.lg,
-    gap: Spacing.sm,
-    ...Shadows.sm,
-  },
-  riskQuestionnaireTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-  },
-  riskQuestionnaireSubtitle: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-  },
-  riskQuestionnaireButton: {
-    marginTop: Spacing.sm,
-    backgroundColor: Colors.primary.main,
-    borderRadius: BorderRadius.full,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
-  },
-  riskQuestionnaireButtonText: {
-    color: Colors.primary.contrast,
-    fontWeight: Typography.fontWeight.semibold,
   },
   riskScoresButton: {
     backgroundColor: Colors.primary.main,

@@ -170,10 +170,7 @@
     "daily_vitals_total_cholesterol": "Total cholesterol",
     "daily_vitals_hdl_cholesterol": "HDL cholesterol",
     "daily_vitals_height": "Height",
-    "vitals_invalid_value": "Recheck value",
-    "risk_questionnaire_title": "Tell us about your health",
-    "risk_questionnaire_subtitle": "Answer a few quick questions to unlock your personalised risk scores.",
-    "start_questionnaire": "Start questionnaire"
+    "vitals_invalid_value": "Recheck value"
   },
   "daily_vitals": {
     "title": "Log today's vitals",

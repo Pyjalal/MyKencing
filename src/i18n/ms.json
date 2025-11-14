@@ -171,9 +171,7 @@
     "daily_vitals_hdl_cholesterol": "Kolesterol HDL",
     "daily_vitals_height": "Tinggi badan",
     "vitals_invalid_value": "Semak semula nilai",
-    "risk_questionnaire_title": "Kongsi maklumat kesihatan anda",
-    "risk_questionnaire_subtitle": "Jawab beberapa soalan pantas untuk mengaktifkan skor risiko peribadi anda.",
-    "start_questionnaire": "Mulakan soal selidik"
+    "no_vitals_logged": "Tiada vital direkodkan"
   },
   "daily_vitals": {
     "title": "Catat vital hari ini",

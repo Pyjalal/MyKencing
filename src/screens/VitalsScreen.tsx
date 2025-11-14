@@ -203,7 +203,7 @@ export default function VitalsScreen() {
   const { vitals, loadVitals } = useVitalsStore();
   const settings = useSettingsStore((state) => state.settings);
   const navigation = useNavigation<any>();
-  const [isDemoMode, setIsDemoMode] = useState(true); // Toggle for demo data
+  const [isDemoMode, setIsDemoMode] = useState(() => false); // Start with real data
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   useEffect(() => {
@@ -1034,6 +1034,15 @@ export default function VitalsScreen() {
     }
   }
 
+  if (!isDemoMode && !liveSections.length) {
+    liveSections.push({
+      key: 'empty',
+      content: (
+        <Text style={styles.realDataEmpty}>{t('vitals.no_vitals_yet')}</Text>
+      ),
+    });
+  }
+
   const handleManageRiskPress = () => {
     navigation.navigate('RiskCalculators');
   };
@@ -1663,6 +1672,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.border.light,
     marginTop: Spacing.sm,
+  },
+  realDataEmpty: {
+    textAlign: 'center',
+    color: Colors.text.secondary,
+    marginVertical: Spacing.md,
   },
   realListRow: {
     flexDirection: 'row',
