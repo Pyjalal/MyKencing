@@ -41,6 +41,23 @@ const percentFromResult = (result?: RiskScoreResult | null) => {
   return Math.max(0, Math.min(100, percent));
 };
 
+const isWithinRange = (value: number | null | undefined, min: number, max: number) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return false;
+  return value >= min && value <= max;
+};
+
+const formatValidatedValue = (
+  value: number | null | undefined,
+  min: number,
+  max: number,
+  formatter: (val: number) => string,
+  fallback: string,
+) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return fallback;
+  if (value < min || value > max) return fallback;
+  return formatter(value);
+};
+
 type RiskTrendMeta = {
   percentages: number[];
   latestScore: number | null;
@@ -351,6 +368,51 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   );
 
   const hasLoggedVitalsToday = vitalsLoggedByDay.has(todayKey);
+  const hasCompletedQuestionnaire = settings.riskQuestionnaireCompleted ?? false;
+
+  const dailyVitalsDisplay = useMemo(() => {
+    const invalidText = t('home.vitals_invalid_value', 'Recheck value');
+    const formatOrFallback = (value: number | null | undefined, min: number, max: number, formatter: (val: number) => string) =>
+      isWithinRange(value, min, max) ? formatter(value as number) : invalidText;
+
+    const bpText = (() => {
+      if (!todaysBloodPressure) return '--';
+      const systolicValid = isWithinRange(todaysBloodPressure.systolic, 80, 220);
+      const diastolicValid = isWithinRange(todaysBloodPressure.diastolic, 40, 140);
+      if (!systolicValid || !diastolicValid) return invalidText;
+      return `${todaysBloodPressure.systolic}/${todaysBloodPressure.diastolic} mmHg`;
+    })();
+
+    const glucoseText = todaysGlucose
+      ? formatOrFallback(todaysGlucose.value, 3, 30, (val) => `${val.toFixed(1)} ${todaysGlucose.unit}`)
+      : '--';
+
+    const weightKg = todaysWeight ? convertWeightToKg(todaysWeight.value, todaysWeight.unit) : null;
+    const weightText = todaysWeight
+      ? formatOrFallback(weightKg, 30, 250, (val) => `${val.toFixed(1)} kg`)
+      : '--';
+
+    const totalCholText = todaysTotalCholesterol
+      ? formatOrFallback(todaysTotalCholesterol.value, 2, 12, (val) => `${val.toFixed(1)} mmol/L`)
+      : '--';
+
+    const hdlText = todaysHdlCholesterol
+      ? formatOrFallback(todaysHdlCholesterol.value, 0.5, 4, (val) => `${val.toFixed(1)} mmol/L`)
+      : '--';
+
+    const heightText = settings.riskFactors?.heightCm
+      ? formatOrFallback(settings.riskFactors.heightCm, 100, 230, (val) => `${val} cm`)
+      : '--';
+
+    return {
+      bp: bpText,
+      glucose: glucoseText,
+      weight: weightText,
+      totalCholesterol: totalCholText,
+      hdlCholesterol: hdlText,
+      height: heightText,
+    };
+  }, [settings.riskFactors?.heightCm, t, todaysBloodPressure, todaysGlucose, todaysHdlCholesterol, todaysTotalCholesterol, todaysWeight]);
 
 
   const findriscTrend = useMemo(() => {
@@ -446,6 +508,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const handleLogVitalsPress = () => {
     navigation.navigate('DailyVitalsLog');
+  };
+
+  const handleQuestionnairePress = () => {
+    navigation.navigate('RiskAssessment');
   };
 
   const handleTakeDose = async () => {
@@ -548,46 +614,32 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             </View>
           </View>
           {hasLoggedVitalsToday ? (
-            <View style={styles.dailyVitalsSummary}>
-              <Text style={styles.dailyVitalsSummaryTitle}>{t('home.daily_vitals_summary_title', 'Today’s vitals')}</Text>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_bp', 'Blood pressure')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {todaysBloodPressure ? `${todaysBloodPressure.systolic}/${todaysBloodPressure.diastolic} mmHg` : '--'}
-                </Text>
-              </View>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_glucose', 'Glucose')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {todaysGlucose ? `${todaysGlucose.value.toFixed(1)} ${todaysGlucose.unit}` : '--'}
-                </Text>
-              </View>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_weight', 'Weight')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {todaysWeight
-                    ? `${convertWeightToKg(todaysWeight.value, todaysWeight.unit).toFixed(1)} kg`
-                    : '--'}
-                </Text>
-              </View>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_total_cholesterol', 'Total cholesterol')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {todaysTotalCholesterol ? `${todaysTotalCholesterol.value.toFixed(1)} mmol/L` : '--'}
-                </Text>
-              </View>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_hdl_cholesterol', 'HDL cholesterol')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {todaysHdlCholesterol ? `${todaysHdlCholesterol.value.toFixed(1)} mmol/L` : '--'}
-                </Text>
-              </View>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_height', 'Height')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {settings.riskFactors?.heightCm ? `${settings.riskFactors.heightCm} cm` : '--'}
-                </Text>
-              </View>
+              <View style={styles.dailyVitalsSummary}>
+                <Text style={styles.dailyVitalsSummaryTitle}>{t('home.daily_vitals_summary_title', 'Today’s vitals')}</Text>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_bp', 'Blood pressure')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.bp}</Text>
+                </View>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_glucose', 'Glucose')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.glucose}</Text>
+                </View>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_weight', 'Weight')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.weight}</Text>
+                </View>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_total_cholesterol', 'Total cholesterol')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.totalCholesterol}</Text>
+                </View>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_hdl_cholesterol', 'HDL cholesterol')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.hdlCholesterol}</Text>
+                </View>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_height', 'Height')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.height}</Text>
+                </View>
               <TouchableOpacity style={styles.vitalsCalendarButton} onPress={handleLogVitalsPress}>
                 <Text style={styles.vitalsCalendarButtonText}>{t('home.update_vitals_button', 'Update today’s vitals')}</Text>
               </TouchableOpacity>
@@ -599,52 +651,66 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           )}
         </View>
 
-          <View style={styles.riskScoresHeader}>
-            <Text style={styles.riskScoresTitle}>{t('vitals.risk_scores_title')}</Text>
-            <TouchableOpacity onPress={handleManageRiskPress}>
-              <Text style={styles.sectionLink}>{t('vitals.manage_risk_inputs')}</Text>
-            </TouchableOpacity>
-          </View>
-          {hasRiskScores ? (
-            <View style={styles.riskTrendList}>
-              {findriscResult && findriscTrend && (
-                <RiskScoreTrendCard
-                  title={findriscResult.label}
-                  trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
-                  averageLabel={t('vitals.fourteen_day_average', '14-day average')}
-                  color={findriscResult.color}
-                  percentages={findriscTrend.percentages}
-                  latestScore={findriscTrend.latestScore}
-                  averageScore={findriscTrend.averageScore}
-                  maxScore={findriscResult.maxScore}
-                  category={findriscResult.category}
-                  description={findriscResult.description}
-                />
+          {hasCompletedQuestionnaire ? (
+            <>
+              <View style={styles.riskScoresHeader}>
+                <Text style={styles.riskScoresTitle}>{t('vitals.risk_scores_title')}</Text>
+                <TouchableOpacity onPress={handleManageRiskPress}>
+                  <Text style={styles.sectionLink}>{t('vitals.manage_risk_inputs')}</Text>
+                </TouchableOpacity>
+              </View>
+              {hasRiskScores ? (
+                <View style={styles.riskTrendList}>
+                  {findriscResult && findriscTrend && (
+                    <RiskScoreTrendCard
+                      title={findriscResult.label}
+                      trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
+                      averageLabel={t('vitals.fourteen_day_average', '14-day average')}
+                      color={findriscResult.color}
+                      percentages={findriscTrend.percentages}
+                      latestScore={findriscTrend.latestScore}
+                      averageScore={findriscTrend.averageScore}
+                      maxScore={findriscResult.maxScore}
+                      category={findriscResult.category}
+                      description={findriscResult.description}
+                    />
+                  )}
+                  {framinghamResult && framinghamTrend && (
+                    <RiskScoreTrendCard
+                      title={framinghamResult.label}
+                      trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
+                      averageLabel={t('vitals.fourteen_day_average', '14-day average')}
+                      color={framinghamResult.color}
+                      percentages={framinghamTrend.percentages}
+                      latestScore={framinghamTrend.latestScore}
+                      averageScore={framinghamTrend.averageScore}
+                      maxScore={framinghamResult.maxScore}
+                      category={framinghamResult.category}
+                      description={framinghamResult.description}
+                    />
+                  )}
+                </View>
+              ) : (
+                <View style={styles.riskScoresEmpty}>
+                  <Text style={styles.riskScoresHint}>
+                    {riskScoresEnabled
+                      ? t('risk_calculators.results_hint')
+                      : t('vitals.enable_scores_hint')}
+                  </Text>
+                  <TouchableOpacity style={styles.riskScoresButton} onPress={handleManageRiskPress}>
+                    <Text style={styles.riskScoresButtonText}>{t('risk_calculators.update_button')}</Text>
+                  </TouchableOpacity>
+                </View>
               )}
-              {framinghamResult && framinghamTrend && (
-                <RiskScoreTrendCard
-                  title={framinghamResult.label}
-                  trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
-                  averageLabel={t('vitals.fourteen_day_average', '14-day average')}
-                  color={framinghamResult.color}
-                  percentages={framinghamTrend.percentages}
-                  latestScore={framinghamTrend.latestScore}
-                  averageScore={framinghamTrend.averageScore}
-                  maxScore={framinghamResult.maxScore}
-                  category={framinghamResult.category}
-                  description={framinghamResult.description}
-                />
-              )}
-            </View>
+            </>
           ) : (
-            <View style={styles.riskScoresEmpty}>
-              <Text style={styles.riskScoresHint}>
-                {riskScoresEnabled
-                  ? t('risk_calculators.results_hint')
-                  : t('vitals.enable_scores_hint')}
+            <View style={styles.riskQuestionnaireCard}>
+              <Text style={styles.riskQuestionnaireTitle}>{t('home.risk_questionnaire_title', 'Tell us about your health')}</Text>
+              <Text style={styles.riskQuestionnaireSubtitle}>
+                {t('home.risk_questionnaire_subtitle', 'Answer a few questions to unlock your personalised risk scores.')}
               </Text>
-              <TouchableOpacity style={styles.riskScoresButton} onPress={handleManageRiskPress}>
-                <Text style={styles.riskScoresButtonText}>{t('risk_calculators.update_button')}</Text>
+              <TouchableOpacity style={styles.riskQuestionnaireButton} onPress={handleQuestionnairePress}>
+                <Text style={styles.riskQuestionnaireButtonText}>{t('home.start_questionnaire', 'Start questionnaire')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -973,6 +1039,33 @@ const styles = StyleSheet.create({
   riskScoresHint: {
     fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
+  },
+  riskQuestionnaireCard: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.card,
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+    ...Shadows.sm,
+  },
+  riskQuestionnaireTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+  },
+  riskQuestionnaireSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+  },
+  riskQuestionnaireButton: {
+    marginTop: Spacing.sm,
+    backgroundColor: Colors.primary.main,
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+  },
+  riskQuestionnaireButtonText: {
+    color: Colors.primary.contrast,
+    fontWeight: Typography.fontWeight.semibold,
   },
   riskScoresButton: {
     backgroundColor: Colors.primary.main,

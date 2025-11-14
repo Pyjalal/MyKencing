@@ -446,6 +446,8 @@ export default function VitalsScreen() {
     settings.userWeight,
   ]);
 
+  const hasCompletedQuestionnaire = settings.riskQuestionnaireCompleted ?? false;
+
   const totalCholesterolVitals = useMemo(
     () =>
       vitals
