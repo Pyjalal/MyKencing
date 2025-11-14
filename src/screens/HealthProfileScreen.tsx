@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  SafeAreaView,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -12,7 +13,13 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useVitalsStore } from '../stores/vitalsStore';
-import { RootStackParamList, VitalType } from '../types';
+import {
+  RootStackParamList,
+  VitalType,
+  WeightVital,
+  WaistCircumferenceVital,
+  BloodPressureVital,
+} from '../types';
 import { RiskScoreCircle } from '../components';
 import { calculateFindrisc, calculateFraminghamSimplified } from '../utils/riskScores';
 
@@ -36,15 +43,15 @@ export default function HealthProfileScreen() {
   const getLatestByType = useVitalsStore((state) => state.getLatestByType);
 
   const latestWaist = useMemo(
-    () => getLatestByType(VitalType.WaistCircumference),
+    () => getLatestByType(VitalType.WaistCircumference) as WaistCircumferenceVital | null,
     [getLatestByType]
   );
   const latestWeight = useMemo(
-    () => getLatestByType(VitalType.Weight),
+    () => getLatestByType(VitalType.Weight) as WeightVital | null,
     [getLatestByType]
   );
   const latestBloodPressure = useMemo(
-    () => getLatestByType(VitalType.BloodPressure),
+    () => getLatestByType(VitalType.BloodPressure) as BloodPressureVital | null,
     [getLatestByType]
   );
 
@@ -190,86 +197,173 @@ export default function HealthProfileScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>{t('vitals.health_profile')}</Text>
-      <Text style={styles.subtitle}>{t('vitals.profile_cta_subtitle')}</Text>
-
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.primaryButton]}
-          onPress={() => navigation.navigate('RiskAssessment')}
-        >
-          <Text style={styles.primaryButtonText}>{t('vitals.update_risk_inputs')}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.actionButton, styles.secondaryButton]}
-          onPress={() => navigation.navigate('RiskCalculators')}
-        >
-          <Text style={styles.secondaryButtonText}>{t('vitals.manage_risk_inputs')}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardHeading}>{t('vitals.health_profile_details')}</Text>
-        <View style={styles.summaryGrid}>
-          {summaryItems.map((item) => {
-            const colors = getStatusColors(item.status);
-            return (
-              <View
-                key={item.key}
-                style={[styles.summaryItem, { backgroundColor: colors.backgroundColor, borderColor: colors.borderColor }]}
-              >
-                <Text style={[styles.summaryLabel, { color: colors.textColor }]}>{item.label}</Text>
-                <Text style={styles.summaryValue}>{item.value}</Text>
-              </View>
-            );
-          })}
-        </View>
-      </View>
-
-      {(findriscResult || framinghamResult) && (
-        <View style={styles.card}>
-          <Text style={styles.cardHeading}>{t('vitals.risk_scores_title')}</Text>
-          <View style={styles.scoresRow}>
-            {findriscResult && (
-              <RiskScoreCircle result={findriscResult} style={styles.scoreCard} />
-            )}
-            {framinghamResult && (
-              <RiskScoreCircle result={framinghamResult} style={styles.scoreCard} />
-            )}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Text style={styles.backIcon}>{'<'}</Text>
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>{t('vitals.health_profile')}</Text>
+            <Text style={styles.headerSubtitle}>{t('vitals.profile_cta_subtitle')}</Text>
           </View>
         </View>
-      )}
-    </ScrollView>
+
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.ctaCard}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.ctaTitle}>{t('vitals.profile_cta_title')}</Text>
+              <Text style={styles.ctaSubtitle}>{t('vitals.profile_cta_subtitle')}</Text>
+            </View>
+            <View style={styles.ctaButtons}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.primaryButton]}
+                onPress={() => navigation.navigate('RiskAssessment')}
+              >
+                <Text style={styles.primaryButtonText}>{t('vitals.update_risk_inputs')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.secondaryButton]}
+                onPress={() => navigation.navigate('RiskCalculators')}
+              >
+                <Text style={styles.secondaryButtonText}>{t('vitals.manage_risk_inputs')}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardHeading}>{t('vitals.health_profile_details')}</Text>
+            <View style={styles.summaryGrid}>
+              {summaryItems.map((item) => {
+                const colors = getStatusColors(item.status);
+                return (
+                  <View
+                    key={item.key}
+                    style={[
+                      styles.summaryItem,
+                      {
+                        backgroundColor: colors.backgroundColor,
+                        borderColor: colors.borderColor,
+                      },
+                    ]}
+                  >
+                    <Text style={[styles.summaryLabel, { color: colors.textColor }]}>
+                      {item.label}
+                    </Text>
+                    <Text style={styles.summaryValue}>{item.value}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+
+          {(findriscResult || framinghamResult) && (
+            <View style={styles.card}>
+              <Text style={styles.cardHeading}>{t('vitals.risk_scores_title')}</Text>
+              <View style={styles.scoresRow}>
+                {findriscResult && (
+                  <RiskScoreCircle result={findriscResult} style={styles.scoreCard} />
+                )}
+                {framinghamResult && (
+                  <RiskScoreCircle result={framinghamResult} style={styles.scoreCard} />
+                )}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.primary,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background.primary,
+  },
+  header: {
+    backgroundColor: Colors.background.vitals,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
+    borderBottomLeftRadius: BorderRadius['3xl'],
+    borderBottomRightRadius: BorderRadius['3xl'],
+    marginBottom: Spacing.lg,
+    ...Shadows.sm,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.md,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backIcon: {
+    fontSize: Typography.fontSize.lg,
+    color: Colors.text.inverse,
+  },
+  headerContent: {
+    flex: 1,
+    gap: Spacing.xs,
+  },
+  headerTitle: {
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.text.inverse,
+  },
+  headerSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.inverse,
+    marginTop: 2,
   },
   content: {
     padding: Spacing.lg,
     paddingBottom: Spacing['3xl'],
     gap: Spacing.lg,
   },
-  title: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
+  ctaCard: {
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius['3xl'],
+    padding: Spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.lg,
+    ...Shadows.sm,
+  },
+  ctaTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
   },
-  subtitle: {
-    fontSize: Typography.fontSize.base,
+  ctaSubtitle: {
+    fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
+    marginTop: Spacing.xs,
   },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
+  ctaButtons: {
+    gap: Spacing.xs,
+    alignItems: 'flex-end',
   },
   actionButton: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.full,
     alignItems: 'center',
@@ -283,7 +377,7 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
   },
   secondaryButton: {
-    backgroundColor: Colors.background.card,
+    backgroundColor: Colors.background.primary,
     borderWidth: 1,
     borderColor: Colors.primary.light,
   },

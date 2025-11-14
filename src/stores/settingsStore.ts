@@ -47,6 +47,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   onboardingCompleted: false,
   riskFactors: DEFAULT_RISK_FACTORS,
   riskCalculators: DEFAULT_RISK_CALCULATORS,
+  riskQuestionnaireCompleted: false,
 };
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -92,6 +93,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         ...DEFAULT_RISK_CALCULATORS,
         ...(settings.riskCalculators || {}),
       };
+
+      if (typeof settings.riskQuestionnaireCompleted !== 'boolean') {
+        settings.riskQuestionnaireCompleted = false;
+      }
 
       set({ settings, isLoading: false });
     } catch (error) {

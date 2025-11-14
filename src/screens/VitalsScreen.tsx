@@ -59,8 +59,8 @@ const percentFromResult = (result?: RiskScoreResult | null) => {
 
 type RiskTrendMeta = {
   percentages: number[];
-  latestPercent: number | null;
-  averagePercent: number | null;
+  latestScore: number | null;
+  averageScore: number | null;
 };
 
 const aggregateDaily = <T extends MeasuredEntry>(
@@ -203,7 +203,7 @@ export default function VitalsScreen() {
   const { vitals, loadVitals } = useVitalsStore();
   const settings = useSettingsStore((state) => state.settings);
   const navigation = useNavigation<any>();
-  const [isDemoMode, setIsDemoMode] = useState(true); // Toggle for demo data
+  const [isDemoMode, setIsDemoMode] = useState(() => false); // Start with real data
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   useEffect(() => {
@@ -300,23 +300,30 @@ export default function VitalsScreen() {
     (series: RiskScoreResult[], fallback?: RiskScoreResult | null): RiskTrendMeta | null => {
       if (!series.length && !fallback) return null;
       const basePercent = percentFromResult(fallback ?? null) ?? 0;
+      const baseScore = fallback?.score ?? 0;
       const percentages = series.length
         ? series.map((item) => percentFromResult(item) ?? basePercent)
         : Array(dayBuckets.length).fill(basePercent);
+      const scores = series.length
+        ? series.map((item) => item?.score ?? baseScore)
+        : Array(dayBuckets.length).fill(baseScore);
 
       const sanitized = percentages.map((value) =>
         Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : basePercent
       );
+      const scoreSanitized = scores.map((value) =>
+        Number.isFinite(value) ? value : baseScore
+      );
 
-      const latestPercent = sanitized[sanitized.length - 1] ?? basePercent;
-      const averagePercent = sanitized.length
-        ? sanitized.reduce((sum, value) => sum + value, 0) / sanitized.length
-        : latestPercent;
+      const latestScore = scoreSanitized[scoreSanitized.length - 1] ?? baseScore;
+      const averageScore = scoreSanitized.length
+        ? scoreSanitized.reduce((sum, value) => sum + value, 0) / scoreSanitized.length
+        : latestScore;
 
       return {
         percentages: sanitized,
-        latestPercent,
-        averagePercent,
+        latestScore,
+        averageScore,
       };
     },
     [dayBuckets.length]
@@ -438,6 +445,8 @@ export default function VitalsScreen() {
     settings.userGender,
     settings.userWeight,
   ]);
+
+  const hasCompletedQuestionnaire = settings.riskQuestionnaireCompleted ?? false;
 
   const totalCholesterolVitals = useMemo(
     () =>
@@ -1025,6 +1034,15 @@ export default function VitalsScreen() {
     }
   }
 
+  if (!isDemoMode && !liveSections.length) {
+    liveSections.push({
+      key: 'empty',
+      content: (
+        <Text style={styles.realDataEmpty}>{t('vitals.no_vitals_yet')}</Text>
+      ),
+    });
+  }
+
   const handleManageRiskPress = () => {
     navigation.navigate('RiskCalculators');
   };
@@ -1085,9 +1103,10 @@ export default function VitalsScreen() {
                   trendLabel={t('vitals.last_14_day_trend')}
                   averageLabel={t('vitals.fourteen_day_average')}
                   color={findriscResult.color}
-                  latestPercent={findriscTrend.latestPercent}
-                  averagePercent={findriscTrend.averagePercent}
                   percentages={findriscTrend.percentages}
+                  latestScore={findriscTrend.latestScore}
+                  averageScore={findriscTrend.averageScore}
+                  maxScore={findriscResult.maxScore}
                   category={findriscResult.category}
                   description={findriscResult.description}
                 />
@@ -1098,9 +1117,10 @@ export default function VitalsScreen() {
                   trendLabel={t('vitals.last_14_day_trend')}
                   averageLabel={t('vitals.fourteen_day_average')}
                   color={framinghamResult.color}
-                  latestPercent={framinghamTrend.latestPercent}
-                  averagePercent={framinghamTrend.averagePercent}
                   percentages={framinghamTrend.percentages}
+                  latestScore={framinghamTrend.latestScore}
+                  averageScore={framinghamTrend.averageScore}
+                  maxScore={framinghamResult.maxScore}
                   category={framinghamResult.category}
                   description={framinghamResult.description}
                 />
@@ -1652,6 +1672,11 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.border.light,
     marginTop: Spacing.sm,
+  },
+  realDataEmpty: {
+    textAlign: 'center',
+    color: Colors.text.secondary,
+    marginVertical: Spacing.md,
   },
   realListRow: {
     flexDirection: 'row',

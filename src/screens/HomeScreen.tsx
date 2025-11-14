@@ -41,10 +41,27 @@ const percentFromResult = (result?: RiskScoreResult | null) => {
   return Math.max(0, Math.min(100, percent));
 };
 
+const isWithinRange = (value: number | null | undefined, min: number, max: number) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return false;
+  return value >= min && value <= max;
+};
+
+const formatValidatedValue = (
+  value: number | null | undefined,
+  min: number,
+  max: number,
+  formatter: (val: number) => string,
+  fallback: string,
+) => {
+  if (value === null || value === undefined || Number.isNaN(value)) return fallback;
+  if (value < min || value > max) return fallback;
+  return formatter(value);
+};
+
 type RiskTrendMeta = {
   percentages: number[];
-  latestPercent: number | null;
-  averagePercent: number | null;
+  latestScore: number | null;
+  averageScore: number | null;
 };
 
 export default function HomeScreen({ navigation }: HomeScreenProps) {
@@ -217,23 +234,30 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     (series: RiskScoreResult[], fallback?: RiskScoreResult | null): RiskTrendMeta | null => {
       if (!series.length && !fallback) return null;
       const basePercent = percentFromResult(fallback ?? null) ?? 0;
+      const baseScore = fallback?.score ?? 0;
       const percentages = series.length
         ? series.map((item) => percentFromResult(item) ?? basePercent)
         : Array(dayBuckets.length).fill(basePercent);
+      const scores = series.length
+        ? series.map((item) => item?.score ?? baseScore)
+        : Array(dayBuckets.length).fill(baseScore);
 
       const sanitized = percentages.map((value) =>
         Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : basePercent
       );
+      const scoreSanitized = scores.map((value) =>
+        Number.isFinite(value) ? value : baseScore
+      );
 
-      const latestPercent = sanitized[sanitized.length - 1] ?? basePercent;
-      const averagePercent = sanitized.length
-        ? sanitized.reduce((sum, value) => sum + value, 0) / sanitized.length
-        : latestPercent;
+      const latestScore = scoreSanitized[scoreSanitized.length - 1] ?? baseScore;
+      const averageScore = scoreSanitized.length
+        ? scoreSanitized.reduce((sum, value) => sum + value, 0) / scoreSanitized.length
+        : latestScore;
 
       return {
         percentages: sanitized,
-        latestPercent,
-        averagePercent,
+        latestScore,
+        averageScore,
       };
     },
     [dayBuckets.length]
@@ -252,15 +276,20 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     [getLatestByType, vitals]
   );
 
+  const latestWeightKg = useMemo(() => {
+    if (!latestWeight) return null;
+    return convertWeightToKg(latestWeight.value, latestWeight.unit);
+  }, [latestWeight]);
+
   const bmi = useMemo(() => {
     if (!riskFactors) return null;
-    const weight = riskFactors.weightKg ?? settings.userWeight ?? latestWeight?.value;
+    const weight = latestWeightKg ?? riskFactors.weightKg ?? settings.userWeight;
     const height = riskFactors.heightCm;
     if (!weight || !height) return null;
     const heightMeters = height / 100;
     if (heightMeters <= 0) return null;
     return weight / (heightMeters * heightMeters);
-  }, [latestWeight?.value, riskFactors, settings.userWeight]);
+  }, [latestWeightKg, riskFactors, settings.userWeight]);
 
   const findriscResult = useMemo(() => {
     if (!calculators?.findriscEnabled || !riskFactors) return null;
@@ -339,6 +368,50 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   );
 
   const hasLoggedVitalsToday = vitalsLoggedByDay.has(todayKey);
+
+  const dailyVitalsDisplay = useMemo(() => {
+    const invalidText = t('home.vitals_invalid_value', 'Recheck value');
+    const formatOrFallback = (value: number | null | undefined, min: number, max: number, formatter: (val: number) => string) =>
+      isWithinRange(value, min, max) ? formatter(value as number) : invalidText;
+
+    const bpText = (() => {
+      if (!todaysBloodPressure) return '--';
+      const systolicValid = isWithinRange(todaysBloodPressure.systolic, 80, 220);
+      const diastolicValid = isWithinRange(todaysBloodPressure.diastolic, 40, 140);
+      if (!systolicValid || !diastolicValid) return invalidText;
+      return `${todaysBloodPressure.systolic}/${todaysBloodPressure.diastolic} mmHg`;
+    })();
+
+    const glucoseText = todaysGlucose
+      ? formatOrFallback(todaysGlucose.value, 3, 30, (val) => `${val.toFixed(1)} ${todaysGlucose.unit}`)
+      : '--';
+
+    const weightKg = todaysWeight ? convertWeightToKg(todaysWeight.value, todaysWeight.unit) : null;
+    const weightText = todaysWeight
+      ? formatOrFallback(weightKg, 30, 250, (val) => `${val.toFixed(1)} kg`)
+      : '--';
+
+    const totalCholText = todaysTotalCholesterol
+      ? formatOrFallback(todaysTotalCholesterol.value, 2, 12, (val) => `${val.toFixed(1)} mmol/L`)
+      : '--';
+
+    const hdlText = todaysHdlCholesterol
+      ? formatOrFallback(todaysHdlCholesterol.value, 0.5, 4, (val) => `${val.toFixed(1)} mmol/L`)
+      : '--';
+
+    const heightText = settings.riskFactors?.heightCm
+      ? formatOrFallback(settings.riskFactors.heightCm, 100, 230, (val) => `${val} cm`)
+      : '--';
+
+    return {
+      bp: bpText,
+      glucose: glucoseText,
+      weight: weightText,
+      totalCholesterol: totalCholText,
+      hdlCholesterol: hdlText,
+      height: heightText,
+    };
+  }, [settings.riskFactors?.heightCm, t, todaysBloodPressure, todaysGlucose, todaysHdlCholesterol, todaysTotalCholesterol, todaysWeight]);
 
 
   const findriscTrend = useMemo(() => {
@@ -435,6 +508,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const handleLogVitalsPress = () => {
     navigation.navigate('DailyVitalsLog');
   };
+
 
   const handleTakeDose = async () => {
     if (nextDose) {
@@ -536,44 +610,32 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             </View>
           </View>
           {hasLoggedVitalsToday ? (
-            <View style={styles.dailyVitalsSummary}>
-              <Text style={styles.dailyVitalsSummaryTitle}>{t('home.daily_vitals_summary_title', 'Today’s vitals')}</Text>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_bp', 'Blood pressure')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {todaysBloodPressure ? `${todaysBloodPressure.systolic}/${todaysBloodPressure.diastolic} mmHg` : '--'}
-                </Text>
-              </View>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_glucose', 'Glucose')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {todaysGlucose ? `${todaysGlucose.value.toFixed(1)} ${todaysGlucose.unit}` : '--'}
-                </Text>
-              </View>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_weight', 'Weight')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {todaysWeight ? `${todaysWeight.value.toFixed(1)} ${todaysWeight.unit}` : '--'}
-                </Text>
-              </View>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_total_cholesterol', 'Total cholesterol')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {todaysTotalCholesterol ? `${todaysTotalCholesterol.value.toFixed(1)} mmol/L` : '--'}
-                </Text>
-              </View>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_hdl_cholesterol', 'HDL cholesterol')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {todaysHdlCholesterol ? `${todaysHdlCholesterol.value.toFixed(1)} mmol/L` : '--'}
-                </Text>
-              </View>
-              <View style={styles.dailyVitalsSummaryRow}>
-                <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_height', 'Height')}</Text>
-                <Text style={styles.dailyVitalsSummaryValue}>
-                  {settings.riskFactors?.heightCm ? `${settings.riskFactors.heightCm} cm` : '--'}
-                </Text>
-              </View>
+              <View style={styles.dailyVitalsSummary}>
+                <Text style={styles.dailyVitalsSummaryTitle}>{t('home.daily_vitals_summary_title', 'Today’s vitals')}</Text>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_bp', 'Blood pressure')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.bp}</Text>
+                </View>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_glucose', 'Glucose')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.glucose}</Text>
+                </View>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_weight', 'Weight')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.weight}</Text>
+                </View>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_total_cholesterol', 'Total cholesterol')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.totalCholesterol}</Text>
+                </View>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_hdl_cholesterol', 'HDL cholesterol')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.hdlCholesterol}</Text>
+                </View>
+                <View style={styles.dailyVitalsSummaryRow}>
+                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_height', 'Height')}</Text>
+                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.height}</Text>
+                </View>
               <TouchableOpacity style={styles.vitalsCalendarButton} onPress={handleLogVitalsPress}>
                 <Text style={styles.vitalsCalendarButtonText}>{t('home.update_vitals_button', 'Update today’s vitals')}</Text>
               </TouchableOpacity>
@@ -599,9 +661,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                   trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
                   averageLabel={t('vitals.fourteen_day_average', '14-day average')}
                   color={findriscResult.color}
-                  latestPercent={findriscTrend.latestPercent}
-                  averagePercent={findriscTrend.averagePercent}
                   percentages={findriscTrend.percentages}
+                  latestScore={findriscTrend.latestScore}
+                  averageScore={findriscTrend.averageScore}
+                  maxScore={findriscResult.maxScore}
                   category={findriscResult.category}
                   description={findriscResult.description}
                 />
@@ -612,9 +675,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                   trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
                   averageLabel={t('vitals.fourteen_day_average', '14-day average')}
                   color={framinghamResult.color}
-                  latestPercent={framinghamTrend.latestPercent}
-                  averagePercent={framinghamTrend.averagePercent}
                   percentages={framinghamTrend.percentages}
+                  latestScore={framinghamTrend.latestScore}
+                  averageScore={framinghamTrend.averageScore}
+                  maxScore={framinghamResult.maxScore}
                   category={framinghamResult.category}
                   description={framinghamResult.description}
                 />

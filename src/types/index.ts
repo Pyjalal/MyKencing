@@ -318,6 +318,7 @@ export interface AppSettings {
   userGoal?: 'get_fit' | 'be_active' | 'be_healthy' | 'find_balance';
   riskFactors?: RiskFactorSettings;
   riskCalculators?: RiskCalculatorSettings;
+  riskQuestionnaireCompleted?: boolean;
 }
 
 // ----------------------------------------------------------------------------

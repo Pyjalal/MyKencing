@@ -14,6 +14,7 @@ import { useVitalsStore } from '../stores/vitalsStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { RootStackParamList } from '../types';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
+import { CONVERSIONS } from '../constants/clinical';
 
 const STEPS = ['bp', 'weight', 'glucose', 'cholesterol'] as const;
 type StepKey = (typeof STEPS)[number];
@@ -133,8 +134,13 @@ export default function DailyVitalsLogScreen() {
     setIsSubmitting(true);
     try {
       await addBloodPressure(Number(form.systolic), Number(form.diastolic));
-      await addWeight(Number(form.weight), 'kg');
-      await addGlucose(Number(form.glucose), unitLabels.glucose === 'mg/dL' ? 'mg/dL' : 'mmol/L');
+
+      const weightValue = Number(form.weight);
+      const weightInKg = settings.weightUnit === 'lb' ? weightValue * CONVERSIONS.lbToKg : weightValue;
+      await addWeight(weightInKg, 'kg');
+
+      const glucoseUnit = (settings.glucoseUnit ?? 'mmol/L') as 'mmol/L' | 'mg/dL';
+      await addGlucose(Number(form.glucose), glucoseUnit);
       await addTotalCholesterol(Number(form.totalCholesterol));
       await addHdlCholesterol(Number(form.hdlCholesterol));
       if (form.height.trim()) {
@@ -145,7 +151,10 @@ export default function DailyVitalsLogScreen() {
           },
         });
       }
-      navigation.replace('Vitals');
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home', params: { screen: 'VitalsTab' } }],
+      });
     } catch (error) {
       console.error('DailyVitalsLogScreen: Error saving vitals', error);
     } finally {
@@ -164,7 +173,7 @@ export default function DailyVitalsLogScreen() {
   const fieldUnits: Record<keyof DailyVitalsForm, string> = {
     systolic: 'mmHg',
     diastolic: 'mmHg',
-    weight: 'kg',
+    weight: unitLabels.weight,
     height: 'cm',
     glucose: unitLabels.glucose,
     totalCholesterol: 'mmol/L',

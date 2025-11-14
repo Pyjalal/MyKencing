@@ -116,6 +116,7 @@ export default function RiskAssessmentScreen() {
       await persistSettings({
         riskFactors: next,
         ...(extraSettings || {}),
+        riskQuestionnaireCompleted: true,
       });
     },
     [persistSettings, riskFactors]
@@ -770,4 +771,3 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.medium,
   },
 });
-
