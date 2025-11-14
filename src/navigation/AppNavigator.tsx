@@ -28,6 +28,7 @@ import ChatBotScreen from '../screens/ChatBotScreen';
 import MedicationManagementScreen from '../screens/MedicationManagementScreen';
 import MedicationInteractionsScreen from '../screens/MedicationInteractionsScreen';
 import RiskAssessmentScreen from '../screens/RiskAssessmentScreen';
+import RiskOnboardingScreen from '../screens/RiskOnboardingScreen';
 import RiskCalculatorScreen from '../screens/RiskCalculatorScreen';
 import HealthProfileScreen from '../screens/HealthProfileScreen';
 import DailyVitalsLogScreen from '../screens/DailyVitalsLogScreen';
@@ -361,6 +362,11 @@ export default function AppNavigator() {
           name="RiskAssessment"
           component={RiskAssessmentScreen}
           options={{ title: 'Risk Assessment' }}
+        />
+        <Stack.Screen
+          name="RiskOnboarding"
+          component={RiskOnboardingScreen}
+          options={{ headerShown: false, presentation: 'modal' }}
         />
         <Stack.Screen
           name="Settings"

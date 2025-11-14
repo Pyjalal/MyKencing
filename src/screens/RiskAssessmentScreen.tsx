@@ -13,10 +13,12 @@ import {
   Pressable,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useVitalsStore } from '../stores/vitalsStore';
-import { AppSettings, RiskFactorSettings, VitalType } from '../types';
+import { AppSettings, RiskFactorSettings, VitalType, RootStackParamList } from '../types';
 import { RiskScoreCircle } from '../components';
 import {
   calculateFindrisc,
@@ -47,6 +49,8 @@ function isValidNumber(value: string, min: number, max: number) {
 
 export default function RiskAssessmentScreen() {
   const { t } = useTranslation();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList, 'RiskAssessment'>>();
   const settings = useSettingsStore((state) => state.settings);
   const updateSettings = useSettingsStore((state) => state.updateSettings);
   const getLatestByType = useVitalsStore((state) => state.getLatestByType);
@@ -75,6 +79,12 @@ export default function RiskAssessmentScreen() {
       ...(settings.riskFactors || {}),
     });
   }, [settings.riskFactors]);
+
+  useEffect(() => {
+    if (!settings.riskQuestionnaireCompleted) {
+      navigation.replace('RiskOnboarding');
+    }
+  }, [navigation, settings.riskQuestionnaireCompleted]);
 
   const latestWaist = useMemo(
     () => getLatestByType(VitalType.WaistCircumference),
