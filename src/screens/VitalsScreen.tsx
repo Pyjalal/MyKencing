@@ -1,18 +1,16 @@
 /**
  * VitalsScreen - Vitals Tracker
  * Matches Figma design: Vitals 1.png, Vitals 2.png, Vitals 3.png
- * Features hard-coded demo data for presentations
+ * Presents logged vitals and trend visualizations using real data
  */
 
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useVitalsStore } from '../stores/vitalsStore';
@@ -48,6 +46,10 @@ const toKg = (value: number, unit: 'kg' | 'lb') =>
   unit === 'kg' ? value : value * CONVERSIONS.lbToKg;
 
 const RISK_TREND_DAYS = 14;
+const GLUCOSE_OPTIMAL_MAX = 7; // mmol/L threshold for high readings
+const GLUCOSE_HIGH_HEIGHT_MULTIPLIER = 1.6;
+const GLUCOSE_HIGH_HEIGHT_OFFSET = 30;
+const GLUCOSE_HIGH_HEIGHT_MAX = 200;
 
 const percentFromResult = (result?: RiskScoreResult | null) => {
   if (!result) return null;
@@ -116,95 +118,22 @@ const getMaxValue = (series: (number | null)[]) => {
   return filtered.length ? Math.max(...filtered) : null;
 };
 
+const amplifyGlucoseBarHeight = (value: number | null, baseHeight: number) => {
+  if (value === null || value <= GLUCOSE_OPTIMAL_MAX) {
+    return baseHeight;
+  }
+  const boosted = baseHeight * GLUCOSE_HIGH_HEIGHT_MULTIPLIER + GLUCOSE_HIGH_HEIGHT_OFFSET;
+  return Math.min(boosted, GLUCOSE_HIGH_HEIGHT_MAX);
+};
+
 // const DAILY_POINTS = 14;
 // const WEEKLY_POINTS = 6;
-
-const DEMO_DATA = {
-  bloodPressure: [
-    { day: 1, systolic: 110, diastolic: 95 },
-    { day: 2, systolic: 115, diastolic: 100 },
-    { day: 3, systolic: 118, diastolic: 98 },
-    { day: 4, systolic: 125, diastolic: 105 },
-    { day: 5, systolic: 130, diastolic: 110 },
-    { day: 6, systolic: 122, diastolic: 102 },
-    { day: 7, systolic: 115, diastolic: 96 },
-    { day: 8, systolic: 120, diastolic: 100 },
-    { day: 9, systolic: 128, diastolic: 108 },
-    { day: 10, systolic: 118, diastolic: 99 },
-    { day: 11, systolic: 115, diastolic: 97 },
-    { day: 12, systolic: 112, diastolic: 95 },
-    { day: 13, systolic: 118, diastolic: 100 },
-    { day: 14, systolic: 120, diastolic: 102 },
-  ],
-  weight: [
-    { day: 1, weight: 58.2, bmi: 21.1 },
-    { day: 2, weight: 58.3, bmi: 21.1 },
-    { day: 3, weight: 58.5, bmi: 21.2 },
-    { day: 4, weight: 58.8, bmi: 21.3 },
-    { day: 5, weight: 59.0, bmi: 21.4 },
-    { day: 6, weight: 58.9, bmi: 21.3 },
-    { day: 7, weight: 58.7, bmi: 21.3 },
-    { day: 8, weight: 58.5, bmi: 21.2 },
-    { day: 9, weight: 58.4, bmi: 21.2 },
-    { day: 10, weight: 58.6, bmi: 21.2 },
-    { day: 11, weight: 58.8, bmi: 21.3 },
-    { day: 12, weight: 59.1, bmi: 21.4 },
-    { day: 13, weight: 58.9, bmi: 21.3 },
-    { day: 14, weight: 58.4, bmi: 21.2 },
-  ],
-  bloodGlucose: [
-    { day: 1, value: 7.5 },
-    { day: 2, value: 7.2 },
-    { day: 3, value: 6.8 },
-    { day: 4, value: 6.5 },
-    { day: 5, value: 8.2 },
-    { day: 6, value: 8.5 },
-    { day: 7, value: 7.8 },
-    { day: 8, value: 7.5 },
-    { day: 9, value: 7.9 },
-    { day: 10, value: 8.1 },
-    { day: 11, value: 8.8 },
-    { day: 12, value: 9.0 },
-    { day: 13, value: 8.5 },
-    { day: 14, value: 8.3 },
-  ],
-  waistCircumference: [
-    { day: 1, value: 88 },
-    { day: 2, value: 88.5 },
-    { day: 3, value: 87.8 },
-    { day: 4, value: 87.5 },
-    { day: 5, value: 88.2 },
-    { day: 6, value: 88.0 },
-    { day: 7, value: 87.6 },
-    { day: 8, value: 87.4 },
-    { day: 9, value: 87.0 },
-    { day: 10, value: 86.8 },
-    { day: 11, value: 86.5 },
-    { day: 12, value: 86.2 },
-    { day: 13, value: 86.0 },
-    { day: 14, value: 85.8 },
-  ],
-  totalCholesterolWeekly: [
-    { week: 1, value: 5.4 },
-    { week: 2, value: 5.1 },
-    { week: 3, value: 4.9 },
-    { week: 4, value: 4.7 },
-  ],
-  hdlCholesterolWeekly: [
-    { week: 1, value: 1.2 },
-    { week: 2, value: 1.3 },
-    { week: 3, value: 1.4 },
-    { week: 4, value: 1.4 },
-  ],
-};
 
 export default function VitalsScreen() {
   const { t } = useTranslation();
   const { vitals, loadVitals } = useVitalsStore();
   const settings = useSettingsStore((state) => state.settings);
   const navigation = useNavigation<any>();
-  const [isDemoMode, setIsDemoMode] = useState(() => false); // Start with real data
-  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   useEffect(() => {
     loadVitals();
@@ -474,22 +403,6 @@ export default function VitalsScreen() {
     [vitals]
   );
 
-  // Calculate averages from demo data
-  const bpAvg = {
-    systolic: Math.round(DEMO_DATA.bloodPressure.reduce((sum, d) => sum + d.systolic, 0) / 14),
-    diastolic: Math.round(DEMO_DATA.bloodPressure.reduce((sum, d) => sum + d.diastolic, 0) / 14),
-  };
-  const weightAvg = DEMO_DATA.weight[13].weight; // Latest weight
-  const bmiAvg = DEMO_DATA.weight[13].bmi;
-  const glucoseAvg = (DEMO_DATA.bloodGlucose.reduce((sum, d) => sum + d.value, 0) / 14).toFixed(1);
-  const waistAvg = (DEMO_DATA.waistCircumference.reduce((sum, d) => sum + d.value, 0) / 14).toFixed(1);
-  const totalCholesterolAvg = (
-    DEMO_DATA.totalCholesterolWeekly.reduce((sum, d) => sum + d.value, 0) / DEMO_DATA.totalCholesterolWeekly.length
-  ).toFixed(2);
-  const hdlCholesterolAvg = (
-    DEMO_DATA.hdlCholesterolWeekly.reduce((sum, d) => sum + d.value, 0) / DEMO_DATA.hdlCholesterolWeekly.length
-  ).toFixed(2);
-
   const quickAddOptions = [
     { type: VitalType.BloodPressure, label: t('add_vital.blood_pressure') },
     { type: VitalType.Glucose, label: t('add_vital.glucose') },
@@ -623,7 +536,8 @@ export default function VitalsScreen() {
     series: (number | null)[],
     maxValue: number | null,
     barStyle: any,
-    getColor: (index: number, value: number | null) => string
+    getColor: (index: number, value: number | null) => string,
+    adjustHeight?: (value: number | null, baseHeight: number) => number
   ) => {
     if (!hasData(series)) {
       return <Text style={styles.noDataText}>{t('vitals.no_data_chart')}</Text>;
@@ -631,10 +545,11 @@ export default function VitalsScreen() {
     return (
       <View style={styles.chartContainer}>
         {series.map((value, index) => {
-          const height =
+          const baseHeight =
             value !== null && maxValue
               ? Math.max((value / maxValue) * 110, 4)
               : 4;
+          const height = adjustHeight ? adjustHeight(value, baseHeight) : baseHeight;
           return (
             <View key={index} style={styles.barGroup}>
               <View
@@ -774,7 +689,7 @@ export default function VitalsScreen() {
 
   const liveSections: Array<{ key: string; content: React.ReactNode }> = [];
 
-  if (!isDemoMode && vitals.length > 0) {
+  if (vitals.length > 0) {
     if (bloodPressureVitals.length) {
       liveSections.push({
         key: 'bp',
@@ -872,7 +787,11 @@ export default function VitalsScreen() {
               glucoseSeries,
               glucoseMax,
               styles.bar,
-              (_, value) => (value !== null && value > 7 ? '#FF9999' : '#E0E0E0')
+              (_, value) =>
+                value !== null && value > GLUCOSE_OPTIMAL_MAX
+                  ? Colors.secondary.main
+                  : Colors.primary.main,
+              (value, baseHeight) => amplifyGlucoseBarHeight(value, baseHeight)
             )}
             <View style={styles.realValueRow}>
               <Text style={styles.realValueMain}>
@@ -1034,7 +953,7 @@ export default function VitalsScreen() {
     }
   }
 
-  if (!isDemoMode && !liveSections.length) {
+  if (!liveSections.length) {
     liveSections.push({
       key: 'empty',
       content: (
@@ -1047,32 +966,17 @@ export default function VitalsScreen() {
     navigation.navigate('RiskCalculators');
   };
 
-  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    setIsHeaderCollapsed(offsetY > 40);
-  }, []);
-
   return (
     <View style={styles.container}>
-
-      <View style={[styles.header, isHeaderCollapsed && styles.headerCollapsed]}>
-        <Text style={[styles.headerTitle, isHeaderCollapsed && styles.headerTitleCollapsed]}>
-          {t('vitals.vitals_tracker')}
-        </Text>
-      </View>
 
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
       >
         <View style={styles.profileCtaCard}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.profileCtaTitle}>{t('vitals.profile_cta_title')}</Text>
-            <Text style={styles.profileCtaSubtitle}>{t('vitals.profile_cta_subtitle')}</Text>
-          </View>
-          <View style={styles.profileCtaButtons}>
+          <Text style={styles.profileCtaTitle}>{t('vitals.profile_cta_title')}</Text>
+          <Text style={styles.profileCtaSubtitle}>{t('vitals.profile_cta_subtitle')}</Text>
+          <View style={styles.profileCtaButtonsRow}>
             <TouchableOpacity
               style={[styles.profileCtaButton, styles.profileCtaPrimary]}
               onPress={() => navigation.navigate('HealthProfile')}
@@ -1139,16 +1043,6 @@ export default function VitalsScreen() {
             </View>
           )}
         </View>
-
-        {/* Demo Mode Toggle */}
-        <TouchableOpacity
-          style={styles.demoToggle}
-          onPress={() => setIsDemoMode(!isDemoMode)}
-        >
-          <Text style={styles.demoToggleText}>
-            {isDemoMode ? t('vitals.demo_mode_on') : t('vitals.real_data')}
-          </Text>
-        </TouchableOpacity>
 
         {weightStats && (
             <View style={styles.vitalCard}>
@@ -1235,23 +1129,24 @@ export default function VitalsScreen() {
             {hasData(glucoseSeries) ? (
               <View style={styles.chartContainer}>
                 {glucoseSeries.map((value, index) => {
-                  const height =
+                  const baseHeight =
                     value !== null && glucoseMax
                       ? Math.max((value / glucoseMax) * 110, 4)
                       : 4;
-                  const isHigh = value !== null && value > 7;
+                  const isHigh = value !== null && value > GLUCOSE_OPTIMAL_MAX;
+                  const height = amplifyGlucoseBarHeight(value, baseHeight);
                   return (
-                  <View key={index} style={styles.barGroup}>
+                    <View key={index} style={styles.barGroup}>
                       <View
                         style={[
                           styles.bar,
                           {
                             height,
-                            backgroundColor: isHigh ? '#FF9999' : '#E0E0E0',
+                            backgroundColor: isHigh ? Colors.secondary.main : Colors.primary.main,
                           },
                         ]}
                       />
-                  </View>
+                    </View>
                   );
                 })}
               </View>
@@ -1465,32 +1360,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background.primary,
   },
-  header: {
-    backgroundColor: Colors.background.vitals,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.lg,
-    marginBottom: Spacing.lg,
-    borderBottomLeftRadius: BorderRadius['3xl'],
-    borderBottomRightRadius: BorderRadius['3xl'],
-  },
-  headerCollapsed: {
-    paddingVertical: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.inverse,
-    marginBottom: Spacing.sm,
-  },
-  headerTitleCollapsed: {
-    fontSize: Typography.fontSize.xl,
-    marginBottom: 0,
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
+    paddingTop: Spacing.lg,
     paddingBottom: 100,
   },
   section: {
@@ -1538,28 +1412,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   // Demo Mode Styles
-  demoToggle: {
-    backgroundColor: '#4A6FA5',
-    padding: Spacing.md,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-  },
-  demoToggleText: {
-    color: Colors.text.inverse,
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.bold,
-  },
   profileCtaCard: {
     backgroundColor: Colors.background.card,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     padding: Spacing.lg,
     borderRadius: BorderRadius['3xl'],
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.lg,
+    gap: Spacing.sm,
     ...Shadows.sm,
   },
   profileCtaTitle: {
@@ -1572,14 +1431,19 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginTop: Spacing.xs,
   },
-  profileCtaButtons: {
+  profileCtaButtonsRow: {
+    flexDirection: 'row',
     gap: Spacing.sm,
-    alignItems: 'flex-end',
+    marginTop: Spacing.md,
+    alignItems: 'center',
   },
   profileCtaButton: {
+    flex: 1,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   profileCtaPrimary: {
     backgroundColor: Colors.primary.main,

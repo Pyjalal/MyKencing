@@ -219,11 +219,11 @@ export default function HealthProfileScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.ctaCard}>
-            <View style={{ flex: 1 }}>
+            <View style={styles.ctaText}>
               <Text style={styles.ctaTitle}>{t('vitals.profile_cta_title')}</Text>
               <Text style={styles.ctaSubtitle}>{t('vitals.profile_cta_subtitle')}</Text>
             </View>
-            <View style={styles.ctaButtons}>
+            <View style={styles.ctaButtonsRow}>
               <TouchableOpacity
                 style={[styles.actionButton, styles.primaryButton]}
                 onPress={() => navigation.navigate('RiskAssessment')}
@@ -343,10 +343,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background.card,
     borderRadius: BorderRadius['3xl'],
     padding: Spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.lg,
+    flexDirection: 'column',
+    gap: Spacing.md,
     ...Shadows.sm,
+  },
+  ctaText: {
+    gap: Spacing.xs,
   },
   ctaTitle: {
     fontSize: Typography.fontSize.lg,
@@ -358,15 +360,18 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginTop: Spacing.xs,
   },
-  ctaButtons: {
-    gap: Spacing.xs,
-    alignItems: 'flex-end',
+  ctaButtonsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    width: '100%',
   },
   actionButton: {
+    flex: 1,
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.full,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   primaryButton: {
     backgroundColor: Colors.primary.main,
