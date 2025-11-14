@@ -599,16 +599,6 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 </View>
               ))}
             </View>
-          <View style={styles.vitalsCalendarLegendRow}>
-            <View style={styles.vitalsLegendItem}>
-              <View style={[styles.vitalsLegendDot, styles.vitalsLegendDotRecorded]} />
-              <Text style={styles.vitalsCalendarLegendLabel}>✓</Text>
-            </View>
-            <View style={styles.vitalsLegendItem}>
-              <View style={[styles.vitalsLegendDot, styles.vitalsLegendDotMissing]} />
-              <Text style={styles.vitalsCalendarLegendLabel}>✕</Text>
-            </View>
-          </View>
           {hasLoggedVitalsToday ? (
               <View style={styles.dailyVitalsSummary}>
                 <Text style={styles.dailyVitalsSummaryTitle}>{t('home.daily_vitals_summary_title', 'Today’s vitals')}</Text>
@@ -891,32 +881,6 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
-  },
-  vitalsCalendarLegendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  vitalsLegendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  vitalsCalendarLegendLabel: {
-    fontSize: Typography.fontSize.xs,
-    color: Colors.text.secondary,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  vitalsLegendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  vitalsLegendDotRecorded: {
-    backgroundColor: Colors.status.success,
-  },
-  vitalsLegendDotMissing: {
-    backgroundColor: Colors.status.error,
   },
   vitalsCalendarButton: {
     marginTop: Spacing.md,
