@@ -262,7 +262,7 @@ export default function MedicineDetailScreen() {
       {/* Unacknowledged High-Risk Interactions */}
       {unacknowledgedHighRiskInteractions.length > 0 && (
         <View style={styles.dangerCard}>
-          <Text style={styles.dangerTitle}>⚠️ High-Risk Drug Interactions</Text>
+          <Text style={styles.dangerTitle}>High-Risk Drug Interactions</Text>
           <Text style={styles.dangerSubtitle}>
             Please review these interactions and acknowledge that you understand the risks.
           </Text>

@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   botBubble: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.background.card,
     alignSelf: 'flex-start',
     borderBottomLeftRadius: 4,
   },
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border.light,
     paddingHorizontal: 0,
     paddingVertical: 0,
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.background.card,
   },
   inputRow: {
     flexDirection: 'row',

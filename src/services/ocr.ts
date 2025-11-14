@@ -207,10 +207,11 @@ export async function scanPrescription(imageUri: string): Promise<ExtractedMedic
     
     const filteredParsed = parsed.filter(item => {
       const nameLower = item.name.toLowerCase().trim();
-      
+      const alphaOnly = nameLower.replace(/[^a-z]/g, '');
+
       // Skip very short words (likely OCR noise)
-      if (nameLower.length < 4) {
-        console.log(`  ⏭️  Skipping short word: "${item.name}" (${nameLower.length} chars)`);
+      if (alphaOnly.length < 4) {
+        console.log(`  ⏭️  Skipping short word: "${item.name}" (${alphaOnly.length} letters)`);
         return false;
       }
       
@@ -220,10 +221,17 @@ export async function scanPrescription(imageUri: string): Promise<ExtractedMedic
         return false;
       }
       
-      // Skip if it looks like gibberish (too many consonants in a row)
-      const consonantRuns = nameLower.match(/[bcdfghjklmnpqrstvwxyz]{4,}/g);
-      if (consonantRuns && consonantRuns.length > 0) {
-        console.log(`  ⏭️  Skipping gibberish: "${item.name}" (too many consonants)`);
+      // Skip if it looks like gibberish (long consonant runs with almost no vowels)
+      const consonantRuns = alphaOnly.match(/[bcdfghjklmnpqrstvwxyz]+/g) || [];
+      const longestConsonantRun = consonantRuns.reduce((max, run) => Math.max(max, run.length), 0);
+      const vowelCount = (alphaOnly.match(/[aeiou]/g) || []).length;
+      const letterCount = alphaOnly.length;
+      const vowelRatio = letterCount === 0 ? 0 : vowelCount / letterCount;
+
+      if (longestConsonantRun >= 6 && vowelRatio < 0.25) {
+        console.log(
+          `  ⏭️  Skipping gibberish: "${item.name}" (consonant run: ${longestConsonantRun}, vowel ratio: ${(vowelRatio * 100).toFixed(1)}%)`,
+        );
         return false;
       }
       
