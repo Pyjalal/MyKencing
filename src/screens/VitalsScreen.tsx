@@ -262,18 +262,21 @@ export default function VitalsScreen() {
   const latestWaistVital = waistVitals[0];
   const latestBloodPressure = bloodPressureVitals[0];
 
+  const latestWeightKg = useMemo(() => {
+    if (!latestWeightVital) return null;
+    return toKg(latestWeightVital.value, latestWeightVital.unit);
+  }, [latestWeightVital]);
+
   const bmiValue = useMemo(() => {
     if (!riskFactors) return null;
-    const weight =
-      riskFactors.weightKg ??
-      settings.userWeight ??
-      (latestWeightVital ? toKg(latestWeightVital.value, latestWeightVital.unit) : null);
+    // Match HomeScreen priority: latest measured weight > stored weight > user weight
+    const weight = latestWeightKg ?? riskFactors.weightKg ?? settings.userWeight;
     const height = riskFactors.heightCm;
     if (!weight || !height) return null;
     const heightMeters = height / 100;
     if (heightMeters <= 0) return null;
     return weight / (heightMeters * heightMeters);
-  }, [latestWeightVital, riskFactors, settings.userWeight]);
+  }, [latestWeightKg, riskFactors, settings.userWeight]);
 
   const findriscResult = useMemo(() => {
     if (!calculators?.findriscEnabled || !riskFactors) return null;
