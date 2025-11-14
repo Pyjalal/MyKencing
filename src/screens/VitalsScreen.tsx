@@ -1359,7 +1359,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingTop: Spacing.lg,
     paddingBottom: 100,
   },
   section: {
@@ -1430,10 +1429,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
     marginTop: Spacing.md,
-    alignItems: 'center',
+    alignItems: 'stretch',
   },
   profileCtaButton: {
     flex: 1,
+    minHeight: 44,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.full,
@@ -1447,6 +1447,7 @@ const styles = StyleSheet.create({
     color: Colors.primary.contrast,
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
+    textAlign: 'center',
   },
   profileCtaSecondary: {
     backgroundColor: Colors.background.primary,
@@ -1455,6 +1456,7 @@ const styles = StyleSheet.create({
     color: Colors.primary.main,
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
+    textAlign: 'center',
   },
   sectionLink: {
     fontSize: Typography.fontSize.sm,
