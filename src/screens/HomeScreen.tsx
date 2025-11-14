@@ -566,7 +566,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           </TouchableOpacity>
 
           <Text style={styles.greetingText}>
-            {greeting},{'\n'}{t('home.user_name', 'Friend')}
+            {greeting},{'\n'}{settings.userName || t('home.user_name', 'Friend')}
           </Text>
         </View>
 

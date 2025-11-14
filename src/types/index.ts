@@ -312,6 +312,7 @@ export interface AppSettings {
   };
   // Onboarding data
   onboardingCompleted: boolean;
+  userName?: string;
   userAge?: number;
   userGender?: 'male' | 'female' | 'other';
   userWeight?: number;
