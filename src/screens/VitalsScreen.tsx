@@ -744,7 +744,7 @@ export default function VitalsScreen() {
               weightSeries,
               weightMax,
               styles.weightBar,
-              (index) => (index % 2 === 0 ? '#2C5F8D' : '#5B9BD5')
+              () => Colors.primary.main
             )}
             <View style={styles.realValueRow}>
               <Text style={styles.realValueMain}>
@@ -1096,8 +1096,7 @@ export default function VitalsScreen() {
                           styles.weightBar,
                           {
                             height,
-                            backgroundColor:
-                              index % 2 === 0 ? '#2C5F8D' : '#5B9BD5',
+                            backgroundColor: Colors.primary.main,
                           },
                         ]}
                       />
@@ -1111,12 +1110,8 @@ export default function VitalsScreen() {
 
               <View style={styles.legend}>
                 <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: '#2C5F8D' }]} />
-                <Text style={styles.legendText}>{t('vitals.weight_series_label')}</Text>
-                </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: '#5B9BD5' }]} />
-                <Text style={styles.legendText}>{t('vitals.bmi_series_label')}</Text>
+                  <View style={[styles.legendDot, { backgroundColor: Colors.primary.main }]} />
+                  <Text style={styles.legendText}>{t('vitals.weight_series_label')}</Text>
                 </View>
               </View>
             </View>
