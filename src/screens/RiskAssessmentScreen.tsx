@@ -90,6 +90,10 @@ export default function RiskAssessmentScreen() {
     () => getLatestByType(VitalType.WaistCircumference),
     [getLatestByType]
   );
+  const waistCircumferenceValue = useMemo(
+    () => latestWaist?.value ?? riskFactors.waistCircumference ?? null,
+    [latestWaist?.value, riskFactors.waistCircumference]
+  );
   const latestWeightVital = useMemo(
     () => getLatestByType(VitalType.Weight),
     [getLatestByType]
@@ -217,10 +221,10 @@ export default function RiskAssessmentScreen() {
       age: settings.userAge,
       gender: settings.userGender,
       bmi: bmiValue,
-      waistCircumference: latestWaist?.value ?? null,
+      waistCircumference: waistCircumferenceValue,
       factors: riskFactors,
     });
-  }, [bmiValue, calculators?.findriscEnabled, latestWaist?.value, riskFactors, settings.userAge, settings.userGender]);
+  }, [bmiValue, calculators?.findriscEnabled, riskFactors, settings.userAge, settings.userGender, waistCircumferenceValue]);
 
   const framinghamResult: RiskScoreResult | undefined = useMemo(() => {
     if (!calculators?.framinghamEnabled) return undefined;

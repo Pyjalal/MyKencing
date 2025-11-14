@@ -74,7 +74,10 @@ export default function RiskCalculatorScreen() {
     return weight / (heightMeters * heightMeters);
   }, [latestWeightKg, riskFactors?.heightCm, riskFactors?.weightKg, settings.userWeight]);
 
-  const waistCircumference = useMemo(() => latestWaist?.value ?? null, [latestWaist?.value]);
+const waistCircumference = useMemo(
+  () => latestWaist?.value ?? riskFactors?.waistCircumference ?? null,
+  [latestWaist?.value, riskFactors?.waistCircumference]
+);
 
   const systolic = useMemo(() => latestBloodPressure?.systolic ?? null, [latestBloodPressure?.systolic]);
 

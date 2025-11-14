@@ -255,6 +255,7 @@ export interface RiskFactorSettings {
   familyHistory: 'none' | 'extended' | 'immediate';
   weightKg?: number | null;
   heightCm?: number | null;
+  waistCircumference?: number | null;
 }
 
 export interface RiskCalculatorSettings {

@@ -269,6 +269,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     () => getLatestByType(VitalType.WaistCircumference) as WaistCircumferenceVital | undefined,
     [getLatestByType, vitals]
   );
+  const waistCircumferenceValue = useMemo(
+    () => latestWaist?.value ?? riskFactors?.waistCircumference ?? null,
+    [latestWaist?.value, riskFactors?.waistCircumference]
+  );
   const latestWeight = useMemo(
     () => getLatestByType(VitalType.Weight) as WeightVital | undefined,
     [getLatestByType, vitals]
@@ -299,10 +303,10 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       age: settings.userAge,
       gender: settings.userGender,
       bmi,
-      waistCircumference: latestWaist?.value ?? null,
+      waistCircumference: waistCircumferenceValue,
       factors: riskFactors,
     });
-  }, [bmi, calculators?.findriscEnabled, latestWaist?.value, riskFactors, settings.userAge, settings.userGender]);
+  }, [bmi, calculators?.findriscEnabled, waistCircumferenceValue, riskFactors, settings.userAge, settings.userGender]);
 
   const framinghamResult = useMemo(() => {
     if (!calculators?.framinghamEnabled || !riskFactors) return null;

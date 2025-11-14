@@ -260,6 +260,10 @@ export default function VitalsScreen() {
 
   const latestWeightVital = weightVitals[0];
   const latestWaistVital = waistVitals[0];
+  const waistCircumferenceValue = useMemo(
+    () => latestWaistVital?.value ?? riskFactors?.waistCircumference ?? null,
+    [latestWaistVital?.value, riskFactors?.waistCircumference]
+  );
   const latestBloodPressure = bloodPressureVitals[0];
 
   const latestWeightKg = useMemo(() => {
@@ -284,10 +288,10 @@ export default function VitalsScreen() {
       age: settings.userAge,
       gender: settings.userGender,
       bmi: bmiValue,
-      waistCircumference: latestWaistVital?.value ?? null,
+      waistCircumference: waistCircumferenceValue,
       factors: riskFactors,
     });
-  }, [bmiValue, calculators?.findriscEnabled, latestWaistVital?.value, riskFactors, settings.userAge, settings.userGender]);
+  }, [bmiValue, calculators?.findriscEnabled, riskFactors, settings.userAge, settings.userGender, waistCircumferenceValue]);
 
   const framinghamResult = useMemo(() => {
     if (!calculators?.framinghamEnabled || !riskFactors) return null;
