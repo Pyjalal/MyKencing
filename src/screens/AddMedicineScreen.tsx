@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Keyboard,
   TouchableWithoutFeedback,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import DatePicker from 'react-native-date-picker';
 import { Colors, Typography, Spacing, BorderRadius } from '../constants/theme';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -33,6 +34,8 @@ export default function AddMedicineScreen() {
   const route = useRoute();
   const { selectedMedicine } = (route.params as RouteParams) || {};
   const { addMedication } = useMedicationStore();
+  const scrollViewRef = useRef<any>(null);
+  const notesInputRef = useRef<TextInput>(null);
 
   // Form options
   const FORM_OPTIONS = [
@@ -344,15 +347,19 @@ export default function AddMedicineScreen() {
   );
 
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <View style={styles.container}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          nestedScrollEnabled={true}
-          keyboardShouldPersistTaps="always"
-        >
+    <View style={styles.container}>
+      <KeyboardAwareScrollView
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid={true}
+        enableAutomaticScroll={true}
+        extraScrollHeight={20}
+        keyboardShouldPersistTaps="handled"
+        keyboardOpeningTime={0}
+        nestedScrollEnabled={true}
+      >
         {/* Medicine Search */}
         <View style={styles.section}>
           <Text style={styles.label}>{t('add_medicine.medicine_name')}</Text>
@@ -521,6 +528,7 @@ export default function AddMedicineScreen() {
         <View style={styles.section}>
           <Text style={styles.label}>{t('add_medicine.notes')}</Text>
           <TextInput
+            ref={notesInputRef}
             style={styles.notesInput}
             placeholder={t('add_medicine.insert_notes')}
             placeholderTextColor={Colors.text.tertiary}
@@ -529,6 +537,11 @@ export default function AddMedicineScreen() {
             multiline
             numberOfLines={4}
             textAlignVertical="top"
+            onFocus={() => {
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollToEnd({ animated: false });
+                }, 50);
+            }}
           />
         </View>
 
@@ -542,7 +555,7 @@ export default function AddMedicineScreen() {
           loading={isSaving}
           style={styles.saveButton}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Pickers */}
       {renderPickerModal(
@@ -565,8 +578,7 @@ export default function AddMedicineScreen() {
 
       {/* Time Picker */}
       {renderTimePicker()}
-      </View>
-    </TouchableWithoutFeedback>
+    </View>
   );
 }
 
@@ -581,7 +593,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: Spacing.lg,
     paddingTop: Spacing.xl,
-    paddingBottom: 25,
+    paddingBottom: 10,
   },
   section: {
     marginBottom: Spacing.lg,

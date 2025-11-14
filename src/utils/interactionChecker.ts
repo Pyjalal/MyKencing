@@ -96,8 +96,8 @@ export async function checkHighRiskInteractionsAfterAdd(
             {
               text: 'View Details',
               onPress: () => {
-                // Navigate to the medicine detail page
-                navigation.navigate('MedicineDetail', { medicationId });
+                // Replace the AddMedicine screen with MedicineDetail so going back returns to the previous screen
+                navigation.replace('MedicineDetail', { medicationId });
                 resolve(false); // Don't navigate back - we're navigating to detail page
               },
             },
