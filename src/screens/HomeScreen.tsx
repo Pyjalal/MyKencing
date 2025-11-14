@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Alert } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
 import {
@@ -22,6 +22,7 @@ import { Search } from 'lucide-react-native';
 import { RiskScoreTrendCard } from '../components';
 import { calculateFindrisc, calculateFraminghamSimplified, RiskScoreResult } from '../utils/riskScores';
 import { CONVERSIONS } from '../constants/clinical';
+import { ensureDailyVitalsReminderScheduled, initializeNotifications } from '../services/notifications';
 
 type HomeScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>;
@@ -79,6 +80,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   const settings = useSettingsStore((state) => state.settings);
   const [refreshing, setRefreshing] = useState(false);
   const [hasUnacknowledgedInteraction, setHasUnacknowledgedInteraction] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     loadMedications();
@@ -509,6 +511,29 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     navigation.navigate('DailyVitalsLog');
   };
 
+  const handleNotificationTogglePress = async () => {
+    try {
+      await initializeNotifications();
+      await ensureDailyVitalsReminderScheduled();
+      setNotificationsEnabled(true);
+      Alert.alert(
+        t('home.notifications_enabled_title', 'Notifications enabled'),
+        t(
+          'home.notifications_enabled_message',
+          'You will get a reminder every day at 12:00 AM to log your vitals.'
+        )
+      );
+    } catch (error) {
+      Alert.alert(
+        t('home.notifications_failed_title', 'Unable to enable notifications'),
+        t(
+          'home.notifications_failed_message',
+          'Please enable notifications from your device settings.'
+        )
+      );
+    }
+  };
+
 
   const handleTakeDose = async () => {
     if (nextDose) {
@@ -570,8 +595,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           </Text>
         </View>
 
+
         <View style={styles.riskScoresCard}>
-          <View style={styles.vitalsCalendarCard}>
+        <View style={styles.vitalsCalendarCard}>
             <View style={styles.vitalsCalendarRow}>
               {vitalsCalendarItems.map(({ date, recorded }) => (
                 <View key={date.toDateString()} style={styles.vitalsCalendarDay}>
@@ -768,6 +794,34 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             </>
           )}
         </View>
+
+        <View style={styles.notificationCard}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.notificationTitle}>
+              {t('home.vitals_reminder_title', 'Daily vitals reminder')}
+            </Text>
+            <Text style={styles.notificationBody}>
+              {t(
+                'home.vitals_reminder_body',
+                'Enable MyMedix notifications to get nudged every day at 12:00 AM.'
+              )}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.notificationToggle,
+              notificationsEnabled && styles.notificationToggleEnabled,
+            ]}
+            onPress={handleNotificationTogglePress}
+          >
+            <View
+              style={[
+                styles.notificationToggleKnob,
+                notificationsEnabled && styles.notificationToggleKnobEnabled,
+              ]}
+            />
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -814,6 +868,54 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.bold,
     color: Colors.primary.contrast,
     lineHeight: 34,
+  },
+  notificationCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.background.card,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius['3xl'],
+    ...Shadows.sm,
+  },
+  notificationTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+  },
+  notificationBody: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
+  },
+  notificationToggle: {
+    width: 56,
+    height: 32,
+    borderRadius: 999,
+    backgroundColor: Colors.neutral[200],
+    padding: 4,
+    justifyContent: 'center',
+  },
+  notificationToggleEnabled: {
+    backgroundColor: Colors.primary.main,
+  },
+  notificationToggleKnob: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.background.card,
+    alignSelf: 'flex-start',
+    ...Shadows.sm,
+  },
+  notificationToggleKnobEnabled: {
+    alignSelf: 'flex-end',
+    backgroundColor: Colors.primary.contrast,
+  },
+  notificationActionText: {
+    color: Colors.primary.contrast,
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
   },
   sectionCard: {
     backgroundColor: Colors.background.card,

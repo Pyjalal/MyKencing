@@ -388,6 +388,74 @@ export async function clearAllPresentedNotifications(): Promise<void> {
   }
 }
 
+const DAILY_VITALS_REMINDER_TYPE = 'daily_vitals_reminder';
+
+export async function cancelDailyVitalsReminder(): Promise<void> {
+  try {
+    const notifications = await Notifications.getAllScheduledNotificationsAsync();
+    const reminderIds = notifications
+      .filter(
+        (notification) => notification.content?.data?.type === DAILY_VITALS_REMINDER_TYPE
+      )
+      .map((notification) => notification.identifier);
+
+    await Promise.all(
+      reminderIds.map((id) => Notifications.cancelScheduledNotificationAsync(id))
+    );
+  } catch (error) {
+    console.error('Error cancelling daily vitals reminder:', error);
+  }
+}
+
+export async function scheduleDailyVitalsReminder(
+  hour = 0,
+  minute = 0
+): Promise<string | null> {
+  try {
+    await cancelDailyVitalsReminder();
+
+    const trigger: Notifications.DailyTriggerInput = {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour,
+      minute,
+    };
+
+    const notificationId = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Log your vitals for today',
+        body: 'Open MyMedix to record your blood pressure, glucose, and more.',
+        data: {
+          type: DAILY_VITALS_REMINDER_TYPE,
+        },
+        sound: true,
+      },
+      trigger,
+    });
+
+    console.log('Scheduled daily vitals reminder', notificationId);
+    return notificationId;
+  } catch (error) {
+    console.error('Error scheduling daily vitals reminder:', error);
+    return null;
+  }
+}
+
+export async function ensureDailyVitalsReminderScheduled(): Promise<string | null> {
+  try {
+    const notifications = await Notifications.getAllScheduledNotificationsAsync();
+    const existing = notifications.find(
+      (notification) => notification.content?.data?.type === DAILY_VITALS_REMINDER_TYPE
+    );
+    if (existing) {
+      return existing.identifier;
+    }
+    return await scheduleDailyVitalsReminder();
+  } catch (error) {
+    console.error('Error ensuring daily vitals reminder:', error);
+    return null;
+  }
+}
+
 /**
  * Schedule a one-time notification (for testing or reminders)
  */
