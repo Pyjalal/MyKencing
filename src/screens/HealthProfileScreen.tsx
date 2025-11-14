@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useVitalsStore } from '../stores/vitalsStore';
@@ -41,6 +41,14 @@ export default function HealthProfileScreen() {
   const settings = useSettingsStore((state) => state.settings);
   const riskFactors = settings.riskFactors;
   const getLatestByType = useVitalsStore((state) => state.getLatestByType);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!settings.riskQuestionnaireCompleted) {
+        navigation.navigate('RiskOnboarding');
+      }
+    }, [navigation, settings.riskQuestionnaireCompleted])
+  );
 
   const latestWaist = useMemo(
     () => getLatestByType(VitalType.WaistCircumference) as WaistCircumferenceVital | null,
