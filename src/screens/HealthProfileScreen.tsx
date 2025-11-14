@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -41,6 +41,12 @@ export default function HealthProfileScreen() {
   const settings = useSettingsStore((state) => state.settings);
   const riskFactors = settings.riskFactors;
   const getLatestByType = useVitalsStore((state) => state.getLatestByType);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: t('vitals.health_profile'),
+    });
+  }, [navigation, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -207,21 +213,6 @@ export default function HealthProfileScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={t('common.back')}
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Text style={styles.backIcon}>{'<'}</Text>
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>{t('vitals.health_profile')}</Text>
-            <Text style={styles.headerSubtitle}>{t('vitals.profile_cta_subtitle')}</Text>
-          </View>
-        </View>
-
         <ScrollView
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
@@ -300,47 +291,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.primary,
-  },
-  header: {
-    backgroundColor: Colors.background.vitals,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xl,
-    paddingBottom: Spacing.lg,
-    borderBottomLeftRadius: BorderRadius['3xl'],
-    borderBottomRightRadius: BorderRadius['3xl'],
-    marginBottom: Spacing.lg,
-    ...Shadows.sm,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backIcon: {
-    fontSize: Typography.fontSize.lg,
-    color: Colors.text.inverse,
-  },
-  headerContent: {
-    flex: 1,
-    gap: Spacing.xs,
-  },
-  headerTitle: {
-    fontSize: Typography.fontSize['2xl'],
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.text.inverse,
-  },
-  headerSubtitle: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.inverse,
-    marginTop: 2,
   },
   content: {
     padding: Spacing.lg,

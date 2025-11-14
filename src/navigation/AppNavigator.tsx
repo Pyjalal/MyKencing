@@ -376,7 +376,17 @@ export default function AppNavigator() {
         <Stack.Screen
           name="HealthProfile"
           component={HealthProfileScreen}
-          options={{ headerShown: false }}
+          options={{
+            headerStyle: {
+              backgroundColor: Colors.background.vitals,
+            },
+            headerShadowVisible: false,
+            headerTintColor: Colors.primary.contrast,
+            headerBackVisible: true,
+            headerTitleStyle: {
+              color: Colors.primary.contrast,
+            },
+          }}
         />
         <Stack.Screen
           name="DailyVitalsLog"
