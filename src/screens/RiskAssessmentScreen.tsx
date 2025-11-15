@@ -211,6 +211,7 @@ export default function RiskAssessmentScreen() {
 
   const getCardBackground = (isRisk: boolean) => ({
     backgroundColor: isRisk ? Colors.secondary.light : Colors.status.successLight,
+    borderColor: isRisk ? Colors.secondary.main : Colors.status.success,
   });
 
   const familyOptions: Array<{
@@ -613,7 +614,10 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.neutral[100],
     backgroundColor: Colors.background.card,
+    overflow: 'hidden',
     alignItems: 'center',
     gap: Spacing.sm,
     ...Shadows.sm,

@@ -3,8 +3,9 @@
  * Generates PDF reports for doctors with medication and vitals data
  */
 
-import { File, Paths } from 'expo-file-system/next';
+import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { printToFileAsync } from 'expo-print';
 import { VitalType } from '../types';
 import { getDatabase } from './database';
 import { ExportData } from '../types';
@@ -506,7 +507,7 @@ export async function gatherExportData(
   // Get adherence summaries
   const adherenceSummaries = await Promise.all(
     medicationsWithDetails.map(async (med: any) => {
-      const stats = await db.getFirstAsync(
+      const stats = (await db.getFirstAsync(
         `SELECT
            COUNT(*) as total,
            SUM(CASE WHEN status = 'taken' THEN 1 ELSE 0 END) as taken,
@@ -517,18 +518,18 @@ export async function gatherExportData(
          AND scheduled_time >= ?
          AND scheduled_time <= ?`,
         [med.id, periodStart.toISOString(), periodEnd.toISOString()]
-      );
+      )) as { total: number | null; taken: number | null; skipped: number | null; missed: number | null } | null;
 
-      const total = stats?.total || 0;
-      const taken = stats?.taken || 0;
+      const total = stats?.total ?? 0;
+      const taken = stats?.taken ?? 0;
 
       return {
         medicationId: med.id,
         medicationName: med.mims.brandName || med.mims.genericName,
         totalScheduled: total,
         totalTaken: taken,
-        totalSkipped: stats?.skipped || 0,
-        totalMissed: stats?.missed || 0,
+        totalSkipped: stats?.skipped ?? 0,
+        totalMissed: stats?.missed ?? 0,
         adherenceRate: total > 0 ? (taken / total) * 100 : 0,
         periodStart: periodStart.toISOString(),
         periodEnd: periodEnd.toISOString(),
@@ -676,17 +677,14 @@ export async function generateAndShareReport(
     // Generate HTML
     const html = generateReportHTML(data);
 
-    // Save HTML to cache (no permissions needed) and share
-    const filename = `MyMedix_Report_${Date.now()}.html`;
-    const file = new File(Paths.cache, filename);
-    await file.create();
-    await file.write(html);
-    
-    // Share the file - user can choose where to save it
-    await Sharing.shareAsync(file.uri, { 
-      mimeType: 'text/html',
+    // Render HTML to PDF
+    const pdf = await printToFileAsync({ html, base64: false });
+
+    // Share the PDF file - user can choose destination (Files, AirDrop, etc.)
+    await Sharing.shareAsync(pdf.uri, {
+      mimeType: 'application/pdf',
       dialogTitle: 'Share Medical Report',
-      UTI: 'public.html'
+      UTI: 'com.adobe.pdf',
     });
 
     return { success: true };
@@ -708,11 +706,18 @@ export async function saveReportToDevice(
   try {
     const data = await gatherExportData(periodDays);
     const html = generateReportHTML(data);
-    const filename = `MyMedix_Report_${Date.now()}.html`;
-    const file = new File(Paths.cache, filename);
-    await file.create();
-    await file.write(html);
-    return { success: true, filepath: file.uri };
+    const pdf = await printToFileAsync({ html, base64: false });
+
+    if (!FileSystem.cacheDirectory) {
+      return { success: false, error: 'Cache directory not available' };
+    }
+
+    const filename = `MyMedix_Report_${Date.now()}.pdf`;
+    const destinationUri = `${FileSystem.cacheDirectory}${filename}`;
+
+    await FileSystem.copyAsync({ from: pdf.uri, to: destinationUri });
+
+    return { success: true, filepath: destinationUri };
   } catch (error) {
     console.error('Error saving report:', error);
     return {
