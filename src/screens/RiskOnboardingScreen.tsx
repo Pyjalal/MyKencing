@@ -255,12 +255,6 @@ export default function RiskOnboardingScreen() {
       : ''
   );
 
-  useEffect(() => {
-    if (settings.riskQuestionnaireCompleted) {
-      navigation.replace('HealthProfile');
-    }
-  }, [navigation, settings.riskQuestionnaireCompleted]);
-
   const currentStep = steps[currentStepIndex];
   const totalSteps = steps.length;
   const progress = ((currentStepIndex + 1) / totalSteps) * 100;
@@ -344,9 +338,14 @@ export default function RiskOnboardingScreen() {
       riskQuestionnaireCompleted: true,
     });
 
+    // Reset navigation stack to include Home before HealthProfile
+    // This ensures the native back button appears
     navigation.reset({
-      index: 0,
-      routes: [{ name: 'HealthProfile' }],
+      index: 1,
+      routes: [
+        { name: 'Home', params: { screen: 'VitalsTab' } },
+        { name: 'HealthProfile' },
+      ],
     });
   };
 

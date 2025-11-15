@@ -388,6 +388,24 @@ export async function clearAllPresentedNotifications(): Promise<void> {
   }
 }
 
+/**
+ * Cancel all scheduled notifications
+ * Useful when deleting all data or resetting the app
+ */
+export async function cancelAllScheduledNotifications(): Promise<void> {
+  try {
+    const notifications = await Notifications.getAllScheduledNotificationsAsync();
+    await Promise.all(
+      notifications.map((notification) =>
+        Notifications.cancelScheduledNotificationAsync(notification.identifier)
+      )
+    );
+    console.log(`Cancelled ${notifications.length} scheduled notification(s)`);
+  } catch (error) {
+    console.error('Error cancelling all scheduled notifications:', error);
+  }
+}
+
 const DAILY_VITALS_REMINDER_TYPE = 'daily_vitals_reminder';
 
 export async function cancelDailyVitalsReminder(): Promise<void> {
