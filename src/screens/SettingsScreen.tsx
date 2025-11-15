@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../services/i18n';
 import { clearAllData } from '../services/database';
 import { clearAllSecureData } from '../services/encryption';
+import { cancelAllScheduledNotifications } from '../services/notifications';
 
 export default function SettingsScreen() {
   const { settings, loadSettings, updateSettings } = useSettingsStore();
@@ -60,14 +61,18 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Cancel all scheduled notifications
+              await cancelAllScheduledNotifications();
               // Clear all database data
               await clearAllData();
               // Clear secure storage
               await clearAllSecureData();
-              // Navigate back to home or restart app
+              // Reset onboarding to show onboarding screen
+              await updateSettings({ onboardingCompleted: false });
+              // Navigate to onboarding
               navigation.reset({
                 index: 0,
-                routes: [{ name: 'Home' }],
+                routes: [{ name: 'Onboarding' }],
               });
               Alert.alert(t('settings.dataDeleted', 'All data has been deleted'));
             } catch (error) {

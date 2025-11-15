@@ -43,6 +43,12 @@ export default function HealthProfileScreen() {
   const getLatestByType = useVitalsStore((state) => state.getLatestByType);
 
   useLayoutEffect(() => {
+    const canGoBack = navigation.canGoBack();
+    const state = navigation.getState();
+    console.log('HealthProfile - canGoBack:', canGoBack);
+    console.log('HealthProfile - navigation state:', JSON.stringify(state, null, 2));
+    console.log('HealthProfile - routes count:', state?.routes?.length);
+    
     navigation.setOptions({
       title: t('vitals.health_profile'),
     });
