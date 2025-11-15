@@ -76,7 +76,7 @@ export async function checkHighRiskInteractionsAfterAdd(
     if (unacknowledgedInteractions.length > 0) {
       const medicationName = medication.mims.brandName || medication.mims.genericName;
       const interactionCount = unacknowledgedInteractions.length;
-      const interactionWord = interactionCount === 1 ? 'interaction' : 'interactions';
+      const interactionWord = interactionCount === 1 ? i18n.t('drug_interaction.interaction') : i18n.t('drug_interaction.interactions');
       
       // Build a summary of interactions
       const interactionSummary = unacknowledgedInteractions
@@ -85,16 +85,16 @@ export async function checkHighRiskInteractionsAfterAdd(
         .join('\n');
       
       const moreText = unacknowledgedInteractions.length > 2 
-        ? `\n...and ${unacknowledgedInteractions.length - 2} more`
+        ? `\n${i18n.t('drug_interaction.and_more', { count: unacknowledgedInteractions.length - 2 })}`
         : '';
 
       return new Promise<boolean>((resolve) => {
         Alert.alert(
-          '️High-Risk Drug Interactions Detected',
-          `${medicationName} has ${interactionCount} unacknowledged high-risk ${interactionWord} with your existing medications:\n\n${interactionSummary}${moreText}\n\nPlease review the details and acknowledge that you understand the risks.`,
+          i18n.t('drug_interaction.high_risk_detected'),
+          `${medicationName} ${i18n.t('drug_interaction.has_unacknowledged', { count: interactionCount, word: interactionWord })}\n\n${interactionSummary}${moreText}\n\n${i18n.t('drug_interaction.please_review_details')}`,
           [
             {
-              text: 'View Details',
+              text: i18n.t('drug_interaction.view_details'),
               onPress: () => {
                 // Replace the AddMedicine screen with MedicineDetail so going back returns to the previous screen
                 navigation.replace('MedicineDetail', { medicationId });
@@ -102,7 +102,7 @@ export async function checkHighRiskInteractionsAfterAdd(
               },
             },
             {
-              text: 'Later',
+              text: i18n.t('drug_interaction.later'),
               style: 'destructive',
               onPress: () => {
                 resolve(true); // Navigate back

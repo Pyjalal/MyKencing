@@ -18,8 +18,16 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useVitalsStore } from '../stores/vitalsStore';
-import { AppSettings, RiskFactorSettings, VitalType, RootStackParamList } from '../types';
-import { RiskScoreCircle } from '../components';
+import {
+  AppSettings,
+  RiskFactorSettings,
+  VitalType,
+  RootStackParamList,
+  WaistCircumferenceVital,
+  WeightVital,
+  BloodPressureVital,
+} from '../types';
+import { PillButton } from '../components';
 import {
   calculateFindrisc,
   calculateFraminghamSimplified,
@@ -87,7 +95,10 @@ export default function RiskAssessmentScreen() {
   }, [navigation, settings.riskQuestionnaireCompleted]);
 
   const latestWaist = useMemo(
-    () => getLatestByType(VitalType.WaistCircumference),
+    () =>
+      getLatestByType(VitalType.WaistCircumference) as
+        | WaistCircumferenceVital
+        | undefined,
     [getLatestByType]
   );
   const waistCircumferenceValue = useMemo(
@@ -95,11 +106,11 @@ export default function RiskAssessmentScreen() {
     [latestWaist?.value, riskFactors.waistCircumference]
   );
   const latestWeightVital = useMemo(
-    () => getLatestByType(VitalType.Weight),
+    () => getLatestByType(VitalType.Weight) as WeightVital | undefined,
     [getLatestByType]
   );
   const latestBloodPressure = useMemo(
-    () => getLatestByType(VitalType.BloodPressure),
+    () => getLatestByType(VitalType.BloodPressure) as BloodPressureVital | undefined,
     [getLatestByType]
   );
 
@@ -199,8 +210,8 @@ export default function RiskAssessmentScreen() {
   );
 
   const getCardBackground = (isRisk: boolean) => ({
-    borderLeftWidth: 6,
-    borderLeftColor: isRisk ? Colors.secondary.main : Colors.status.success,
+    backgroundColor: isRisk ? Colors.secondary.light : Colors.status.successLight,
+    borderColor: isRisk ? Colors.secondary.main : Colors.status.success,
   });
 
   const familyOptions: Array<{
@@ -214,6 +225,14 @@ export default function RiskAssessmentScreen() {
 
   const bmiRisk = riskFactors.bmiHighRisk ?? (bmiValue ? bmiValue >= 27.5 : false);
   const calculators = settings.riskCalculators;
+
+  const goToRiskInputs = useCallback(() => {
+    navigation.navigate('RiskOnboarding');
+  }, [navigation]);
+
+  const goToRiskCalculators = useCallback(() => {
+    navigation.navigate('RiskCalculators');
+  }, [navigation]);
 
   const findriscResult: RiskScoreResult | undefined = useMemo(() => {
     if (!calculators?.findriscEnabled) return undefined;
@@ -292,85 +311,53 @@ export default function RiskAssessmentScreen() {
     return 'bad';
   })();
 
-  const summaryItems = [
-    {
-      key: 'age',
-      label: t('risk.age_title'),
-      value: settings.userAge ? t('risk.age_value', { age: settings.userAge }) : t('risk.summary_missing'),
-      status: riskFactors.ageHighRisk ? 'bad' : 'good',
-    },
-    {
-      key: 'gender',
-      label: t('risk.gender_title'),
-      value: settings.userGender ? t(`risk.gender_${settings.userGender}`) : t('risk.gender_unknown'),
-      status: riskFactors.genderHighRisk ? 'bad' : 'good',
-    },
-    {
-      key: 'smoking',
-      label: t('risk.smoking_title'),
-      value: riskFactors.smoking ? t('risk.answer_yes') : t('risk.answer_no'),
-      status: riskFactors.smoking ? 'bad' : 'good',
-    },
-    {
-      key: 'bpMedication',
-      label: t('risk.bp_title'),
-      value: riskFactors.bpMedication ? t('risk.answer_yes') : t('risk.answer_no'),
-      status: riskFactors.bpMedication ? 'bad' : 'good',
-    },
-    {
-      key: 'bmi',
-      label: t('risk.bmi_title'),
-      value: bmiValue ? t('risk.bmi_value', { value: bmiValue.toFixed(1) }) : t('risk.summary_missing'),
-      status: bmiStatus,
-    },
-    {
-      key: 'historyHighGlucose',
-      label: t('risk.history_title'),
-      value: riskFactors.historyHighGlucose ? t('risk.answer_yes') : t('risk.answer_no'),
-      status: riskFactors.historyHighGlucose ? 'bad' : 'good',
-    },
-    {
-      key: 'physicalActivity',
-      label: t('risk.activity_title'),
-      value: riskFactors.physicalActivity ? t('risk.answer_yes') : t('risk.answer_no'),
-      status: riskFactors.physicalActivity ? 'good' : 'bad',
-    },
-    {
-      key: 'familyHistory',
-      label: t('risk.family_title'),
-      value: familyHistoryLabel(),
-      status:
-        riskFactors.familyHistory === 'immediate'
-          ? 'bad'
-          : riskFactors.familyHistory === 'extended'
-          ? 'moderate'
-          : 'good',
-    },
-  ] as Array<{ key: string; label: string; value: string; status: SummaryStatus }>;
-
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.contentContainer}>
-        <Text style={styles.title}>{t('risk.title')}</Text>
-        <Text style={styles.subtitle}>{t('risk.subtitle')}</Text>
-
-
-        <View style={styles.summaryGrid}>
-          {summaryItems.map((item) => {
-            const colors = getStatusColors(item.status);
-            return (
-              <View key={item.key} style={[styles.summaryCard, { backgroundColor: colors.backgroundColor, borderColor: colors.borderColor }]}>
-                <Text style={[styles.summaryLabel, { color: colors.textColor }]}>{item.label}</Text>
-                <Text style={[styles.summaryValue, { color: Colors.text.primary }]}>{item.value}</Text>
-              </View>
-            );
-          })}
+        <View style={styles.heroCard}>
+          <View style={styles.heroTextBlock}>
+            <Text style={styles.heroTitle}>{t('risk.title')}</Text>
+            <Text style={styles.heroSubtitle}>
+              {t('risk.hero_subtitle')}
+            </Text>
+          </View>
+          <View style={styles.heroActions}>
+            <PillButton
+              title={t('risk.hero_update_button')}
+              onPress={goToRiskInputs}
+              backgroundColor={Colors.primary.contrast}
+              textColor={Colors.primary.dark}
+              minWidth={156}
+              style={styles.heroPrimaryButton}
+            />
+            <PillButton
+              title={t('risk.hero_manage_button')}
+              onPress={goToRiskCalculators}
+              variant="outline"
+              style={styles.heroSecondaryButton}
+              textColor={Colors.primary.contrast}
+              minWidth={156}
+            />
+          </View>
         </View>
+
+        <Text style={styles.sectionTitle}>
+          {t('risk.inputs_section_title')}
+        </Text>
+        <Text style={styles.sectionHint}>
+          {t('risk.inputs_section_subtitle')}
+        </Text>
 
         <View style={[styles.card, getCardBackground(riskFactors.ageHighRisk)]}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>{t('risk.age_title')}</Text>
-            <TouchableOpacity onPress={() => { setAgeInput(settings.userAge ? String(settings.userAge) : ''); setAgeModalVisible(true); }}>
+            <TouchableOpacity
+              style={styles.cardAction}
+              onPress={() => {
+                setAgeInput(settings.userAge ? String(settings.userAge) : '');
+                setAgeModalVisible(true);
+              }}
+            >
               <Text style={styles.link}>{t('risk.edit')}</Text>
             </TouchableOpacity>
           </View>
@@ -407,7 +394,14 @@ export default function RiskAssessmentScreen() {
         <View style={[styles.card, getCardBackground(bmiRisk)]}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardTitle}>{t('risk.bmi_title')}</Text>
-            <TouchableOpacity onPress={() => { setWeightInput(initialWeight ? String(initialWeight) : ''); setHeightInput(riskFactors.heightCm ? String(riskFactors.heightCm) : ''); setBmiModalVisible(true); }}>
+            <TouchableOpacity
+              style={styles.cardAction}
+              onPress={() => {
+                setWeightInput(initialWeight ? String(initialWeight) : '');
+                setHeightInput(riskFactors.heightCm ? String(riskFactors.heightCm) : '');
+                setBmiModalVisible(true);
+              }}
+            >
               <Text style={styles.link}>{t('risk.edit')}</Text>
             </TouchableOpacity>
           </View>
@@ -418,25 +412,13 @@ export default function RiskAssessmentScreen() {
           <Text style={styles.cardHint}>{t('risk.bmi_hint')}</Text>
         </View>
 
-        <View style={[styles.card, getCardBackground(riskFactors.historyHighGlucose)]}>
-          <Text style={styles.cardTitle}>{t('risk.history_title')}</Text>
-          {renderToggleRow(riskFactors.historyHighGlucose, (value) => handleToggle('historyHighGlucose', value))}
-          <Text style={styles.cardHint}>{t('risk.history_hint')}</Text>
-        </View>
-
-        <View style={[styles.card, getCardBackground(!riskFactors.physicalActivity)]}>
-          <Text style={styles.cardTitle}>{t('risk.activity_title')}</Text>
-          {renderToggleRow(riskFactors.physicalActivity, (value) => handleToggle('physicalActivity', value))}
-          <Text style={styles.cardHint}>{t('risk.activity_hint')}</Text>
-        </View>
-
         <View style={[styles.card, getCardBackground(!riskFactors.vegetablesDaily)]}>
           <Text style={styles.cardTitle}>{t('risk.vegetables_title')}</Text>
           {renderToggleRow(riskFactors.vegetablesDaily, (value) => handleToggle('vegetablesDaily', value))}
           <Text style={styles.cardHint}>{t('risk.vegetables_hint')}</Text>
         </View>
 
-        <View style={[styles.card, getCardBackground(riskFactors.familyHistory === 'immediate')]}>
+        <View style={[styles.card, getCardBackground(riskFactors.familyHistory === 'immediate')]}> 
           <Text style={styles.cardTitle}>{t('risk.family_title')}</Text>
           <View style={styles.familyRow}>
             {familyOptions.map((option) => {
@@ -569,53 +551,99 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: Spacing.lg,
     paddingBottom: Spacing['3xl'],
+    gap: Spacing.xl,
   },
-  title: {
+  heroCard: {
+    backgroundColor: Colors.primary.dark,
+    borderRadius: BorderRadius['3xl'],
+    padding: Spacing.xl,
+    ...Shadows.sm,
+  },
+  heroTextBlock: {
+    gap: Spacing.sm,
+  },
+  heroTitle: {
     fontSize: Typography.fontSize['2xl'],
     fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary.contrast,
+  },
+  heroSubtitle: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.primary.contrast,
+    opacity: 0.9,
+    lineHeight: Typography.fontSize.base * Typography.lineHeight.relaxed,
+  },
+  heroActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  heroPrimaryButton: {
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing['2xl'],
+    minHeight: 48,
+  },
+  heroSecondaryButton: {
+    borderRadius: BorderRadius.full,
+    borderColor: Colors.primary.contrast,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing['2xl'],
+    minHeight: 48,
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
     marginBottom: Spacing.xs,
   },
-  subtitle: {
-    fontSize: Typography.fontSize.base,
+  sectionHint: {
+    fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   card: {
     borderRadius: BorderRadius['3xl'],
-    padding: Spacing.lg,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
     borderWidth: 1,
     borderColor: Colors.neutral[100],
     backgroundColor: Colors.background.card,
+    overflow: 'hidden',
+    alignItems: 'center',
+    gap: Spacing.sm,
     ...Shadows.sm,
   },
   cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    width: '100%',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    gap: Spacing.xs,
   },
   cardTitle: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
+    textAlign: 'center',
   },
   cardValue: {
     fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
-    marginBottom: Spacing.sm,
+    textAlign: 'center',
   },
   cardHint: {
     fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
     marginTop: Spacing.sm,
+    textAlign: 'center',
   },
   link: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.primary.dark,
+    textAlign: 'center',
   },
   cardPill: {
     fontSize: Typography.fontSize.sm,
@@ -624,16 +652,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
+    alignSelf: 'center',
   },
   toggleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    width: '100%',
+    marginTop: Spacing.sm,
   },
   toggleLabel: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.primary,
     fontWeight: Typography.fontWeight.medium,
+    textAlign: 'center',
+  },
+  cardAction: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.badge,
+    backgroundColor: 'transparent',
   },
   familyRow: {
     flexDirection: 'row',
@@ -764,26 +802,9 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     marginBottom: Spacing.xs,
   },
-  summaryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-    marginBottom: Spacing['2xl'],
-  },
-  summaryCard: {
-    flexBasis: '48%',
-    borderRadius: BorderRadius.card,
-    padding: Spacing.md,
-    borderWidth: 1,
-    ...Shadows.sm,
-  },
-  summaryLabel: {
+  modalInstructions: {
     fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.xs,
-  },
-  summaryValue: {
-    fontSize: Typography.fontSize.base,
-    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.secondary,
+    marginBottom: Spacing.md,
   },
 });

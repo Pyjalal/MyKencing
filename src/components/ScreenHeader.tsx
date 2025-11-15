@@ -19,7 +19,7 @@ export default function ScreenLayout({
   backgroundColor,
   contentBackgroundColor,
   title,
-  searchPlaceholder = 'Search here',
+  searchPlaceholder,
   searchQuery = '',
   onSearchChange,
   onBackPress,

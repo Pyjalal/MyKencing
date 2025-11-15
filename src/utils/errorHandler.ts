@@ -2,6 +2,8 @@
  * Error handling utilities to prevent error cascades and provide better user feedback
  */
 
+import i18n from '../services/i18n';
+
 /**
  * Safely handle async operations with automatic error logging
  * Prevents uncaught promise rejections from cascading
@@ -85,18 +87,18 @@ export function getUserFriendlyError(error: unknown): string {
   if (error instanceof Error) {
     // Network errors
     if (isNetworkError(error)) {
-      return 'Unable to connect. Please check your internet connection.';
+      return i18n.t('errors.network');
     }
 
     // API errors
     if (error.message.includes('API error: 400')) {
-      return 'Invalid data. Please try again.';
+      return i18n.t('errors.invalid_data');
     }
     if (error.message.includes('API error: 404')) {
-      return 'Medicine information not found.';
+      return i18n.t('errors.not_found');
     }
     if (error.message.includes('API error: 500')) {
-      return 'Service temporarily unavailable. Please try again later.';
+      return i18n.t('errors.service_unavailable');
     }
 
     // Default to error message if it's user-friendly
@@ -105,7 +107,7 @@ export function getUserFriendlyError(error: unknown): string {
     }
   }
 
-  return 'An unexpected error occurred. Please try again.';
+  return i18n.t('errors.unexpected');
 }
 
 /**

@@ -11,6 +11,7 @@
 
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 
 type VitalStatus = 'normal' | 'warning' | 'critical' | 'unknown';
@@ -25,27 +26,27 @@ interface VitalCardProps {
   onPress?: () => void;
 }
 
-const statusConfig: Record<VitalStatus, { label: string; bgColor: string; textColor: string; borderColor: string }> = {
+const statusConfig: Record<VitalStatus, { labelKey: string; bgColor: string; textColor: string; borderColor: string }> = {
   normal: {
-    label: 'NORMAL',
+    labelKey: 'vitals_status.normal',
     bgColor: Colors.vitals.normalLight,
     textColor: Colors.vitals.normal,
     borderColor: Colors.vitals.normal,
   },
   warning: {
-    label: 'WARNING',
+    labelKey: 'vitals_status.warning',
     bgColor: Colors.vitals.warningLight,
     textColor: Colors.vitals.warning,
     borderColor: Colors.vitals.warning,
   },
   critical: {
-    label: 'CRITICAL',
+    labelKey: 'vitals_status.critical',
     bgColor: Colors.vitals.criticalLight,
     textColor: Colors.vitals.critical,
     borderColor: Colors.vitals.critical,
   },
   unknown: {
-    label: 'NO DATA',
+    labelKey: 'vitals_status.no_data',
     bgColor: Colors.vitals.unknownLight,
     textColor: Colors.vitals.unknown,
     borderColor: Colors.vitals.unknown,
@@ -61,6 +62,7 @@ export default function VitalCard({
   icon,
   onPress,
 }: VitalCardProps) {
+  const { t } = useTranslation();
   const config = statusConfig[status];
 
   return (
@@ -88,7 +90,7 @@ export default function VitalCard({
       <View style={styles.footer}>
         <View style={[styles.statusBadge, { backgroundColor: config.bgColor }]}>
           <Text style={[styles.statusText, { color: config.textColor }]}>
-            {config.label}
+            {t(config.labelKey)}
           </Text>
         </View>
         {timestamp && <Text style={styles.timestamp}>{timestamp}</Text>}

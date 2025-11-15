@@ -91,7 +91,7 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
             const drug1 = interaction.firstReactant;
             const drug2 = interaction.secondReactant;
             const severity = interaction.severityRating?.rating || interaction.severity || 'moderate';
-            const explanation = interaction.explanation || 'Potential interaction detected';
+            const explanation = interaction.explanation || t('drug_interaction.potential_interaction');
 
             // Check if it's a food interaction by looking for food keywords
             const foodKeywords = ['food', 'alcohol', 'grapefruit', 'milk', 'dairy', 'tyramine', 'caffeine'];
@@ -137,7 +137,7 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
         }
       } catch (error) {
         console.error('Failed to check interactions:', error);
-        setInteractionError('Unable to check interactions. Please try again later.');
+        setInteractionError(t('errors.unable_to_check_interactions'));
         setDrugInteractions([]);
         setFoodInteractions([]);
       } finally {
@@ -234,14 +234,14 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
             </ScrollView>
           ) : (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>No active medications</Text>
+              <Text style={styles.emptyText}>{t('drug_interaction.no_active_medications')}</Text>
             </View>
           )}
         </View>
 
         {/* Drug-Drug Interactions Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Drug-Drug Interaction</Text>
+          <Text style={styles.sectionTitle}>{t('drug_interaction.drug_drug_section')}</Text>
 
           {isCheckingInteractions ? (
             <View style={styles.emptyCard}>
@@ -258,7 +258,7 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
             </View>
           ) : drugInteractions.length > 0 ? (
             <View style={styles.interactionCard}>
-              <Text style={styles.interactionWarning}>Possible interactions detected</Text>
+              <Text style={styles.interactionWarning}>{t('drug_interaction.possible_interactions_detected')}</Text>
 
               {drugInteractions.map((interaction, index) => (
                 <View key={index} style={styles.interactionDetails}>
@@ -271,21 +271,21 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
                       <Text style={styles.drugBadgeText}>{interaction.drug2}</Text>
                     </View>
                   </View>
-                  <Text style={styles.riskText}>Risk:</Text>
+                  <Text style={styles.riskText}>{t('drug_interaction.risk')}</Text>
                   <Text style={styles.riskDescription}>{interaction.risk}</Text>
                 </View>
               ))}
             </View>
           ) : (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>No drug interactions detected</Text>
+              <Text style={styles.emptyText}>{t('drug_interaction.no_drug_interactions')}</Text>
             </View>
           )}
         </View>
 
         {/* Food-Drug Interactions Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Food-Drug Interaction</Text>
+          <Text style={styles.sectionTitle}>{t('drug_interaction.food_drug_section')}</Text>
 
           {isCheckingInteractions ? (
             <View style={styles.emptyCard}>
@@ -314,7 +314,7 @@ export default function MedicationInteractionsScreen({ navigation }: MedicationI
             </>
           ) : (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>No food interactions detected</Text>
+              <Text style={styles.emptyText}>{t('drug_interaction.no_food_interactions')}</Text>
             </View>
           )}
         </View>

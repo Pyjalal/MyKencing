@@ -108,7 +108,7 @@ class ApiClient {
       return data.results || [];
     } catch (error) {
       console.error('Error searching medicines:', error);
-      throw new Error('Failed to search medicines. Please check your connection.');
+      throw new Error(i18n.t('errors.failed_to_search'));
     }
   }
 

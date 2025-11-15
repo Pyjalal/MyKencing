@@ -9,6 +9,7 @@ import { VitalType } from '../types';
 import { getDatabase } from './database';
 import { ExportData } from '../types';
 import { getMedicineDetails } from './mymedix-api';
+import i18n from './i18n';
 
 /**
  * Generate HTML for PDF report
@@ -187,22 +188,22 @@ function generateReportHTML(data: ExportData): string {
 </head>
 <body>
   <div class="header">
-    <h1>MyMedix Medical Report</h1>
-    <p class="subtitle">Generated on ${new Date(generatedAt).toLocaleString('en-MY')}</p>
-    ${patientName ? `<p class="subtitle">Patient: ${patientName}</p>` : ''}
-    <p class="subtitle">Report Period: ${new Date(periodStart).toLocaleDateString('en-MY')} - ${new Date(periodEnd).toLocaleDateString('en-MY')}</p>
+    <h1>${i18n.t('export_pdf.report_title')}</h1>
+    <p class="subtitle">${i18n.t('export_pdf.generated_on')} ${new Date(generatedAt).toLocaleString('en-MY')}</p>
+    ${patientName ? `<p class="subtitle">${i18n.t('export_pdf.patient')} ${patientName}</p>` : ''}
+    <p class="subtitle">${i18n.t('export_pdf.report_period')} ${new Date(periodStart).toLocaleDateString('en-MY')} - ${new Date(periodEnd).toLocaleDateString('en-MY')}</p>
   </div>
 
   <div class="section">
-    <h2>Current Medications</h2>
+    <h2>${i18n.t('export_pdf.current_medications')}</h2>
     <table>
       <thead>
         <tr>
-          <th>Medication</th>
-          <th>Dosage</th>
-          <th>Frequency</th>
-          <th>Times</th>
-          <th>Instructions</th>
+          <th>${i18n.t('export_pdf.medication')}</th>
+          <th>${i18n.t('export_pdf.dosage')}</th>
+          <th>${i18n.t('export_pdf.frequency')}</th>
+          <th>${i18n.t('export_pdf.times')}</th>
+          <th>${i18n.t('export_pdf.instructions')}</th>
         </tr>
       </thead>
       <tbody>
@@ -213,9 +214,9 @@ function generateReportHTML(data: ExportData): string {
             <td><strong>${med.mims.brandName || med.mims.genericName}</strong><br>
                 <small style="color: #666">${med.mims.genericName}</small></td>
             <td>${med.userDosage}</td>
-            <td>${med.frequency}x daily</td>
+            <td>${med.frequency}${i18n.t('export_pdf.x_daily')}</td>
             <td>${med.times.join(', ')}</td>
-            <td>${med.mims.foodInstructions || 'No specific instructions'}</td>
+            <td>${med.mims.foodInstructions || i18n.t('export_pdf.no_specific_instructions')}</td>
           </tr>
         `
           )
@@ -225,16 +226,16 @@ function generateReportHTML(data: ExportData): string {
   </div>
 
   <div class="section">
-    <h2>Medication Adherence</h2>
+    <h2>${i18n.t('export_pdf.medication_adherence')}</h2>
     <table>
       <thead>
         <tr>
-          <th>Medication</th>
-          <th>Total Doses</th>
-          <th>Taken</th>
-          <th>Skipped</th>
-          <th>Missed</th>
-          <th>Adherence Rate</th>
+          <th>${i18n.t('export_pdf.medication')}</th>
+          <th>${i18n.t('export_pdf.total_doses')}</th>
+          <th>${i18n.t('export_pdf.taken')}</th>
+          <th>${i18n.t('export_pdf.skipped')}</th>
+          <th>${i18n.t('export_pdf.missed')}</th>
+          <th>${i18n.t('export_pdf.adherence_rate')}</th>
         </tr>
       </thead>
       <tbody>
@@ -299,13 +300,13 @@ function generateReportHTML(data: ExportData): string {
     recentVitals.glucose.length > 0
       ? `
   <div class="section">
-    <h2>Glucose Readings</h2>
+    <h2>${i18n.t('export_pdf.glucose_readings')}</h2>
     <table>
       <thead>
         <tr>
-          <th>Date</th>
-          <th>Value</th>
-          <th>Notes</th>
+          <th>${i18n.t('export_pdf.date')}</th>
+          <th>${i18n.t('export_pdf.value')}</th>
+          <th>${i18n.t('export_pdf.notes')}</th>
         </tr>
       </thead>
       <tbody>
@@ -332,13 +333,13 @@ function generateReportHTML(data: ExportData): string {
     recentVitals.waistCircumference.length > 0
       ? `
   <div class="section">
-    <h2>Waist Circumference</h2>
+    <h2>${i18n.t('export_pdf.waist_circumference_readings')}</h2>
     <table>
       <thead>
         <tr>
-          <th>Date</th>
-          <th>Value</th>
-          <th>Notes</th>
+          <th>${i18n.t('export_pdf.date')}</th>
+          <th>${i18n.t('export_pdf.value')}</th>
+          <th>${i18n.t('export_pdf.notes')}</th>
         </tr>
       </thead>
       <tbody>
@@ -365,13 +366,13 @@ function generateReportHTML(data: ExportData): string {
     recentVitals.totalCholesterol.length > 0
       ? `
   <div class="section">
-    <h2>Total Cholesterol</h2>
+    <h2>${i18n.t('export_pdf.total_cholesterol_readings')}</h2>
     <table>
       <thead>
         <tr>
-          <th>Date</th>
-          <th>Value</th>
-          <th>Notes</th>
+          <th>${i18n.t('export_pdf.date')}</th>
+          <th>${i18n.t('export_pdf.value')}</th>
+          <th>${i18n.t('export_pdf.notes')}</th>
         </tr>
       </thead>
       <tbody>
@@ -398,13 +399,13 @@ function generateReportHTML(data: ExportData): string {
     recentVitals.hdlCholesterol.length > 0
       ? `
   <div class="section">
-    <h2>HDL Cholesterol</h2>
+    <h2>${i18n.t('export_pdf.hdl_cholesterol_readings')}</h2>
     <table>
       <thead>
         <tr>
-          <th>Date</th>
-          <th>Value</th>
-          <th>Notes</th>
+          <th>${i18n.t('export_pdf.date')}</th>
+          <th>${i18n.t('export_pdf.value')}</th>
+          <th>${i18n.t('export_pdf.notes')}</th>
         </tr>
       </thead>
       <tbody>
@@ -428,14 +429,12 @@ function generateReportHTML(data: ExportData): string {
   }
 
   <div class="disclaimer">
-    <strong>Disclaimer:</strong> This report is generated from self-reported data entered in the MyMedix app.
-    It should be used as a reference only and does not replace professional medical advice.
-    Please consult your healthcare provider for medical decisions.
+    <strong>${i18n.t('export_pdf.disclaimer')}</strong> ${i18n.t('export_pdf.disclaimer_text')}
   </div>
 
   <div class="footer">
-    <p>Generated with MyMedix - Personal Medication Management App</p>
-    <p>For healthcare professional use only</p>
+    <p>${i18n.t('export_pdf.footer_text')}</p>
+    <p>${i18n.t('export_pdf.footer_professional')}</p>
   </div>
 </body>
 </html>
@@ -465,8 +464,8 @@ export async function gatherExportData(
     medications.map(async (med: any) => {
       let mimsData: any = {
         id: med.registration_no,
-        genericName: 'Unknown Medicine',
-        brandName: 'Medicine details unavailable',
+        genericName: i18n.t('export_pdf.unknown_medicine'),
+        brandName: i18n.t('export_pdf.medicine_details_unavailable'),
         source: 'PNF',
         lastUpdated: new Date().toISOString(),
         createdAt: med.created_at,
@@ -506,7 +505,7 @@ export async function gatherExportData(
   // Get adherence summaries
   const adherenceSummaries = await Promise.all(
     medicationsWithDetails.map(async (med: any) => {
-      const stats = await db.getFirstAsync(
+      const stats = (await db.getFirstAsync(
         `SELECT
            COUNT(*) as total,
            SUM(CASE WHEN status = 'taken' THEN 1 ELSE 0 END) as taken,
@@ -517,18 +516,18 @@ export async function gatherExportData(
          AND scheduled_time >= ?
          AND scheduled_time <= ?`,
         [med.id, periodStart.toISOString(), periodEnd.toISOString()]
-      );
+      )) as { total: number | null; taken: number | null; skipped: number | null; missed: number | null } | null;
 
-      const total = stats?.total || 0;
-      const taken = stats?.taken || 0;
+      const total = stats?.total ?? 0;
+      const taken = stats?.taken ?? 0;
 
       return {
         medicationId: med.id,
         medicationName: med.mims.brandName || med.mims.genericName,
         totalScheduled: total,
         totalTaken: taken,
-        totalSkipped: stats?.skipped || 0,
-        totalMissed: stats?.missed || 0,
+        totalSkipped: stats?.skipped ?? 0,
+        totalMissed: stats?.missed ?? 0,
         adherenceRate: total > 0 ? (taken / total) * 100 : 0,
         periodStart: periodStart.toISOString(),
         periodEnd: periodEnd.toISOString(),
@@ -667,7 +666,7 @@ export async function generateAndShareReport(
     // Check if sharing is available
     const isAvailable = await Sharing.isAvailableAsync();
     if (!isAvailable) {
-      return { success: false, error: 'Sharing is not available on this device' };
+      return { success: false, error: i18n.t('export_pdf.sharing_unavailable') };
     }
 
     // Gather data
@@ -676,17 +675,15 @@ export async function generateAndShareReport(
     // Generate HTML
     const html = generateReportHTML(data);
 
-    // Save HTML to cache (no permissions needed) and share
     const filename = `MyMedix_Report_${Date.now()}.html`;
     const file = new File(Paths.cache, filename);
     await file.create();
     await file.write(html);
-    
-    // Share the file - user can choose where to save it
-    await Sharing.shareAsync(file.uri, { 
+
+    await Sharing.shareAsync(file.uri, {
       mimeType: 'text/html',
-      dialogTitle: 'Share Medical Report',
-      UTI: 'public.html'
+      dialogTitle: i18n.t('export_pdf.share_dialog_title'),
+      UTI: 'public.html',
     });
 
     return { success: true };
@@ -694,7 +691,7 @@ export async function generateAndShareReport(
     console.error('Error generating report:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to generate report',
+      error: error instanceof Error ? error.message : i18n.t('export_pdf.failed_to_generate'),
     };
   }
 }
@@ -712,12 +709,13 @@ export async function saveReportToDevice(
     const file = new File(Paths.cache, filename);
     await file.create();
     await file.write(html);
+
     return { success: true, filepath: file.uri };
   } catch (error) {
     console.error('Error saving report:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to save report',
+      error: error instanceof Error ? error.message : i18n.t('export_pdf.failed_to_save'),
     };
   }
 }

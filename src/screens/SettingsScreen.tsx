@@ -41,7 +41,7 @@ export default function SettingsScreen() {
       await updateSettings({ userName: trimmedProfileName });
     } catch (error) {
       console.error('Error saving profile name:', error);
-      Alert.alert(t('settings.profileSaveError', 'Failed to save your name. Please try again.'));
+      Alert.alert(t('settings.profileSaveError'));
     } finally {
       setIsSavingName(false);
     }
@@ -50,14 +50,14 @@ export default function SettingsScreen() {
   const handleDeleteAllData = () => {
     Alert.alert(
       t('settings.deleteAllData'),
-      t('settings.deleteAllDataConfirm', 'This will permanently delete all your medications, doses, vitals, and settings. This action cannot be undone.'),
+      t('settings.deleteAllDataConfirm'),
       [
         {
-          text: t('settings.cancel', 'Cancel'),
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: t('settings.delete', 'Delete'),
+          text: t('settings.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -74,10 +74,10 @@ export default function SettingsScreen() {
                 index: 0,
                 routes: [{ name: 'Onboarding' }],
               });
-              Alert.alert(t('settings.dataDeleted', 'All data has been deleted'));
+              Alert.alert(t('settings.dataDeleted'));
             } catch (error) {
               console.error('Error deleting all data:', error);
-              Alert.alert(t('settings.deleteError', 'Failed to delete data. Please try again.'));
+              Alert.alert(t('settings.deleteError'));
             }
           },
         },
@@ -90,15 +90,15 @@ export default function SettingsScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('settings.profileSection', 'Profile')}</Text>
+          <Text style={styles.sectionTitle}>{t('settings.profileSection')}</Text>
           <View style={styles.settingRowAligned}>
-            <Text style={styles.settingLabel}>{t('settings.profileName', 'Your name')}</Text>
+            <Text style={styles.settingLabel}>{t('settings.profileName')}</Text>
           </View>
           <TextInput
             style={styles.nameInput}
             value={profileName}
             onChangeText={setProfileName}
-            placeholder={t('settings.profileNamePlaceholder', 'Enter your name')}
+            placeholder={t('settings.profileNamePlaceholder')}
             placeholderTextColor={Colors.text.tertiary}
             autoCorrect={false}
             returnKeyType="done"
@@ -110,7 +110,7 @@ export default function SettingsScreen() {
             disabled={!isProfileDirty || isSavingName}
           >
             <Text style={styles.saveButtonText}>
-              {isSavingName ? t('settings.saving', 'Saving...') : t('settings.save', 'Save')}
+              {isSavingName ? t('common.saving') : t('settings.save')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -164,7 +164,7 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>{t('settings.languageSection')}</Text>
           <TouchableOpacity style={styles.settingRow} onPress={handleLanguageChange}>
             <Text style={styles.settingLabel}>{t('settings.appLanguage')}</Text>
-            <Text style={styles.settingValue}>{i18n.language === 'en' ? 'English' : 'Bahasa Melayu'}</Text>
+            <Text style={styles.settingValue}>{i18n.language === 'en' ? t('settings.languageEnglish') : t('settings.languageMalay')}</Text>
           </TouchableOpacity>
         </View>
 

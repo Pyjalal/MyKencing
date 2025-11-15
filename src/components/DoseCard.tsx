@@ -11,6 +11,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import DoseStatusBadge, { DoseStatus } from './DoseStatusBadge';
 import { Colors } from '../constants/theme';
@@ -36,6 +37,7 @@ export default function DoseCard({
   onSkipDose,
   onViewDetails,
 }: DoseCardProps) {
+  const { t } = useTranslation();
   const statusColors = {
     taken: Colors.dose.taken,
     pending: Colors.dose.pending,
@@ -83,18 +85,18 @@ export default function DoseCard({
             className="flex-1 min-h-[56px] rounded-xl justify-center items-center bg-primary"
             onPress={onTakeDose}
             accessibilityRole="button"
-            accessibilityLabel="Take dose"
+            accessibilityLabel={t('medications.take')}
           >
-            <Text className="text-base font-semibold text-white">Take</Text>
+            <Text className="text-base font-semibold text-white">{t('medications.take')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             className="flex-1 min-h-[56px] rounded-xl justify-center items-center bg-gray-200"
             onPress={onSkipDose}
             accessibilityRole="button"
-            accessibilityLabel="Skip dose"
+            accessibilityLabel={t('medications.skip')}
           >
-            <Text className="text-base font-semibold text-text-secondary">Skip</Text>
+            <Text className="text-base font-semibold text-text-secondary">{t('medications.skip')}</Text>
           </TouchableOpacity>
         </View>
       )}

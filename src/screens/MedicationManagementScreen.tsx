@@ -164,7 +164,7 @@ export default function MedicationManagementScreen({
         {/* Drug-Drug Interaction Section */}
         <View className="px-10">
           <Text className="text-2xl font-semibold text-text-primary mb-6">
-            Drug-Drug Interaction
+            {t('drug_interaction.drug_drug_section')}
           </Text>
 
           <DrugDrugInteractionAlert
@@ -177,7 +177,7 @@ export default function MedicationManagementScreen({
         {/* Food-Drug Interaction Section */}
         <View className="px-10">
           <Text className="text-2xl font-semibold text-text-primary mb-6">
-            Food-Drug Interaction
+            {t('drug_interaction.food_drug_section')}
           </Text>
 
           <FoodDrugInteractionAlert

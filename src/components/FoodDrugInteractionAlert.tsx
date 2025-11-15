@@ -10,6 +10,7 @@
 
 import React from 'react';
 import { View, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 
 export interface FoodInteraction {
@@ -33,6 +34,7 @@ export default function FoodDrugInteractionAlert({
   interaction,
   containerClassName,
 }: FoodDrugInteractionAlertProps) {
+  const { t } = useTranslation();
   return (
     <View
       className={cn(
@@ -50,7 +52,7 @@ export default function FoodDrugInteractionAlert({
 
       {/* Recommendation Label */}
       <Text className="text-[15px] font-medium text-text-primary text-center mb-1">
-        Recommendation:
+        {t('drug_interaction.recommendation')}
       </Text>
 
       {/* Recommendation Text */}

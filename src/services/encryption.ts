@@ -28,7 +28,7 @@ export async function secureSet(key: string, value: string): Promise<void> {
     if (isSecureStoreAvailableForPlatform()) {
       await SecureStore.setItemAsync(`${NAMESPACE}.${key}`, value);
     } else {
-      throw new Error('SecureStore is not available');
+      throw new Error(i18n.t('errors.securestore_unavailable'));
     }
   } catch (error) {
     console.error(`Error storing secure item ${key}:`, error);

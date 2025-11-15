@@ -11,6 +11,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import { Colors } from '../constants/theme';
 
@@ -35,6 +36,7 @@ export default function MedicationCard({
   onPress,
   onMenuPress,
 }: MedicationCardProps) {
+  const { t } = useTranslation();
   const getAdherenceColor = () => {
     if (adherencePercentage === undefined) return 'text-text-tertiary';
     if (adherencePercentage >= 80) return 'text-success';
@@ -69,7 +71,7 @@ export default function MedicationCard({
             </Text>
             {!isActive && (
               <View className="bg-gray-200 px-2 py-0.5 rounded-lg">
-                <Text className="text-[10px] font-bold text-text-tertiary">INACTIVE</Text>
+                <Text className="text-[10px] font-bold text-text-tertiary">{t('medications.inactive')}</Text>
               </View>
             )}
           </View>
@@ -79,7 +81,7 @@ export default function MedicationCard({
             onPress={onMenuPress}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             accessibilityRole="button"
-            accessibilityLabel="More options"
+            accessibilityLabel={t('medications.more_options')}
           >
             <Text className="text-2xl text-text-secondary font-bold">⋮</Text>
           </TouchableOpacity>

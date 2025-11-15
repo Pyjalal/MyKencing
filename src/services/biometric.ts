@@ -4,6 +4,7 @@
  */
 
 import * as LocalAuthentication from 'expo-local-authentication';
+import i18n from './i18n';
 import { Platform } from 'react-native';
 
 export enum BiometricType {
@@ -97,7 +98,7 @@ export async function authenticateWithBiometric(
     if (!isAvailable) {
       return {
         success: false,
-        error: 'Biometric authentication not available on this device',
+        error: i18n.t('biometric.not_available'),
       };
     }
 
@@ -106,7 +107,7 @@ export async function authenticateWithBiometric(
     if (!isEnrolled) {
       return {
         success: false,
-        error: 'No biometric records found. Please set up biometric authentication in your device settings.',
+        error: i18n.t('biometric.not_enrolled'),
       };
     }
 

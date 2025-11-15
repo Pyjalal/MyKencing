@@ -1,12 +1,5 @@
 import React, { useMemo, useCallback, useLayoutEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  SafeAreaView,
-} from 'react-native';
+import { View, Text, ScrollView, StyleSheet, SafeAreaView } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -20,7 +13,7 @@ import {
   WaistCircumferenceVital,
   BloodPressureVital,
 } from '../types';
-import { RiskScoreCircle } from '../components';
+import { PillButton, RiskScoreCircle } from '../components';
 import { calculateFindrisc, calculateFraminghamSimplified } from '../utils/riskScores';
 
 interface SummaryItem {
@@ -223,44 +216,52 @@ export default function HealthProfileScreen() {
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.ctaCard}>
-            <View style={styles.ctaText}>
-              <Text style={styles.ctaTitle}>{t('vitals.profile_cta_title')}</Text>
-              <Text style={styles.ctaSubtitle}>{t('vitals.profile_cta_subtitle')}</Text>
+          <View style={styles.heroCard}>
+            <View style={styles.heroTextBlock}>
+              <Text style={styles.heroTitle}>{t('vitals.profile_cta_title')}</Text>
+              <Text style={styles.heroSubtitle}>{t('vitals.profile_cta_subtitle')}</Text>
             </View>
-            <View style={styles.ctaButtonsRow}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.primaryButton]}
+            <View style={styles.heroActions}>
+              <PillButton
+                title={t('vitals.update_risk_inputs')}
                 onPress={() => navigation.navigate('RiskAssessment')}
-              >
-                <Text style={styles.primaryButtonText}>{t('vitals.update_risk_inputs')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.secondaryButton]}
+                backgroundColor={Colors.primary.contrast}
+                textColor={Colors.primary.dark}
+                minWidth={156}
+                style={styles.heroPrimaryButton}
+              />
+              <PillButton
+                title={t('vitals.manage_risk_inputs')}
                 onPress={() => navigation.navigate('RiskCalculators')}
-              >
-                <Text style={styles.secondaryButtonText}>{t('vitals.manage_risk_inputs')}</Text>
-              </TouchableOpacity>
+                variant="outline"
+                style={styles.heroSecondaryButton}
+                textColor={Colors.primary.contrast}
+                minWidth={156}
+              />
             </View>
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.cardHeading}>{t('vitals.health_profile_details')}</Text>
-            <View style={styles.summaryList}>
+          <View>
+            <Text style={styles.sectionTitle}>{t('vitals.health_profile_details')}</Text>
+            <View style={styles.summaryGrid}>
               {summaryItems.map((item) => {
                 const colors = getStatusColors(item.status);
                 return (
-                  <View key={item.key} style={styles.summaryRow}>
-                    <View
-                      style={[
-                        styles.summaryAccent,
-                        { backgroundColor: colors.borderColor },
-                      ]}
-                    />
-                    <View style={styles.summaryContent}>
-                      <Text style={styles.summaryLabel}>{item.label}</Text>
-                      <Text style={styles.summaryValue}>{item.value}</Text>
-                    </View>
+                  <View
+                    key={item.key}
+                    style={[styles.summaryCard, { backgroundColor: colors.backgroundColor, borderColor: colors.borderColor }]}
+                  >
+                    <Text style={[styles.summaryLabel, { color: colors.textColor }]}>
+                      {item.label}
+                    </Text>
+                    <Text style={styles.summaryValue}>{item.value}</Text>
+                    <Text style={[styles.summaryBadge, { color: colors.textColor }]}>
+                      {item.status === 'good'
+                        ? t('risk.low_risk')
+                        : item.status === 'moderate'
+                        ? t('risk.moderate_risk')
+                        : t('risk.high_risk')}
+                    </Text>
                   </View>
                 );
               })}
@@ -298,59 +299,51 @@ const styles = StyleSheet.create({
   content: {
     padding: Spacing.lg,
     paddingBottom: Spacing['3xl'],
-    gap: Spacing.lg,
+    gap: Spacing.xl,
   },
-  ctaCard: {
-    backgroundColor: Colors.background.card,
+  heroCard: {
+    backgroundColor: Colors.primary.dark,
     borderRadius: BorderRadius['3xl'],
-    padding: Spacing.lg,
-    flexDirection: 'column',
-    gap: Spacing.md,
+    padding: Spacing.xl,
     ...Shadows.sm,
   },
-  ctaText: {
-    gap: Spacing.xs,
+  heroTextBlock: {
+    gap: Spacing.sm,
   },
-  ctaTitle: {
-    fontSize: Typography.fontSize.lg,
+  heroTitle: {
+    fontSize: Typography.fontSize['2xl'],
+    fontWeight: Typography.fontWeight.bold,
+    color: Colors.primary.contrast,
+  },
+  heroSubtitle: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.primary.contrast,
+    opacity: 0.9,
+  },
+  heroActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  heroPrimaryButton: {
+    borderRadius: BorderRadius.full,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing['2xl'],
+    minHeight: 48,
+  },
+  heroSecondaryButton: {
+    borderRadius: BorderRadius.full,
+    borderColor: Colors.primary.contrast,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing['2xl'],
+    minHeight: 48,
+  },
+  sectionTitle: {
+    fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
-  },
-  ctaSubtitle: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
-    marginTop: Spacing.xs,
-  },
-  ctaButtonsRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    width: '100%',
-  },
-  actionButton: {
-    flex: 1,
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButton: {
-    backgroundColor: Colors.primary.main,
-  },
-  primaryButtonText: {
-    color: Colors.primary.contrast,
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-  },
-  secondaryButton: {
-    backgroundColor: Colors.background.primary,
-    borderWidth: 1,
-    borderColor: Colors.primary.light,
-  },
-  secondaryButtonText: {
-    color: Colors.primary.main,
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
+    marginBottom: Spacing.md,
   },
   card: {
     backgroundColor: Colors.background.card,
@@ -364,34 +357,38 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
   },
-  summaryList: {
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: Spacing.md,
   },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    borderRadius: BorderRadius['2xl'],
-    backgroundColor: Colors.background.card,
+  summaryCard: {
+    flexBasis: '100%',
+    borderRadius: BorderRadius['3xl'],
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderWidth: 0,
+    minHeight: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
     ...Shadows.sm,
   },
-  summaryAccent: {
-    width: 6,
-    borderTopLeftRadius: BorderRadius['2xl'],
-    borderBottomLeftRadius: BorderRadius['2xl'],
-  },
-  summaryContent: {
-    flex: 1,
-    padding: Spacing.md,
-    gap: Spacing.xs,
-  },
   summaryLabel: {
-    fontSize: Typography.fontSize.base,
+    fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
+    textAlign: 'center',
   },
   summaryValue: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.text.secondary,
+    fontSize: Typography.fontSize.base,
+    fontWeight: Typography.fontWeight.medium,
+    color: Colors.text.primary,
+    textAlign: 'center',
+  },
+  summaryBadge: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.semibold,
+    marginTop: Spacing.xs,
+    textAlign: 'center',
   },
   scoresRow: {
     flexDirection: 'row',

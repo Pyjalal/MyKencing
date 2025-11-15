@@ -49,13 +49,13 @@ export default function DrugInteractionWarning({
   const getSeverityLabel = () => {
     switch (severity) {
       case 'high':
-        return t('drug_interaction_high', { defaultValue: 'High Risk' });
+        return t('drug_interaction.high');
       case 'medium':
-        return t('drug_interaction_medium', { defaultValue: 'Medium Risk' });
+        return t('drug_interaction.medium');
       case 'low':
-        return t('drug_interaction_low', { defaultValue: 'Low Risk' });
+        return t('drug_interaction.low');
       default:
-        return t('drug_interaction_warning', { defaultValue: 'Warning' });
+        return t('drug_interaction.warning');
     }
   };
 
@@ -78,16 +78,14 @@ export default function DrugInteractionWarning({
             {getSeverityLabel()}
           </Text>
           <Text style={styles.title}>
-            {t('drug_interaction_title', { defaultValue: 'Drug Interaction Detected' })}
+            {t('drug_interaction.title')}
           </Text>
         </View>
       </View>
 
       <View style={styles.content}>
         <Text style={styles.description}>
-          {t('drug_interaction_description', {
-            defaultValue: 'The following medications may interact with each other. Please consult your doctor or pharmacist:',
-          })}
+          {t('drug_interaction.description')}
         </Text>
 
         {interactions.map((interaction, index) => (
@@ -98,9 +96,7 @@ export default function DrugInteractionWarning({
         ))}
 
         <Text style={styles.disclaimer}>
-          {t('drug_interaction_disclaimer', {
-            defaultValue: '⚕️ Do not stop or modify your medications without consulting a healthcare professional.',
-          })}
+          {t('drug_interaction.disclaimer')}
         </Text>
       </View>
     </View>

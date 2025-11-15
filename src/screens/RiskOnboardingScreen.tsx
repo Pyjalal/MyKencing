@@ -91,40 +91,31 @@ export default function RiskOnboardingScreen() {
       {
         id: 'gender',
         type: 'choice',
-        title: t('risk_onboarding.about_title', 'Tell us about yourself'),
-        prompt: t('risk_onboarding.gender_prompt', 'What is your biological sex?'),
-        helper: t(
-          'risk_onboarding.gender_helper',
-          'Choose your biological sex for accurate calculations.'
-        ),
+        title: t('risk_onboarding.about_title'),
+        prompt: t('risk_onboarding.gender_prompt'),
+        helper: t('risk_onboarding.gender_helper'),
         options: [
-          { value: 'male', label: t('risk_onboarding.male', 'Male') },
-          { value: 'female', label: t('risk_onboarding.female', 'Female') },
+          { value: 'male', label: t('risk_onboarding.male') },
+          { value: 'female', label: t('risk_onboarding.female') },
         ],
       },
       {
         id: 'age',
         type: 'input',
-        title: t('risk_onboarding.about_title', 'Tell us about yourself'),
-        prompt: t('risk_onboarding.age_prompt', 'How old are you?'),
-        helper: t(
-          'risk_onboarding.age_helper',
-          'Younger than 45? You are likely in the low-risk range.'
-        ),
-        placeholder: t('risk_onboarding.age_placeholder', 'Enter your age'),
+        title: t('risk_onboarding.about_title'),
+        prompt: t('risk_onboarding.age_prompt'),
+        helper: t('risk_onboarding.age_helper'),
+        placeholder: t('risk_onboarding.age_placeholder'),
         min: 10,
         max: 120,
       },
       {
         id: 'waistCircumference',
         type: 'input',
-        title: t('risk_onboarding.waist_title', 'Waist size'),
-        prompt: t('risk_onboarding.waist_prompt', 'What is your waist circumference in cm?'),
-        helper: t(
-          'risk_onboarding.waist_helper',
-          'Measure at the level of your belly button for accuracy.'
-        ),
-        placeholder: t('risk_onboarding.waist_placeholder', 'e.g. 90'),
+        title: t('risk_onboarding.waist_title'),
+        prompt: t('risk_onboarding.waist_prompt'),
+        helper: t('risk_onboarding.waist_helper'),
+        placeholder: t('risk_onboarding.waist_placeholder'),
         min: 40,
         max: 200,
         suffix: 'cm',
@@ -132,95 +123,68 @@ export default function RiskOnboardingScreen() {
       {
         id: 'bpMedication',
         type: 'choice',
-        title: t('risk_onboarding.bp_title', 'Blood pressure care'),
-        prompt: t('risk_onboarding.bp_prompt', 'Are you currently taking BP medication?'),
-        helper: t('risk_onboarding.bp_helper', 'Medication history helps us fine-tune your risk.'),
+        title: t('risk_onboarding.bp_title'),
+        prompt: t('risk_onboarding.bp_prompt'),
+        helper: t('risk_onboarding.bp_helper'),
         options: [
-          { value: true, label: t('common.yes', 'Yes') },
-          { value: false, label: t('common.no', 'No') },
+          { value: true, label: t('common.yes') },
+          { value: false, label: t('common.no') },
         ],
       },
       {
         id: 'historyHighGlucose',
         type: 'choice',
-        title: t('risk_onboarding.glucose_title', 'Blood sugar history'),
-        prompt: t(
-          'risk_onboarding.glucose_prompt',
-          'Have you ever been told you have high blood glucose?'
-        ),
-        helper: t(
-          'risk_onboarding.glucose_helper',
-          'Prior diagnoses help us personalize your monitoring plan.'
-        ),
+        title: t('risk_onboarding.glucose_title'),
+        prompt: t('risk_onboarding.glucose_prompt'),
+        helper: t('risk_onboarding.glucose_helper'),
         options: [
-          { value: true, label: t('common.yes', 'Yes') },
-          { value: false, label: t('common.no', 'No') },
+          { value: true, label: t('common.yes') },
+          { value: false, label: t('common.no') },
         ],
       },
       {
         id: 'smoking',
         type: 'choice',
-        title: t('risk_onboarding.smoking_title', 'Lifestyle choices'),
-        prompt: t('risk_onboarding.smoking_prompt', 'Do you currently smoke?'),
-        helper: t(
-          'risk_onboarding.smoking_helper',
-          'We use this to highlight lifestyle tips just for you.'
-        ),
+        title: t('risk_onboarding.smoking_title'),
+        prompt: t('risk_onboarding.smoking_prompt'),
+        helper: t('risk_onboarding.smoking_helper'),
         options: [
-          { value: true, label: t('common.yes', 'Yes') },
-          { value: false, label: t('common.no', 'No') },
+          { value: true, label: t('common.yes') },
+          { value: false, label: t('common.no') },
         ],
       },
       {
         id: 'physicalActivity',
         type: 'choice',
-        title: t('risk_onboarding.activity_title', 'Movement matters'),
-        prompt: t(
-          'risk_onboarding.activity_prompt',
-          'Do you get at least 4 hours of physical activity per week?'
-        ),
-        helper: t(
-          'risk_onboarding.activity_helper',
-          'Staying active helps lower your long-term risk.'
-        ),
+        title: t('risk_onboarding.activity_title'),
+        prompt: t('risk_onboarding.activity_prompt'),
+        helper: t('risk_onboarding.activity_helper'),
         options: [
-          { value: true, label: t('risk_onboarding.activity_yes', 'Yes, I do') },
-          { value: false, label: t('risk_onboarding.activity_no', 'Not yet') },
+          { value: true, label: t('risk_onboarding.activity_yes') },
+          { value: false, label: t('risk_onboarding.activity_no') },
         ],
       },
       {
         id: 'vegetablesDaily',
         type: 'choice',
-        title: t('risk_onboarding.vegetables_title', 'Healthy eating'),
-        prompt: t(
-          'risk_onboarding.vegetables_prompt',
-          'Do you eat vegetables every day?'
-        ),
-        helper: t(
-          'risk_onboarding.vegetables_helper',
-          'Daily veggie intake lowers your risk profile.'
-        ),
+        title: t('risk_onboarding.vegetables_title'),
+        prompt: t('risk_onboarding.vegetables_prompt'),
+        helper: t('risk_onboarding.vegetables_helper'),
         options: [
-          { value: true, label: t('risk_onboarding.vegetables_yes', 'Yes, every day') },
-          { value: false, label: t('risk_onboarding.vegetables_no', 'Not every day') },
+          { value: true, label: t('risk_onboarding.vegetables_yes') },
+          { value: false, label: t('risk_onboarding.vegetables_no') },
         ],
       },
       {
         id: 'familyHistory',
         type: 'choice',
-        title: t('risk_onboarding.family_title', 'Family history'),
-        prompt: t(
-          'risk_onboarding.family_prompt',
-          'Does anyone in your family have diabetes?'
-        ),
-        helper: t(
-          'risk_onboarding.family_helper',
-          'Immediate family raises risk more than extended relatives.'
-        ),
+        title: t('risk_onboarding.family_title'),
+        prompt: t('risk_onboarding.family_prompt'),
+        helper: t('risk_onboarding.family_helper'),
         options: [
-          { value: 'none', label: t('risk.family_none', 'None') },
-          { value: 'extended', label: t('risk.family_extended', 'Extended family') },
-          { value: 'immediate', label: t('risk.family_immediate', 'Immediate family') },
+          { value: 'none', label: t('risk.family_none') },
+          { value: 'extended', label: t('risk.family_extended') },
+          { value: 'immediate', label: t('risk.family_immediate') },
         ],
       },
     ],
@@ -362,7 +326,7 @@ export default function RiskOnboardingScreen() {
             </TouchableOpacity>
             <View style={styles.headerTextGroup}>
               <Text style={styles.headerTitle}>
-                {t('risk_onboarding.header_title', 'Risk Score Onboarding')}
+                {t('risk_onboarding.header_title')}
               </Text>
               <View style={styles.progressBar}>
                 <View style={[styles.progressFill, { width: `${progress}%` }]} />
@@ -434,8 +398,8 @@ export default function RiskOnboardingScreen() {
           >
             <Text style={styles.nextButtonLabel}>
               {currentStepIndex === totalSteps - 1
-                ? t('risk_onboarding.finish', 'Finish')
-                : t('common.next', 'Next')}
+                ? t('risk_onboarding.finish')
+                : t('common.next')}
             </Text>
           </TouchableOpacity>
         </View>

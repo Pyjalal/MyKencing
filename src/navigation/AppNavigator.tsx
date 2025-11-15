@@ -9,6 +9,7 @@ import { useSettingsStore } from '../stores/settingsStore';
 import { Colors } from '../constants/theme';
 import { updateI18nLanguage } from '../services/i18n';
 import { User, BotMessageSquare, Plus } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 // Screens
 import OnboardingScreen from '../screens/OnboardingScreen';
 import PrivacyConsentScreen from '../screens/PrivacyConsentScreen';
@@ -55,6 +56,7 @@ function ChatBotTabPlaceholder() {
  * Main tab navigator (bottom tabs)
  */
 function MainTabs() {
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
@@ -66,7 +68,7 @@ function MainTabs() {
         name="HomeTab"
         component={HomeScreen}
         options={{
-          tabBarLabel: 'Home',
+          tabBarLabel: t('navigation.home'),
         }}
         listeners={({ navigation }) => ({
           focus: () => {
@@ -111,14 +113,14 @@ function MainTabs() {
         name="VitalsTab"
         component={VitalsScreen}
         options={{
-          tabBarLabel: 'Vitals',
+          tabBarLabel: t('navigation.vitals'),
         }}
         listeners={({ navigation }) => ({
           focus: () => {
             const parent = navigation.getParent();
             if (parent) {
               parent.setOptions({
-                title: 'Vitals Tracker',
+                title: t('navigation.vitals_tracker'),
                 headerStyle: {
                   backgroundColor: Colors.background.vitals,
                 },
@@ -156,14 +158,14 @@ function MainTabs() {
         name="MedicationsTab"
         component={MedicationsScreen}
         options={{
-          tabBarLabel: 'Meds',
+          tabBarLabel: t('navigation.meds'),
         }}
         listeners={({ navigation }) => ({
           focus: () => {
             const parent = navigation.getParent();
             if (parent) {
               parent.setOptions({
-                title: 'Medications',
+                title: t('navigation.medications'),
                 headerStyle: {
                   backgroundColor: Colors.background.meds,
                 },
@@ -233,6 +235,7 @@ export default function AppNavigator() {
   const [isLoading, setIsLoading] = useState(true);
   const settings = useSettingsStore((state) => state.settings);
   const loadSettings = useSettingsStore((state) => state.loadSettings);
+  const { t } = useTranslation();
 
   useEffect(() => {
     async function init() {
@@ -291,18 +294,18 @@ export default function AppNavigator() {
         <Stack.Screen
           name="AddMedicine"
           component={AddMedicineScreen}
-          options={{ title: 'Add Medicine' }}
+          options={{ title: t('navigation.add_medicine') }}
         />
         <Stack.Screen
           name="MedicineDetail"
           component={MedicineDetailScreen}
-          options={{ title: 'Medicine Details' }}
+          options={{ title: t('navigation.medicine_details') }}
         />
         <Stack.Screen
           name="ScanPrescription"
           component={ScanPrescriptionScreen}
           options={{ 
-            title: 'Scan Medication',
+            title: t('navigation.scan_medication'),
             gestureEnabled: true,
             animation: 'slide_from_bottom',
           }}
@@ -310,33 +313,33 @@ export default function AppNavigator() {
         <Stack.Screen
           name="SelectScannedMedicine"
           component={SelectScannedMedicineScreen}
-          options={{ title: 'Select Medicine' }}
+          options={{ title: t('navigation.select_medicine') }}
         />
         <Stack.Screen
           name="Export"
           component={ExportReportScreen}
-          options={{ title: 'Export Report' }}
+          options={{ title: t('navigation.export_report') }}
         />
         <Stack.Screen
           name="Analytics"
           component={AnalyticsDashboardScreen}
-          options={{ title: 'Analytics' }}
+          options={{ title: t('navigation.analytics') }}
         />
         <Stack.Screen
           name="RamadanMode"
           component={RamadanModeScreen}
-          options={{ title: 'Ramadan Mode' }}
+          options={{ title: t('navigation.ramadan_mode') }}
         />
         <Stack.Screen
           name="AddVital"
           component={AddVitalScreen}
-          options={{ title: 'Add Vital' }}
+          options={{ title: t('navigation.add_vital') }}
         />
         <Stack.Screen
           name="ChatBot"
           component={ChatBotScreen}
           options={{
-            title: 'MyMedBot',
+            title: 'Dhia',
             headerStyle: { backgroundColor: Colors.primary.dark },
             headerShadowVisible: false,
             headerTintColor: Colors.primary.contrast,
@@ -351,17 +354,17 @@ export default function AppNavigator() {
         <Stack.Screen
           name="MedicationInteractions"
           component={MedicationInteractionsScreen}
-          options={{ title: 'Medication Interactions' }}
+          options={{ title: t('navigation.medication_interactions') }}
         />
         <Stack.Screen
           name="RiskCalculators"
           component={RiskCalculatorScreen}
-          options={{ title: 'Risk Calculators' }}
+          options={{ title: t('navigation.risk_calculators') }}
         />
         <Stack.Screen
           name="RiskAssessment"
           component={RiskAssessmentScreen}
-          options={{ title: 'Risk Assessment' }}
+          options={{ title: t('navigation.risk_assessment') }}
         />
         <Stack.Screen
           name="RiskOnboarding"
@@ -371,7 +374,7 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Settings"
           component={SettingsScreen}
-          options={{ title: 'Profile & Settings' }}
+          options={{ title: t('navigation.profile_settings') }}
         />
         <Stack.Screen
           name="HealthProfile"
