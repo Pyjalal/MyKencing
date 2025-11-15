@@ -336,7 +336,7 @@ export default function AppNavigator() {
           name="ChatBot"
           component={ChatBotScreen}
           options={{
-            title: 'MyMedBot',
+            title: 'Dhia',
             headerStyle: { backgroundColor: Colors.primary.dark },
             headerShadowVisible: false,
             headerTintColor: Colors.primary.contrast,
