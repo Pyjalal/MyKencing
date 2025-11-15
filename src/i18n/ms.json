@@ -445,5 +445,9 @@
     "update_button": "Kemaskini input faktor risiko",
     "results_title": "Skor terkini",
     "results_hint": "Skor dikemas kini secara automatik apabila anda kemaskini faktor risiko atau log ukuran baharu."
+  },
+  "chatbot": {
+    "thinking": "Sedang Berfikir...",
+    "firstMessage": "Hai! Bagaimana saya boleh bantu awak hari ini?"
   }
 }

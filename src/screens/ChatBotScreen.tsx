@@ -12,19 +12,23 @@ import {
   SafeAreaView,
   Switch,
 } from 'react-native';
-import { Colors } from '../constants/theme';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { Colors, Spacing } from '../constants/theme';
 import { sendMessage } from '../services/chatclient';
 import { Message } from '../types';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { useVitalsStore } from '../stores/vitalsStore';
 import { useMedicationStore } from '../stores/medicationStore';
+import { enUS, ms as msLocale } from 'date-fns/locale';
 
 export default function ChatBotScreen() {
+  const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Hello! How can I help you today?', timestamp: new Date() }
+    { role: 'assistant', content: t('chatbot.firstMessage'), timestamp: new Date() }
   ]);
   const [input, setInput] = useState('');
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<any>(null);
   const [loading, setLoading] = useState(false);
   const [includeVitals, setIncludeVitals] = useState(false);
   const [includeMedications, setIncludeMedications] = useState(false);
@@ -34,6 +38,10 @@ export default function ChatBotScreen() {
   const weekDoses = useMedicationStore((state) => state.weekDoses);
   const loadVitals = useVitalsStore((state) => state.loadVitals);
   const loadWeekDoses = useMedicationStore((state) => state.loadWeekDoses);
+
+  
+  // Get current locale for date-fns
+  const dateLocale = i18n.language === 'ms' ? msLocale : enUS;
 
   // Load vitals and this week's medication doses on mount
   useEffect(() => {
@@ -102,99 +110,105 @@ const handleSend = async () => {
 
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.contentContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-      >
-        <ScrollView
-          style={styles.chatContainer}
-          ref={scrollViewRef}
-          onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+  <View style={styles.container}>
+    
+    <KeyboardAwareScrollView
+      ref={scrollViewRef}
+      style={styles.scrollView}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      enableOnAndroid={true}
+      enableAutomaticScroll={true}
+      extraScrollHeight={20}
+      keyboardShouldPersistTaps="handled"
+      keyboardOpeningTime={0}
+      nestedScrollEnabled={true}
+    >
+      {messages.map((msg, i) => (
+        <View
+          key={i}
+          style={[
+            styles.messageBubble,
+            msg.role === 'user' ? styles.userBubble : styles.botBubble,
+          ]}
         >
-          {messages.map((msg, i) => (
-            <View
-              key={i}
-              style={[
-                styles.messageBubble,
-                msg.role === 'user' ? styles.userBubble : styles.botBubble,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.messageText,
-                  msg.role === 'user' ? styles.userText : styles.botText,
-                ]}
-              >
-                {msg.content}
-              </Text>
-              {msg.timestamp && (
-                <Text style={styles.timestamp}>
-                  {format(msg.timestamp, 'HH:mm')}
-                </Text>
-              )}
-            </View>
-          ))}
-          {loading && (
-            <View style={[styles.messageBubble, styles.botBubble]}>
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator color={Colors.primary.main} />
-                <Text style={[styles.botText, styles.loadingText]}>Thinking...</Text>
-              </View>
-            </View>
+          <Text
+            style={[
+              styles.messageText,
+              msg.role === 'user' ? styles.userText : styles.botText,
+            ]}
+          >
+            {msg.content}
+          </Text>
+
+          {msg.timestamp && (
+            <Text style={styles.timestamp}>
+              {format(msg.timestamp, 'HH:mm')}
+            </Text>
           )}
-        </ScrollView>
+        </View>
+      ))}
 
-        <View style={styles.inputContainer}>
-          <View style={styles.pillsRow}>
-            <TouchableOpacity
-              style={[
-                styles.pillButton,
-                includeVitals ? styles.pillEnabled : styles.pillDisabled,
-              ]}
-              onPress={() => setIncludeVitals(!includeVitals)}
-            >
-              <Text style={[styles.pillText, includeVitals ? styles.pillTextEnabled : styles.pillTextDisabled]}>
-                📊 Vitals
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.pillButton,
-                includeMedications ? styles.pillEnabled : styles.pillDisabled,
-              ]}
-              onPress={() => setIncludeMedications(!includeMedications)}
-            >
-              <Text style={[styles.pillText, includeMedications ? styles.pillTextEnabled : styles.pillTextDisabled]}>
-                💊 Meds
-              </Text>
-            </TouchableOpacity>
+      {loading && (
+        <View style={[styles.messageBubble, styles.botBubble]}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color={Colors.primary.main} />
+            <Text style={[styles.botText, styles.loadingText]}>
+              {t('chatbot.thinking')}
+            </Text>
           </View>
+        </View>
+      )}
+    </KeyboardAwareScrollView>
 
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              placeholder="Type your message..."
-              placeholderTextColor={Colors.text.secondary}
-              value={input}
-              onChangeText={setInput}
-              onSubmitEditing={handleSend}
-              returnKeyType="send"
-              multiline
-            />
-            <TouchableOpacity 
-              style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]} 
-              onPress={handleSend}
-              disabled={!input.trim() || loading}
-            >
-              <Text style={styles.sendText}>{loading ? '...' : 'Send'}</Text>
-            </TouchableOpacity>
-          </View>
+    {/* FIXED INPUT BAR */}
+    <View style={styles.inputContainer}>
+      <View style={styles.pillsRow}> 
+        <TouchableOpacity 
+          style={[ styles.pillButton, includeVitals ? styles.pillEnabled : styles.pillDisabled, ]} 
+          onPress={() => setIncludeVitals(!includeVitals)} > 
+          <Text 
+            style={[styles.pillText, includeVitals ? styles.pillTextEnabled : styles.pillTextDisabled]}>
+              📊 Vitals 
+          </Text> 
+        </TouchableOpacity> 
+        <TouchableOpacity 
+          style={[ styles.pillButton, includeMedications ? styles.pillEnabled : styles.pillDisabled, ]} 
+          onPress={() => setIncludeMedications(!includeMedications)} > 
+          <Text 
+            style={[styles.pillText, includeMedications ? styles.pillTextEnabled : styles.pillTextDisabled]}> 
+            💊 Meds 
+          </Text> 
+        </TouchableOpacity> 
       </View>
-    </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
+
+      <View style={styles.inputRow}>
+        <TextInput
+          style={styles.input}
+          placeholder="Type your message..."
+          placeholderTextColor={Colors.text.secondary}
+          value={input}
+          onChangeText={setInput}
+          onSubmitEditing={handleSend}
+          returnKeyType="send"
+          multiline
+        />
+
+        <TouchableOpacity
+          style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
+          onPress={handleSend}
+          disabled={!input.trim() || loading}
+        >
+          <Text style={styles.sendText}>
+            {loading ? '...' : 'Send'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+
+  </View>
+);
+
 }
 
 const styles = StyleSheet.create({
@@ -202,6 +216,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background.primary
   },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 0,
+  },
+    scrollContent: {
+      padding: 12,
+      paddingTop: 20,
+      paddingBottom: 10,
+    },
   header: {
     backgroundColor: Colors.primary.main,
     paddingVertical: 16,

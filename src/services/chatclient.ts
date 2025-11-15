@@ -140,6 +140,7 @@ export async function sendMessage(history: Message[], sendVitals: boolean = fals
 //   console.log('Payload sent to chatbot API:', payload);
 
   const res = await axios.post("https://mymedix-chatbot.fly.dev/ask", payload);
+//   const res = await axios.post("https://localhost:4444/ask", payload);
 
   return res.data.answer;
 }
