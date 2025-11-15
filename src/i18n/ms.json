@@ -448,6 +448,8 @@
   },
   "chatbot": {
     "thinking": "Sedang Berfikir...",
-    "firstMessage": "Hai! Bagaimana saya boleh bantu awak hari ini?"
+    "firstMessage": "Hai! Bagaimana saya boleh bantu awak hari ini?",
+    "prompt": "Taip mesej anda...",
+    "send": "Hantar"
   }
 }

@@ -185,7 +185,7 @@ const handleSend = async () => {
       <View style={styles.inputRow}>
         <TextInput
           style={styles.input}
-          placeholder="Type your message..."
+          placeholder={t('chatbot.prompt')}
           placeholderTextColor={Colors.text.secondary}
           value={input}
           onChangeText={setInput}
@@ -200,7 +200,7 @@ const handleSend = async () => {
           disabled={!input.trim() || loading}
         >
           <Text style={styles.sendText}>
-            {loading ? '...' : 'Send'}
+            {loading ? '...' : t('chatbot.send')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     maxHeight: 100,
-    paddingVertical: 8,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     color: Colors.text.primary,
     backgroundColor: Colors.background.primary,

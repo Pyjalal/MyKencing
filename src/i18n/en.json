@@ -452,6 +452,8 @@
   },
   "chatbot": {
     "thinking": "Thinking...",
-    "firstMessage": "Hello! How can I help you today?"
+    "firstMessage": "Hello! How can I help you today?",
+    "prompt": "Type your message...",
+    "send": "Send"
   }
 }
