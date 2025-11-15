@@ -268,16 +268,7 @@ export default function HealthProfileScreen() {
                       ]}
                     />
                     <View style={styles.summaryContent}>
-                      <View style={styles.summaryHeader}>
-                        <Text style={styles.summaryLabel}>{item.label}</Text>
-                        <Text style={[styles.summaryBadge, { color: colors.textColor }]}>
-                          {item.status === 'good'
-                            ? t('risk.low_risk', 'Low risk')
-                            : item.status === 'moderate'
-                            ? t('risk.moderate_risk', 'Baseline')
-                            : t('risk.high_risk', 'Risk factor')}
-                        </Text>
-                      </View>
+                      <Text style={styles.summaryLabel}>{item.label}</Text>
                       <Text style={styles.summaryValue}>{item.value}</Text>
                     </View>
                   </View>
@@ -424,19 +415,10 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     gap: Spacing.xs,
   },
-  summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   summaryLabel: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
-  },
-  summaryBadge: {
-    fontSize: Typography.fontSize.xs,
-    fontWeight: Typography.fontWeight.semibold,
   },
   summaryValue: {
     fontSize: Typography.fontSize.sm,
