@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
-import { Colors, Typography, Spacing } from '../constants/theme';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { DISCLAIMERS } from '../constants/clinical';
 import { useSettingsStore } from '../stores/settingsStore';
 import OnboardingPersonalInfoScreen from './OnboardingPersonalInfoScreen';
@@ -89,14 +89,14 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>{t('onboarding.welcome_title')}</Text>
-        <Text style={styles.subtitle}>
-          {t('onboarding.welcome_subtitle')}
-        </Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
+        <View style={styles.heroSection}>
+          <Text style={styles.title}>{t('onboarding.welcome_title')}</Text>
+          <Text style={styles.subtitle}>{t('onboarding.welcome_subtitle')}</Text>
+        </View>
 
-        <View style={styles.featuresContainer}>
+        <View style={styles.featuresCard}>
           <FeatureItem
             title={t('onboarding.feature_scan_title')}
             description={t('onboarding.feature_scan_desc')}
@@ -124,11 +124,9 @@ export default function OnboardingScreen({ navigation }: OnboardingScreenProps) 
           <Text style={styles.buttonText}>{t('onboarding.get_started')}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.footerText}>
-          {t('onboarding.footer_text')}
-        </Text>
-      </View>
-    </View>
+        <Text style={styles.footerText}>{t('onboarding.footer_text')}</Text>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -145,14 +143,18 @@ function FeatureItem({ title, description }: { title: string; description: strin
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Colors.background.primary,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
     padding: Spacing.lg,
-    justifyContent: 'center',
+    paddingBottom: Spacing['3xl'],
+    gap: Spacing.xl,
+  },
+  heroSection: {
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   title: {
     fontSize: Typography.fontSize['3xl'],
@@ -167,8 +169,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: Spacing.xl,
   },
-  featuresContainer: {
-    marginBottom: Spacing.xl,
+  featuresCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius['3xl'],
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    ...Shadows.sm,
   },
   featureItem: {
     flexDirection: 'row',
@@ -199,9 +205,8 @@ const styles = StyleSheet.create({
   },
   disclaimerContainer: {
     backgroundColor: Colors.status.warningLight,
-    padding: Spacing.md,
-    borderRadius: 8,
-    marginBottom: Spacing.xl,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius['2xl'],
   },
   disclaimerTitle: {
     fontSize: Typography.fontSize.base,
