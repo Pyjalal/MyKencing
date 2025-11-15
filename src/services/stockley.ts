@@ -12,9 +12,9 @@ export class StockleyService {
   private readonly baseUrl = 'https://www.medicinescomplete.com/api/interactions/stockley';
   private supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
   
-  // In-memory cache with 1 hour TTL (3600 seconds)
-  // checkperiod: 120 seconds - automatically removes expired entries
-  private static memoryCache = new NodeCache({ stdTTL: 3600, checkperiod: 120 });
+  // In-memory cache with no expiration (0 = forever)
+  // checkperiod: 0 = disabled - entries never expire
+  private static memoryCache = new NodeCache({ stdTTL: 0, checkperiod: 0 });
 
   async checkInteractions(medicineIds: string[], foodDrinkTobacco: boolean): Promise<DrugInteraction[]> {
     if (medicineIds.length < 2 && !foodDrinkTobacco) {
