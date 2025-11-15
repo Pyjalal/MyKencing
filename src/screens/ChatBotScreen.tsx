@@ -11,9 +11,13 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Switch,
+  Keyboard,
+  KeyboardEvent,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-import { Colors, Spacing } from '../constants/theme';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Colors } from '../constants/theme';
 import { sendMessage } from '../services/chatclient';
 import { Message } from '../types';
 import { format } from 'date-fns';
@@ -24,6 +28,8 @@ import { enUS, ms as msLocale } from 'date-fns/locale';
 
 export default function ChatBotScreen() {
   const { t, i18n } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const headerHeight = useHeaderHeight();
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: t('chatbot.firstMessage'), timestamp: new Date() }
   ]);
@@ -42,6 +48,8 @@ export default function ChatBotScreen() {
   
   // Get current locale for date-fns
   const dateLocale = i18n.language === 'ms' ? msLocale : enUS;
+  const keyboardVerticalOffset = Platform.OS === 'ios' ? headerHeight : 0;
+  const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0);
 
   // Load vitals and this week's medication doses on mount
   useEffect(() => {
@@ -61,6 +69,28 @@ export default function ChatBotScreen() {
     };
     loadData();
   }, [loadVitals, loadWeekDoses]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') {
+      return;
+    }
+
+    const handleKeyboardShow = (event: KeyboardEvent) => {
+      setAndroidKeyboardHeight(Math.max((event.endCoordinates?.height ?? 0) - insets.bottom, 0));
+    };
+
+    const handleKeyboardHide = () => {
+      setAndroidKeyboardHeight(0);
+    };
+
+    const showListener = Keyboard.addListener('keyboardDidShow', handleKeyboardShow);
+    const hideListener = Keyboard.addListener('keyboardDidHide', handleKeyboardHide);
+
+    return () => {
+      showListener.remove();
+      hideListener.remove();
+    };
+  }, [insets.bottom]);
 
 const handleSend = async () => {
   if (!input.trim() || loading) return;
@@ -110,121 +140,158 @@ const handleSend = async () => {
 
 
   return (
-  <View style={styles.container}>
-    
-    <KeyboardAwareScrollView
-      ref={scrollViewRef}
-      style={styles.scrollView}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-      enableOnAndroid={true}
-      enableAutomaticScroll={true}
-      extraScrollHeight={20}
-      keyboardShouldPersistTaps="handled"
-      keyboardOpeningTime={0}
-      nestedScrollEnabled={true}
-    >
-      {messages.map((msg, i) => (
-        <View
-          key={i}
-          style={[
-            styles.messageBubble,
-            msg.role === 'user' ? styles.userBubble : styles.botBubble,
-          ]}
-        >
-          <Text
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={styles.keyboardAvoiding}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={keyboardVerticalOffset}
+      >
+        <View style={styles.container}>
+          <KeyboardAwareScrollView
+            ref={scrollViewRef}
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            enableOnAndroid
+            enableAutomaticScroll
+            extraScrollHeight={20}
+            keyboardShouldPersistTaps="handled"
+            keyboardOpeningTime={0}
+            nestedScrollEnabled
+          >
+            {messages.map((msg, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.messageBubble,
+                  msg.role === 'user' ? styles.userBubble : styles.botBubble,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.messageText,
+                    msg.role === 'user' ? styles.userText : styles.botText,
+                  ]}
+                >
+                  {msg.content}
+                </Text>
+
+                {msg.timestamp && (
+                  <Text style={styles.timestamp}>
+                    {format(msg.timestamp, 'HH:mm')}
+                  </Text>
+                )}
+              </View>
+            ))}
+
+            {loading && (
+              <View style={[styles.messageBubble, styles.botBubble]}>
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator color={Colors.primary.main} />
+                  <Text style={[styles.botText, styles.loadingText]}>
+                    {t('chatbot.thinking')}
+                  </Text>
+                </View>
+              </View>
+            )}
+          </KeyboardAwareScrollView>
+
+          {/* FIXED INPUT BAR */}
+          <View
             style={[
-              styles.messageText,
-              msg.role === 'user' ? styles.userText : styles.botText,
+              styles.inputContainer,
+              {
+                paddingBottom: Math.max(insets.bottom, 12),
+                marginBottom: Platform.OS === 'android' ? androidKeyboardHeight : 0,
+              },
             ]}
           >
-            {msg.content}
-          </Text>
+            <View style={styles.pillsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.pillButton,
+                  includeVitals ? styles.pillEnabled : styles.pillDisabled,
+                ]}
+                onPress={() => setIncludeVitals(!includeVitals)}
+              >
+                <Text
+                  style={[
+                    styles.pillText,
+                    includeVitals ? styles.pillTextEnabled : styles.pillTextDisabled,
+                  ]}
+                >
+                  📊 Vitals
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.pillButton,
+                  includeMedications ? styles.pillEnabled : styles.pillDisabled,
+                ]}
+                onPress={() => setIncludeMedications(!includeMedications)}
+              >
+                <Text
+                  style={[
+                    styles.pillText,
+                    includeMedications ? styles.pillTextEnabled : styles.pillTextDisabled,
+                  ]}
+                >
+                  💊 Meds
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-          {msg.timestamp && (
-            <Text style={styles.timestamp}>
-              {format(msg.timestamp, 'HH:mm')}
-            </Text>
-          )}
-        </View>
-      ))}
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.input}
+                placeholder={t('chatbot.prompt')}
+                placeholderTextColor={Colors.text.secondary}
+                value={input}
+                onChangeText={setInput}
+                onSubmitEditing={handleSend}
+                returnKeyType="send"
+                multiline
+              />
 
-      {loading && (
-        <View style={[styles.messageBubble, styles.botBubble]}>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color={Colors.primary.main} />
-            <Text style={[styles.botText, styles.loadingText]}>
-              {t('chatbot.thinking')}
-            </Text>
+              <TouchableOpacity
+                style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
+                onPress={handleSend}
+                disabled={!input.trim() || loading}
+              >
+                <Text style={styles.sendText}>
+                  {loading ? '...' : t('chatbot.send')}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      )}
-    </KeyboardAwareScrollView>
-
-    {/* FIXED INPUT BAR */}
-    <View style={styles.inputContainer}>
-      <View style={styles.pillsRow}> 
-        <TouchableOpacity 
-          style={[ styles.pillButton, includeVitals ? styles.pillEnabled : styles.pillDisabled, ]} 
-          onPress={() => setIncludeVitals(!includeVitals)} > 
-          <Text 
-            style={[styles.pillText, includeVitals ? styles.pillTextEnabled : styles.pillTextDisabled]}>
-              📊 Vitals 
-          </Text> 
-        </TouchableOpacity> 
-        <TouchableOpacity 
-          style={[ styles.pillButton, includeMedications ? styles.pillEnabled : styles.pillDisabled, ]} 
-          onPress={() => setIncludeMedications(!includeMedications)} > 
-          <Text 
-            style={[styles.pillText, includeMedications ? styles.pillTextEnabled : styles.pillTextDisabled]}> 
-            💊 Meds 
-          </Text> 
-        </TouchableOpacity> 
-      </View>
-
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          placeholder={t('chatbot.prompt')}
-          placeholderTextColor={Colors.text.secondary}
-          value={input}
-          onChangeText={setInput}
-          onSubmitEditing={handleSend}
-          returnKeyType="send"
-          multiline
-        />
-
-        <TouchableOpacity
-          style={[styles.sendButton, !input.trim() && styles.sendButtonDisabled]}
-          onPress={handleSend}
-          disabled={!input.trim() || loading}
-        >
-          <Text style={styles.sendText}>
-            {loading ? '...' : t('chatbot.send')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-
-  </View>
-);
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
 
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: Colors.background.primary,
+  },
+  keyboardAvoiding: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    backgroundColor: Colors.background.primary
+    backgroundColor: Colors.background.primary,
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 0,
   },
-    scrollContent: {
-      padding: 12,
-      paddingTop: 20,
-      paddingBottom: 10,
-    },
+  scrollContent: {
+    padding: 12,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
   header: {
     backgroundColor: Colors.primary.main,
     paddingVertical: 16,
