@@ -1,9 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Switch,
+  SafeAreaView,
+} from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '../types';
-import { Colors, Typography, Spacing } from '../constants/theme';
+import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { useSettingsStore } from '../stores/settingsStore';
 
 type PrivacyConsentScreenProps = {
@@ -34,35 +42,36 @@ export default function PrivacyConsentScreen({ navigation }: PrivacyConsentScree
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea}>
       <ScrollView
-        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={true}
       >
-        <Text style={styles.title}>{t('privacy.pdpa_title')}</Text>
-        <Text style={styles.subtitle}>{t('privacy.pdpa_subtitle')}</Text>
+        <View style={styles.hero}>
+          <Text style={styles.title}>{t('privacy.pdpa_title')}</Text>
+          <Text style={styles.subtitle}>{t('privacy.pdpa_subtitle')}</Text>
+        </View>
 
         <View style={styles.introContainer}>
           <Text style={styles.introText}>{t('privacy.pdpa_intro')}</Text>
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>{t('privacy.pdpa_collection_title')}</Text>
           <Text style={styles.sectionText}>{t('privacy.pdpa_collection_text')}</Text>
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>{t('privacy.pdpa_usage_title')}</Text>
           <Text style={styles.sectionText}>{t('privacy.pdpa_usage_text')}</Text>
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>{t('privacy.pdpa_storage_title')}</Text>
           <Text style={styles.sectionText}>{t('privacy.pdpa_storage_text')}</Text>
         </View>
 
-        <View style={styles.section}>
+        <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>{t('privacy.pdpa_rights_title')}</Text>
           <Text style={styles.sectionText}>{t('privacy.pdpa_rights_text')}</Text>
         </View>
@@ -83,84 +92,90 @@ export default function PrivacyConsentScreen({ navigation }: PrivacyConsentScree
             <Text style={styles.requiredNotice}>{t('privacy.pdpa_required_notice')}</Text>
           )}
         </View>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={[styles.button, styles.declineButton]}
+            onPress={handleDecline}
+            accessibilityLabel={t('privacy.decline')}
+            accessibilityRole="button"
+          >
+            <Text style={styles.declineButtonText}>{t('privacy.decline')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.button,
+              styles.acceptButton,
+              !hasConsented && styles.acceptButtonDisabled,
+            ]}
+            onPress={handleAccept}
+            disabled={!hasConsented}
+            accessibilityLabel={t('privacy.i_agree')}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !hasConsented }}
+          >
+            <Text
+              style={[
+                styles.acceptButtonText,
+                !hasConsented && styles.acceptButtonTextDisabled,
+              ]}
+            >
+              {t('privacy.i_agree')}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.button, styles.declineButton]}
-          onPress={handleDecline}
-          accessibilityLabel={t('privacy.decline')}
-          accessibilityRole="button"
-        >
-          <Text style={styles.declineButtonText}>{t('privacy.decline')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[
-            styles.button,
-            styles.acceptButton,
-            !hasConsented && styles.acceptButtonDisabled,
-          ]}
-          onPress={handleAccept}
-          disabled={!hasConsented}
-          accessibilityLabel={t('privacy.i_agree')}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !hasConsented }}
-        >
-          <Text style={[
-            styles.acceptButtonText,
-            !hasConsented && styles.acceptButtonTextDisabled,
-          ]}>
-            {t('privacy.i_agree')}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Colors.background.primary,
   },
-  scrollView: {
-    flex: 1,
-  },
   scrollContent: {
     padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing['2xl'],
+    gap: Spacing.lg,
+  },
+  hero: {
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
   title: {
     fontSize: Typography.fontSize['2xl'],
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
-    marginBottom: Spacing.xs,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: Typography.fontSize.base,
     color: Colors.text.secondary,
-    marginBottom: Spacing.lg,
+    textAlign: 'center',
   },
   introContainer: {
-    backgroundColor: Colors.primary.light,
-    padding: Spacing.md,
-    borderRadius: 8,
-    marginBottom: Spacing.lg,
+    backgroundColor: Colors.primary[50],
+    padding: Spacing.lg,
+    borderRadius: BorderRadius['2xl'],
+    ...Shadows.sm,
   },
   introText: {
     fontSize: Typography.fontSize.sm,
     color: Colors.text.primary,
     lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
   },
-  section: {
-    marginBottom: Spacing.lg,
+  sectionCard: {
+    backgroundColor: Colors.background.card,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius['2xl'],
+    gap: Spacing.sm,
+    ...Shadows.sm,
   },
   sectionTitle: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
-    marginBottom: Spacing.sm,
   },
   sectionText: {
     fontSize: Typography.fontSize.sm,
@@ -168,50 +183,44 @@ const styles = StyleSheet.create({
     lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
   },
   consentContainer: {
-    backgroundColor: Colors.background.secondary,
-    padding: Spacing.md,
-    borderRadius: 8,
-    marginTop: Spacing.md,
-    borderWidth: 2,
-    borderColor: Colors.primary.main,
+    backgroundColor: '#FFF8E6',
+    padding: Spacing.lg,
+    borderRadius: BorderRadius['2xl'],
+    borderWidth: 1,
+    borderColor: Colors.primary.light,
+    gap: Spacing.sm,
   },
   consentRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
+    gap: Spacing.md,
   },
   consentText: {
     flex: 1,
     fontSize: Typography.fontSize.sm,
     color: Colors.text.primary,
-    marginLeft: Spacing.md,
     lineHeight: Typography.fontSize.sm * Typography.lineHeight.relaxed,
   },
   requiredNotice: {
     fontSize: Typography.fontSize.xs,
     color: Colors.status.error,
-    marginTop: Spacing.sm,
-    fontStyle: 'italic',
   },
-  buttonContainer: {
+  buttonRow: {
     flexDirection: 'row',
-    padding: Spacing.lg,
-    paddingTop: Spacing.md,
     gap: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border.light,
-    backgroundColor: Colors.background.primary,
+    marginTop: Spacing.xl,
   },
   button: {
     flex: 1,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: 8,
+    borderRadius: BorderRadius.full,
     alignItems: 'center',
+    ...Shadows.sm,
   },
   declineButton: {
-    backgroundColor: Colors.background.secondary,
+    backgroundColor: Colors.background.card,
     borderWidth: 1,
-    borderColor: Colors.border.main,
+    borderColor: Colors.border.light,
   },
   declineButtonText: {
     fontSize: Typography.fontSize.base,
@@ -222,7 +231,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary.main,
   },
   acceptButtonDisabled: {
-    backgroundColor: Colors.background.tertiary,
+    backgroundColor: Colors.neutral[300],
   },
   acceptButtonText: {
     fontSize: Typography.fontSize.base,
