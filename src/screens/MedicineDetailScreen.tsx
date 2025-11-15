@@ -262,9 +262,9 @@ export default function MedicineDetailScreen() {
       {/* Unacknowledged High-Risk Interactions */}
       {unacknowledgedHighRiskInteractions.length > 0 && (
         <View style={styles.dangerCard}>
-          <Text style={styles.dangerTitle}>High-Risk Drug Interactions</Text>
+          <Text style={styles.dangerTitle}>{t('drug_interaction.high')}</Text>
           <Text style={styles.dangerSubtitle}>
-            Please review these interactions and acknowledge that you understand the risks.
+            {t('drug_interaction.please_review_interactions')}
           </Text>
           
           {unacknowledgedHighRiskInteractions.map((interaction, index) => (
@@ -273,7 +273,7 @@ export default function MedicineDetailScreen() {
                 {interaction.firstReactant} + {interaction.secondReactant}
               </Text>
               <Text style={styles.interactionSeverity}>
-                Severity: {interaction.severityRating?.rating || interaction.severity || 'Unknown'}
+                {t('drug_interaction.severity')} {interaction.severityRating?.rating || interaction.severity || t('drug_interaction.unknown')}
               </Text>
               {interaction.explanation && (
                 <Text style={styles.interactionExplanation}>{interaction.explanation}</Text>
@@ -290,7 +290,7 @@ export default function MedicineDetailScreen() {
               <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.acknowledgeButtonText}>
-                I Understand - Acknowledge Interactions
+                {t('drug_interaction.acknowledge_button')}
               </Text>
             )}
           </TouchableOpacity>
@@ -300,9 +300,9 @@ export default function MedicineDetailScreen() {
       {/* Acknowledged High-Risk Interactions (informational only) */}
       {acknowledgedHighRiskInteractions.length > 0 && (
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Acknowledged Interactions</Text>
+          <Text style={styles.infoTitle}>{t('drug_interaction.acknowledged_interactions')}</Text>
           <Text style={styles.infoSubtitle}>
-            You have acknowledged these high-risk interactions. Please follow your doctor's advice.
+            {t('drug_interaction.acknowledged_message')}
           </Text>
           
           {acknowledgedHighRiskInteractions.map((interaction, index) => (
@@ -460,7 +460,7 @@ export default function MedicineDetailScreen() {
                 {isRescheduling ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={styles.modalButtonTextConfirm}>Confirm</Text>
+                  <Text style={styles.modalButtonTextConfirm}>{t('medicine_detail.confirm')}</Text>
                 )}
               </TouchableOpacity>
             </View>

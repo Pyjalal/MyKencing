@@ -257,10 +257,10 @@ export default function HealthProfileScreen() {
                     <Text style={styles.summaryValue}>{item.value}</Text>
                     <Text style={[styles.summaryBadge, { color: colors.textColor }]}>
                       {item.status === 'good'
-                        ? t('risk.low_risk', 'Low risk')
+                        ? t('risk.low_risk')
                         : item.status === 'moderate'
-                        ? t('risk.moderate_risk', 'Baseline')
-                        : t('risk.high_risk', 'Risk factor')}
+                        ? t('risk.moderate_risk')
+                        : t('risk.high_risk')}
                     </Text>
                   </View>
                 );

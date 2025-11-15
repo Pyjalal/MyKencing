@@ -10,6 +10,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 
 export interface DrugInteraction {
@@ -37,6 +38,7 @@ export default function DrugDrugInteractionAlert({
   onDrugPress,
   containerClassName,
 }: DrugDrugInteractionAlertProps) {
+  const { t } = useTranslation();
   const handleDrug1Press = () => {
     onDrugPress?.(interaction.drug1.id);
   };
@@ -57,7 +59,7 @@ export default function DrugDrugInteractionAlert({
     >
       {/* Warning Title */}
       <Text className="text-2xl font-semibold text-error text-center mb-4">
-        Possible interactions detected
+        {t('drug_interaction.possible_interactions_detected')}
       </Text>
 
       {/* Drug 1 Button */}
@@ -96,7 +98,7 @@ export default function DrugDrugInteractionAlert({
       {/* Risk Description */}
       <View className="mt-2">
         <Text className="text-[15px] font-medium text-text-primary text-center mb-1">
-          Risk:
+          {t('drug_interaction.risk')}
         </Text>
         <Text className="text-[15px] font-medium text-text-primary text-center">
           {interaction.riskDescription}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, StyleProp, ViewStyle } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Typography, Colors, Spacing } from '../constants/theme';
 import { RiskScoreResult } from '../utils/riskScores';
 
@@ -9,6 +10,7 @@ interface RiskScoreCircleProps {
 }
 
 export default function RiskScoreCircle({ result, style }: RiskScoreCircleProps) {
+  const { t } = useTranslation();
   return (
     <View style={[styles.container, style]}>
       <View style={[styles.circle, { backgroundColor: result.color }]}>
@@ -19,23 +21,23 @@ export default function RiskScoreCircle({ result, style }: RiskScoreCircleProps)
       </View>
       <View style={styles.textBlock}>
         <Text style={styles.label}>{result.label}</Text>
-        <Text style={styles.category}>{formatCategory(result.category)}</Text>
-        <Text style={styles.description}>{result.description}</Text>
+        <Text style={styles.category}>{formatCategory(result.category, t)}</Text>
+        <Text style={styles.description}>{t(`risk_calculators.${result.description}`)}</Text>
       </View>
     </View>
   );
 }
 
-function formatCategory(category: RiskScoreResult['category']): string {
+function formatCategory(category: RiskScoreResult['category'], t: (key: string) => string): string {
   switch (category) {
     case 'low':
-      return 'Low risk';
+      return t('risk_calculators.low_risk_level');
     case 'moderate':
-      return 'Moderate risk';
+      return t('risk_calculators.moderate_risk_level');
     case 'high':
-      return 'High risk';
+      return t('risk_calculators.high_risk_level');
     case 'very_high':
-      return 'Very high risk';
+      return t('risk_calculators.very_high_risk_level');
     default:
       return category;
   }

@@ -50,15 +50,15 @@ export default function BiometricLock({
     setError(null);
 
     try {
-      const result = await authenticateWithBiometric(t('biometric_prompt'));
+      const result = await authenticateWithBiometric(t('biometric.prompt'));
 
       if (result.success) {
         onAuthenticated();
       } else {
-        setError(result.error || t('error'));
+        setError(result.error || t('common.error'));
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : t('error'));
+      setError(error instanceof Error ? error.message : t('common.error'));
     } finally {
       setIsAuthenticating(false);
     }
@@ -71,8 +71,8 @@ export default function BiometricLock({
           <Text style={styles.icon}>🔒</Text>
         </View>
 
-        <Text style={styles.title}>{t('biometric_title')}</Text>
-        <Text style={styles.subtitle}>{t('biometric_prompt')}</Text>
+        <Text style={styles.title}>{t('biometric.title')}</Text>
+        <Text style={styles.subtitle}>{t('biometric.prompt')}</Text>
 
         {error && (
           <View style={styles.errorContainer}>
@@ -84,7 +84,7 @@ export default function BiometricLock({
           style={styles.primaryButton}
           onPress={handleAuthenticate}
           disabled={isAuthenticating}
-          accessibilityLabel={t('biometric_prompt')}
+          accessibilityLabel={t('biometric.prompt')}
           accessibilityRole="button"
         >
           {isAuthenticating ? (
@@ -93,7 +93,7 @@ export default function BiometricLock({
             <>
               <Text style={styles.primaryButtonIcon}>🔓</Text>
               <Text style={styles.primaryButtonText}>
-                {t('biometric_enable_button', { defaultValue: `Unlock with ${biometricTypeName}` })}
+                {t('biometric.enable_button', { type: biometricTypeName })}
               </Text>
             </>
           )}
@@ -103,17 +103,17 @@ export default function BiometricLock({
           <TouchableOpacity
             style={styles.secondaryButton}
             onPress={onCancel}
-            accessibilityLabel={t('cancel')}
+            accessibilityLabel={t('common.cancel')}
             accessibilityRole="button"
           >
-            <Text style={styles.secondaryButtonText}>{t('cancel')}</Text>
+            <Text style={styles.secondaryButtonText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         )}
       </View>
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>
-          🔐 {t('privacy_message', { defaultValue: 'Your data is encrypted and secure' })}
+          🔐 {t('biometric.privacy_message')}
         </Text>
       </View>
     </View>

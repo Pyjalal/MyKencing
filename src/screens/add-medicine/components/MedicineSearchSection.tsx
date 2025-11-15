@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Search, X } from 'lucide-react-native';
 import { Colors } from '../../../constants/theme';
 import { MIMSSearchResult } from '../../../types';
@@ -35,14 +36,15 @@ export const MedicineSearchSection: React.FC<MedicineSearchSectionProps> = ({
   onClearSelection,
   selectedMedicine,
 }) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.section}>
-      <Text style={styles.label}>Search Medicine</Text>
+      <Text style={styles.label}>{t('add_medicine.search_medicine')}</Text>
       <View style={styles.searchContainer}>
         <Search size={20} color={Colors.text.secondary} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Type medicine name..."
+          placeholder={t('add_medicine.type_medicine_name')}
           placeholderTextColor={Colors.text.tertiary}
           value={searchQuery}
           onChangeText={onSearchChange}
@@ -60,7 +62,7 @@ export const MedicineSearchSection: React.FC<MedicineSearchSectionProps> = ({
           {isSearching ? (
             <View style={styles.searchingContainer}>
               <ActivityIndicator size="small" color={Colors.primary.main} />
-              <Text style={styles.searchingText}>Searching...</Text>
+              <Text style={styles.searchingText}>{t('add_medicine.searching')}</Text>
             </View>
           ) : (
             <ScrollView
@@ -96,9 +98,9 @@ export const MedicineSearchSection: React.FC<MedicineSearchSectionProps> = ({
 
       {selectedMedicine && (
         <View style={styles.selectedMedicineContainer}>
-          <Text style={styles.selectedMedicineLabel}>Selected Medicine:</Text>
+          <Text style={styles.selectedMedicineLabel}>{t('add_medicine.selected_medicine')}</Text>
           <Text style={styles.selectedMedicineName}>{getDisplayName(selectedMedicine)}</Text>
-          <Text style={styles.selectedMedicineDetails}>Registration: {selectedMedicine.id}</Text>
+          <Text style={styles.selectedMedicineDetails}>{t('add_medicine.registration')} {selectedMedicine.id}</Text>
         </View>
       )}
     </View>

@@ -522,19 +522,13 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
       await ensureDailyVitalsReminderScheduled();
       setNotificationsEnabled(true);
       Alert.alert(
-        t('home.notifications_enabled_title', 'Notifications enabled'),
-        t(
-          'home.notifications_enabled_message',
-          'You will get a reminder every day at 12:00 AM to log your vitals.'
-        )
+        t('home.notifications_enabled_title'),
+        t('home.notifications_enabled_message')
       );
     } catch (error) {
       Alert.alert(
-        t('home.notifications_failed_title', 'Unable to enable notifications'),
-        t(
-          'home.notifications_failed_message',
-          'Please enable notifications from your device settings.'
-        )
+        t('home.notifications_failed_title'),
+        t('home.notifications_failed_message')
       );
     }
   };
@@ -571,9 +565,9 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return t('home.greeting_morning', 'Good morning');
-    if (hour < 18) return t('home.greeting_afternoon', 'Good afternoon');
-    return t('home.greeting_evening', 'Good evening');
+    if (hour < 12) return t('home.greeting_morning');
+    if (hour < 18) return t('home.greeting_afternoon');
+    return t('home.greeting_evening');
   }, [t]);
 
   return (
@@ -593,11 +587,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
         <View style={styles.heroSection}>
           <TouchableOpacity style={styles.searchBar} activeOpacity={0.8} onPress={handleSearchPress}>
             <Search size={20} color={Colors.primary.dark} />
-            <Text style={styles.searchPlaceholder}>{t('home.search_placeholder', 'Search here')}</Text>
+            <Text style={styles.searchPlaceholder}>{t('home.search_placeholder')}</Text>
           </TouchableOpacity>
 
           <Text style={styles.greetingText}>
-            {greeting},{'\n'}{settings.userName || t('home.user_name', 'Friend')}
+            {greeting},{'\n'}{settings.userName || t('home.user_name')}
           </Text>
         </View>
 
@@ -754,17 +748,17 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 <Text style={styles.warningIconLarge}>⚠️</Text>
               </View>
               <Text style={styles.interactionBlockedTitle}>
-                High-Risk Drug Interaction Detected
+                {t('drug_interaction.high_risk_detected')}
               </Text>
               <Text style={styles.interactionBlockedText}>
-                This medication has a high-risk interaction that requires your acknowledgment.
+                {t('drug_interaction.high_risk_acknowledgment')}
               </Text>
               <TouchableOpacity
                 style={styles.viewDetailsButton}
                 onPress={handleDoseDetailsPress}
               >
                 <Text style={styles.viewDetailsButtonText}>
-                  View Medicine Details
+                  {t('drug_interaction.view_medicine_details')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -782,7 +776,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                 </TouchableOpacity>
               ) : (
                 <View style={[styles.medicationChip, styles.medicationChipInactive]}>
-                  <Text style={styles.medicationChipText}>{t('home.no_medication_selected', 'No medication scheduled')}</Text>
+                  <Text style={styles.medicationChipText}>{t('home.no_medication_selected')}</Text>
                 </View>
               )}
 

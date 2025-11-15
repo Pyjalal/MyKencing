@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../constants/theme';
 import { RiskScoreResult } from '../utils/riskScores';
 
@@ -28,9 +29,10 @@ export default function RiskScoreTrendCard({
   category,
   description,
 }: RiskScoreTrendCardProps) {
+  const { t } = useTranslation();
   return (
     <View style={styles.card}>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={styles.title}>{t(title)}</Text>
 
       <View style={[styles.circleOuter, { borderColor: color }]}>        
         <Text style={styles.circleValue}>{formatScore(latestScore)}</Text>
@@ -39,7 +41,7 @@ export default function RiskScoreTrendCard({
         )}
       </View>
 
-      <Text style={styles.trendLabel}>{trendLabel}</Text>
+      <Text style={styles.trendLabel}>{t(trendLabel)}</Text>
 
       {percentages.length ? (
         <View style={styles.trendBars}>
@@ -60,17 +62,17 @@ export default function RiskScoreTrendCard({
         <Text style={styles.placeholderText}>--</Text>
       )}
 
-      <Text style={styles.averageLabel}>{averageLabel}</Text>
+      <Text style={styles.averageLabel}>{t(averageLabel)}</Text>
       <Text style={[styles.averageValue, { color }]}>
         {formatScore(averageScore)}
         {maxScore !== undefined && maxScore !== null ? ` / ${maxScore}` : ''}
       </Text>
 
       <View style={[styles.categoryPill, { backgroundColor: color }]}>
-        <Text style={styles.categoryPillText}>{formatCategory(category)}</Text>
+        <Text style={styles.categoryPillText}>{formatCategory(category, t)}</Text>
       </View>
 
-      <Text style={styles.description}>{description}</Text>
+      <Text style={styles.description}>{t(`risk_calculators.${description}`)}</Text>
     </View>
   );
 }
@@ -80,16 +82,16 @@ function formatScore(value: number | null) {
   return value % 1 === 0 ? `${value}` : value.toFixed(1);
 }
 
-function formatCategory(category: RiskScoreResult['category']): string {
+function formatCategory(category: RiskScoreResult['category'], t: (key: string) => string): string {
   switch (category) {
     case 'low':
-      return 'Low';
+      return t('risk_calculators.low_risk_level');
     case 'moderate':
-      return 'Moderate';
+      return t('risk_calculators.moderate_risk_level');
     case 'high':
-      return 'High';
+      return t('risk_calculators.high_risk_level');
     case 'very_high':
-      return 'Very High';
+      return t('risk_calculators.very_high_risk_level');
     default:
       return category;
   }

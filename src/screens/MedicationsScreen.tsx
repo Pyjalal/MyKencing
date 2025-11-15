@@ -290,7 +290,7 @@ export default function MedicationsScreen({ navigation }: MedicationsScreenProps
                   </Text>
                   {hasUnacknowledged && (
                     <Text style={styles.interactionWarning}>
-                      High-risk interaction - Tap to acknowledge
+                      {t('drug_interaction.tap_to_acknowledge')}
                     </Text>
                   )}
                 </TouchableOpacity>

@@ -25,10 +25,13 @@ export function isMedicationInvolvedInInteraction(
 /**
  * Checks if an interaction is considered high-risk
  * @param interaction - The interaction to check
- * @returns true if the interaction is high-risk (severe/high severity)
+ * @returns true if the interaction is high-risk (severe/high/moderate severity)
  */
 export function isHighRiskInteraction(interaction: ApiInteraction): boolean {
   const severity = interaction.severityRating?.rating || interaction.severity || '';
-  return severity.toLowerCase().includes('severe') || severity.toLowerCase().includes('high');
+  const severityLower = severity.toLowerCase();
+  return severityLower.includes('severe') || 
+         severityLower.includes('high') || 
+         severityLower.includes('moderate');
 }
 

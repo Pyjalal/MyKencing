@@ -318,15 +318,12 @@ export default function RiskAssessmentScreen() {
           <View style={styles.heroTextBlock}>
             <Text style={styles.heroTitle}>{t('risk.title')}</Text>
             <Text style={styles.heroSubtitle}>
-              {t(
-                'risk.hero_subtitle',
-                'Review your health profile and keep your inputs up to date.'
-              )}
+              {t('risk.hero_subtitle')}
             </Text>
           </View>
           <View style={styles.heroActions}>
             <PillButton
-              title={t('risk.hero_update_button', 'Update inputs')}
+              title={t('risk.hero_update_button')}
               onPress={goToRiskInputs}
               backgroundColor={Colors.primary.contrast}
               textColor={Colors.primary.dark}
@@ -334,7 +331,7 @@ export default function RiskAssessmentScreen() {
               style={styles.heroPrimaryButton}
             />
             <PillButton
-              title={t('risk.hero_manage_button', 'Manage inputs')}
+              title={t('risk.hero_manage_button')}
               onPress={goToRiskCalculators}
               variant="outline"
               style={styles.heroSecondaryButton}
@@ -345,13 +342,10 @@ export default function RiskAssessmentScreen() {
         </View>
 
         <Text style={styles.sectionTitle}>
-          {t('risk.inputs_section_title', 'Update your health inputs')}
+          {t('risk.inputs_section_title')}
         </Text>
         <Text style={styles.sectionHint}>
-          {t(
-            'risk.inputs_section_hint',
-            'Review each factor below and adjust it to match your current health.'
-          )}
+          {t('risk.inputs_section_subtitle')}
         </Text>
 
         <View style={[styles.card, getCardBackground(riskFactors.ageHighRisk)]}>

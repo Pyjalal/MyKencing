@@ -15,11 +15,13 @@ import useNotifications from './src/hooks/useNotifications';
 import { logEvent, EventType } from './src/services/analytics';
 import { useDrizzleStudio } from 'expo-drizzle-studio-plugin';
 import { useInteractionStore } from './src/stores/interactionStore';
+import { useTranslation } from 'react-i18next';
 
 export default function App() {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [db, setDb] = useState<any>(null);
+  const { t } = useTranslation();
   useNotifications();
 
   // Set up Drizzle Studio for database browsing
@@ -88,7 +90,7 @@ export default function App() {
   if (error) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorTitle}>Initialization Error</Text>
+        <Text style={styles.errorTitle}>{t('app.initialization_error')}</Text>
         <Text style={styles.errorText}>{error}</Text>
       </View>
     );
@@ -98,7 +100,7 @@ export default function App() {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color={Colors.primary.main} />
-        <Text style={styles.loadingText}>Loading MyMedix...</Text>
+        <Text style={styles.loadingText}>{t('app.loading')}</Text>
       </View>
     );
   }

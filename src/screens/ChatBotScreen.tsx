@@ -96,7 +96,7 @@ const handleSend = async () => {
   } catch (error) {
     const errMessage: Message = {
       role: 'assistant',
-      content: '⚠️ Failed to reach the chatbot.',
+      content: t('errors.failed_to_reach_chatbot'),
       timestamp: new Date()
     };
     // Remove the error message and the last user message from history

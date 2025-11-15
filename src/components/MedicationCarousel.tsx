@@ -20,6 +20,7 @@ import {
   NativeScrollEvent,
   ViewStyle,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -50,6 +51,7 @@ export default function MedicationCarousel({
   onCardPress,
   containerStyle,
 }: MedicationCarouselProps) {
+  const { t } = useTranslation();
   const scrollViewRef = useRef<ScrollView>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -90,7 +92,7 @@ export default function MedicationCarousel({
     return (
       <View className="items-center justify-center py-12">
         <Text className="text-base text-text-secondary">
-          No active medications
+          {t('medications.no_active_medications')}
         </Text>
       </View>
     );
@@ -170,7 +172,7 @@ export default function MedicationCarousel({
 
               {/* Days Left */}
               <Text className="text-[15px] font-medium text-text-secondary text-center mb-2">
-                {medication.daysLeft} days left
+                {medication.daysLeft} {t('medications.days_left')}
               </Text>
 
               {/* Notes */}
@@ -179,7 +181,7 @@ export default function MedicationCarousel({
                   className="text-[15px] font-medium text-text-secondary"
                   numberOfLines={1}
                 >
-                  Note: {medication.notes[0]}
+                  {t('medications.note')} {medication.notes[0]}
                 </Text>
               )}
             </View>

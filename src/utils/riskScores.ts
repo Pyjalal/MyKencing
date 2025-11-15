@@ -103,14 +103,14 @@ export function calculateFindrisc(inputs: FindriscInputs): RiskScoreResult {
   else category = 'very_high';
 
   const descriptions: Record<RiskScoreCategory, string> = {
-    low: 'Very low probability of developing type 2 diabetes in the next 10 years.',
-    moderate: 'Slightly elevated risk. Maintain healthy habits and monitor yearly.',
-    high: 'High risk. Discuss prevention strategies with your healthcare provider.',
-    very_high: 'Very high risk. Seek medical advice for further assessment.',
+    low: 'findrisc_low_desc',
+    moderate: 'findrisc_moderate_desc',
+    high: 'findrisc_high_desc',
+    very_high: 'findrisc_very_high_desc',
   };
 
   return {
-    label: 'FINDRISC',
+    label: 'risk_calculators.findrisc_label',
     score,
     maxScore: 26,
     category,
@@ -174,14 +174,14 @@ export function calculateFraminghamSimplified(inputs: FraminghamInputs): RiskSco
   else category = 'very_high';
 
   const descriptions: Record<RiskScoreCategory, string> = {
-    low: 'Estimated 10-year cardiovascular risk is low.',
-    moderate: 'Moderate cardiovascular risk. Consider lifestyle optimisation.',
-    high: 'High cardiovascular risk. Discuss preventive care with your doctor.',
-    very_high: 'Very high cardiovascular risk. Seek medical guidance promptly.',
+    low: 'framingham_low_desc',
+    moderate: 'framingham_moderate_desc',
+    high: 'framingham_high_desc',
+    very_high: 'framingham_very_high_desc',
   };
 
   return {
-    label: 'Framingham (simplified)',
+    label: 'risk_calculators.framingham_label',
     score,
     maxScore: 30,
     category,
