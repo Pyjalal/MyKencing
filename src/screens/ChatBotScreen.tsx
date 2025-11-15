@@ -19,9 +19,9 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../constants/theme';
 import { sendMessage } from '../services/chatclient';
+import { useTranslation } from 'react-i18next';
 import { Message } from '../types';
 import { format } from 'date-fns';
-import { useTranslation } from 'react-i18next';
 import { useVitalsStore } from '../stores/vitalsStore';
 import { useMedicationStore } from '../stores/medicationStore';
 import { enUS, ms as msLocale } from 'date-fns/locale';
@@ -34,7 +34,7 @@ export default function ChatBotScreen() {
     { role: 'assistant', content: t('chatbot.firstMessage'), timestamp: new Date() }
   ]);
   const [input, setInput] = useState('');
-  const scrollViewRef = useRef<any>(null);
+  const scrollViewRef = useRef<KeyboardAwareScrollView | null>(null);
   const [loading, setLoading] = useState(false);
   const [includeVitals, setIncludeVitals] = useState(false);
   const [includeMedications, setIncludeMedications] = useState(false);
@@ -45,8 +45,7 @@ export default function ChatBotScreen() {
   const loadVitals = useVitalsStore((state) => state.loadVitals);
   const loadWeekDoses = useMedicationStore((state) => state.loadWeekDoses);
 
-  
-  // Get current locale for date-fns
+  // Get current locale for date-fns (reserved for future formatting needs)
   const dateLocale = i18n.language === 'ms' ? msLocale : enUS;
   const keyboardVerticalOffset = Platform.OS === 'ios' ? headerHeight : 0;
   const [androidKeyboardHeight, setAndroidKeyboardHeight] = useState(0);
@@ -268,7 +267,6 @@ const handleSend = async () => {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-
 }
 
 const styles = StyleSheet.create({
@@ -415,7 +413,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     maxHeight: 100,
-    paddingVertical: 12,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     color: Colors.text.primary,
     backgroundColor: Colors.background.primary,
