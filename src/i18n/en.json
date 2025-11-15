@@ -170,6 +170,7 @@
     "daily_vitals_total_cholesterol": "Total cholesterol",
     "daily_vitals_hdl_cholesterol": "HDL cholesterol",
     "daily_vitals_height": "Height",
+    "daily_vitals_card_title": "Daily vitals",
     "vitals_invalid_value": "Recheck value"
   },
   "daily_vitals": {

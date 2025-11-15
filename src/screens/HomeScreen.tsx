@@ -321,6 +321,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
     });
   }, [bmi, calculators?.framinghamEnabled, latestBloodPressure?.systolic, riskFactors, settings.userAge, settings.userGender]);
 
+
   const hasRiskScores = Boolean(findriscResult || framinghamResult);
   const riskScoresEnabled = Boolean(calculators?.findriscEnabled || calculators?.framinghamEnabled);
 
@@ -539,6 +540,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
   };
 
 
+
   const handleTakeDose = async () => {
     if (nextDose) {
       try {
@@ -599,36 +601,37 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           </Text>
         </View>
 
-
-        <View style={styles.riskScoresCard}>
-        <View style={styles.vitalsCalendarCard}>
-            <View style={styles.vitalsCalendarRow}>
-              {vitalsCalendarItems.map(({ date, recorded }) => (
-                <View key={date.toDateString()} style={styles.vitalsCalendarDay}>
-                  <Text style={styles.vitalsCalendarDayName}>{format(date, 'EEE')}</Text>
-                  <View
-                    style={[
-                      styles.vitalsCalendarDayCircle,
-                      recorded
-                        ? styles.vitalsCalendarDayCircleRecorded
-                        : styles.vitalsCalendarDayCircleMissing,
-                    ]}
-                  >
-                    <Text style={styles.vitalsCalendarDayText}>{format(date, 'd')}</Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.vitalsCalendarStatus,
-                      recorded
-                        ? styles.vitalsCalendarStatusRecorded
-                        : styles.vitalsCalendarStatusMissing,
-                    ]}
-                  >
-                    {recorded ? '✓' : '✕'}
-                  </Text>
+        <View style={styles.vitalsCard}>
+          <Text style={styles.sectionTitle}>
+            {t('home.daily_vitals_card_title', 'Daily vitals')}
+          </Text>
+          <View style={styles.vitalsCalendarRow}>
+            {vitalsCalendarItems.map(({ date, recorded }) => (
+              <View key={date.toDateString()} style={styles.vitalsCalendarDay}>
+                <Text style={styles.vitalsCalendarDayName}>{format(date, 'EEE')}</Text>
+                <View
+                  style={[
+                    styles.vitalsCalendarDayCircle,
+                    recorded
+                      ? styles.vitalsCalendarDayCircleRecorded
+                      : styles.vitalsCalendarDayCircleMissing,
+                  ]}
+                >
+                  <Text style={styles.vitalsCalendarDayText}>{format(date, 'd')}</Text>
                 </View>
-              ))}
-            </View>
+                <Text
+                  style={[
+                    styles.vitalsCalendarStatus,
+                    recorded
+                      ? styles.vitalsCalendarStatusRecorded
+                      : styles.vitalsCalendarStatusMissing,
+                  ]}
+                >
+                  {recorded ? '✓' : '✕'}
+                </Text>
+              </View>
+            ))}
+          </View>
           <View style={styles.vitalsCalendarLegendRow}>
             <View style={styles.vitalsLegendItem}>
               <View style={[styles.vitalsLegendDot, styles.vitalsLegendDotRecorded]} />
@@ -640,43 +643,66 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
             </View>
           </View>
           {hasLoggedVitalsToday ? (
-              <View style={styles.dailyVitalsSummary}>
-                <Text style={styles.dailyVitalsSummaryTitle}>{t('home.daily_vitals_summary_title', 'Today’s vitals')}</Text>
-                <View style={styles.dailyVitalsSummaryRow}>
-                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_bp', 'Blood pressure')}</Text>
-                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.bp}</Text>
-                </View>
-                <View style={styles.dailyVitalsSummaryRow}>
-                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_glucose', 'Glucose')}</Text>
-                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.glucose}</Text>
-                </View>
-                <View style={styles.dailyVitalsSummaryRow}>
-                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_weight', 'Weight')}</Text>
-                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.weight}</Text>
-                </View>
-                <View style={styles.dailyVitalsSummaryRow}>
-                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_total_cholesterol', 'Total cholesterol')}</Text>
-                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.totalCholesterol}</Text>
-                </View>
-                <View style={styles.dailyVitalsSummaryRow}>
-                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_hdl_cholesterol', 'HDL cholesterol')}</Text>
-                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.hdlCholesterol}</Text>
-                </View>
-                <View style={styles.dailyVitalsSummaryRow}>
-                  <Text style={styles.dailyVitalsSummaryLabel}>{t('home.daily_vitals_height', 'Height')}</Text>
-                  <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.height}</Text>
-                </View>
+            <View style={styles.dailyVitalsSummary}>
+              <Text style={styles.dailyVitalsSummaryTitle}>
+                {t('home.daily_vitals_summary_title', 'Today’s vitals')}
+              </Text>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>
+                  {t('home.daily_vitals_bp', 'Blood pressure')}
+                </Text>
+                <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.bp}</Text>
+              </View>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>
+                  {t('home.daily_vitals_glucose', 'Glucose')}
+                </Text>
+                <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.glucose}</Text>
+              </View>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>
+                  {t('home.daily_vitals_weight', 'Weight')}
+                </Text>
+                <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.weight}</Text>
+              </View>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>
+                  {t('home.daily_vitals_total_cholesterol', 'Total cholesterol')}
+                </Text>
+                <Text style={styles.dailyVitalsSummaryValue}>
+                  {dailyVitalsDisplay.totalCholesterol}
+                </Text>
+              </View>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>
+                  {t('home.daily_vitals_hdl_cholesterol', 'HDL cholesterol')}
+                </Text>
+                <Text style={styles.dailyVitalsSummaryValue}>
+                  {dailyVitalsDisplay.hdlCholesterol}
+                </Text>
+              </View>
+              <View style={styles.dailyVitalsSummaryRow}>
+                <Text style={styles.dailyVitalsSummaryLabel}>
+                  {t('home.daily_vitals_height', 'Height')}
+                </Text>
+                <Text style={styles.dailyVitalsSummaryValue}>{dailyVitalsDisplay.height}</Text>
+              </View>
               <TouchableOpacity style={styles.vitalsCalendarButton} onPress={handleLogVitalsPress}>
-                <Text style={styles.vitalsCalendarButtonText}>{t('home.update_vitals_button', 'Update today’s vitals')}</Text>
+                <Text style={styles.vitalsCalendarButtonText}>
+                  {t('home.update_vitals_button', 'Update today’s vitals')}
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity style={styles.vitalsCalendarButton} onPress={handleLogVitalsPress}>
-              <Text style={styles.vitalsCalendarButtonText}>{t('home.log_vitals_button', 'Log today’s vitals')}</Text>
+              <Text style={styles.vitalsCalendarButtonText}>
+                {t('home.log_vitals_button', 'Log today’s vitals')}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
 
+        <View style={styles.riskScoresCard}>
           <View style={styles.riskScoresHeader}>
             <Text style={styles.riskScoresTitle}>{t('vitals.risk_scores_title')}</Text>
             <TouchableOpacity onPress={handleManageRiskPress}>
@@ -685,25 +711,11 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           </View>
           {hasRiskScores ? (
             <View style={styles.riskTrendList}>
-              {findriscResult && findriscTrend && (
-                <RiskScoreTrendCard
-                  title={findriscResult.label}
-                  trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
-                  averageLabel={t('vitals.fourteen_day_average', '14-day average')}
-                  color={findriscResult.color}
-                  percentages={findriscTrend.percentages}
-                  latestScore={findriscTrend.latestScore}
-                  averageScore={findriscTrend.averageScore}
-                  maxScore={findriscResult.maxScore}
-                  category={findriscResult.category}
-                  description={findriscResult.description}
-                />
-              )}
               {framinghamResult && framinghamTrend && (
                 <RiskScoreTrendCard
                   title={framinghamResult.label}
-                  trendLabel={t('vitals.last_14_day_trend', 'Last 14-day trend')}
-                  averageLabel={t('vitals.fourteen_day_average', '14-day average')}
+                  trendLabel={t('vitals.last_14_day_trend')}
+                  averageLabel={t('vitals.fourteen_day_average')}
                   color={framinghamResult.color}
                   percentages={framinghamTrend.percentages}
                   latestScore={framinghamTrend.latestScore}
@@ -711,6 +723,20 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
                   maxScore={framinghamResult.maxScore}
                   category={framinghamResult.category}
                   description={framinghamResult.description}
+                />
+              )}
+              {findriscResult && findriscTrend && (
+                <RiskScoreTrendCard
+                  title={findriscResult.label}
+                  trendLabel={t('vitals.last_14_day_trend')}
+                  averageLabel={t('vitals.fourteen_day_average')}
+                  color={findriscResult.color}
+                  percentages={findriscTrend.percentages}
+                  latestScore={findriscTrend.latestScore}
+                  averageScore={findriscTrend.averageScore}
+                  maxScore={findriscResult.maxScore}
+                  category={findriscResult.category}
+                  description={findriscResult.description}
                 />
               )}
             </View>
@@ -728,7 +754,7 @@ export default function HomeScreen({ navigation }: HomeScreenProps) {
           )}
         </View>
 
-        <View style={styles.sectionCard}>
+        <View style={styles.nextDoseCard}>
           {!hasUnacknowledgedInteraction && (
             <Text style={styles.nextDoseLabel}>{t('home.next_dose_label', 'Next Dose:')}</Text>
           )}
@@ -873,6 +899,20 @@ const styles = StyleSheet.create({
     color: Colors.primary.contrast,
     lineHeight: 34,
   },
+  sectionTitle: {
+    fontSize: Typography.fontSize.xl,
+    fontWeight: Typography.fontWeight.semibold,
+    color: Colors.text.primary,
+  },
+  vitalsCard: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius['3xl'],
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    ...Shadows.sm,
+  },
   notificationCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -921,12 +961,13 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
   },
-  sectionCard: {
+  nextDoseCard: {
     backgroundColor: Colors.background.card,
     marginHorizontal: Spacing.lg,
-    borderRadius: 28,
+    borderRadius: BorderRadius['3xl'],
     padding: Spacing.xl,
-    marginBottom: Spacing.lg,
+    marginTop: Spacing.lg,
+    gap: Spacing.md,
     ...Shadows.md,
   },
   interactionBlockedContainer: {
@@ -965,38 +1006,10 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
-  },
   sectionLink: {
     fontSize: Typography.fontSize.sm,
     color: Colors.primary.main,
     fontWeight: Typography.fontWeight.semibold,
-  },
-  riskTrendList: {
-    flexDirection: 'column',
-    gap: Spacing.lg,
-  },
-  vitalsCalendarCard: {
-    backgroundColor: Colors.background.primary,
-    borderRadius: BorderRadius.card,
-    padding: Spacing.md,
-    marginBottom: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.neutral[100],
-  },
-  vitalsCalendarHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  vitalsCalendarTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.semibold,
-    color: Colors.text.primary,
   },
   vitalsCalendarLegendRow: {
     flexDirection: 'row',
@@ -1100,42 +1113,44 @@ const styles = StyleSheet.create({
   },
   riskScoresCard: {
     marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.xl,
-    padding: Spacing.lg,
-    backgroundColor: Colors.background.primary,
+    backgroundColor: Colors.background.card,
     borderRadius: BorderRadius['3xl'],
-    borderWidth: 1,
-    borderColor: Colors.neutral[100],
+    padding: Spacing.lg,
     gap: Spacing.md,
-    ...Shadows.md,
+    ...Shadows.sm,
   },
   riskScoresHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: Spacing.md,
   },
   riskScoresTitle: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: Typography.fontSize.xl,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
   },
+  riskTrendList: {
+    flexDirection: 'column',
+    gap: Spacing.lg,
+  },
   riskScoresEmpty: {
-    alignItems: 'flex-start',
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   riskScoresHint: {
     fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
   },
   riskScoresButton: {
-    backgroundColor: Colors.primary.main,
+    backgroundColor: Colors.background.card,
+    borderRadius: BorderRadius.full,
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    borderRadius: 999,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: Colors.primary.light,
   },
   riskScoresButtonText: {
-    color: Colors.primary.contrast,
+    color: Colors.primary.main,
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
   },
