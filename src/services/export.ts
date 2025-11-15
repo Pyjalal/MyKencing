@@ -3,9 +3,8 @@
  * Generates PDF reports for doctors with medication and vitals data
  */
 
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system/next';
 import * as Sharing from 'expo-sharing';
-import { printToFileAsync } from 'expo-print';
 import { VitalType } from '../types';
 import { getDatabase } from './database';
 import { ExportData } from '../types';
@@ -677,14 +676,15 @@ export async function generateAndShareReport(
     // Generate HTML
     const html = generateReportHTML(data);
 
-    // Render HTML to PDF
-    const pdf = await printToFileAsync({ html, base64: false });
+    const filename = `MyMedix_Report_${Date.now()}.html`;
+    const file = new File(Paths.cache, filename);
+    await file.create();
+    await file.write(html);
 
-    // Share the PDF file - user can choose destination (Files, AirDrop, etc.)
-    await Sharing.shareAsync(pdf.uri, {
-      mimeType: 'application/pdf',
+    await Sharing.shareAsync(file.uri, {
+      mimeType: 'text/html',
       dialogTitle: 'Share Medical Report',
-      UTI: 'com.adobe.pdf',
+      UTI: 'public.html',
     });
 
     return { success: true };
@@ -706,18 +706,12 @@ export async function saveReportToDevice(
   try {
     const data = await gatherExportData(periodDays);
     const html = generateReportHTML(data);
-    const pdf = await printToFileAsync({ html, base64: false });
+    const filename = `MyMedix_Report_${Date.now()}.html`;
+    const file = new File(Paths.cache, filename);
+    await file.create();
+    await file.write(html);
 
-    if (!FileSystem.cacheDirectory) {
-      return { success: false, error: 'Cache directory not available' };
-    }
-
-    const filename = `MyMedix_Report_${Date.now()}.pdf`;
-    const destinationUri = `${FileSystem.cacheDirectory}${filename}`;
-
-    await FileSystem.copyAsync({ from: pdf.uri, to: destinationUri });
-
-    return { success: true, filepath: destinationUri };
+    return { success: true, filepath: file.uri };
   } catch (error) {
     console.error('Error saving report:', error);
     return {
