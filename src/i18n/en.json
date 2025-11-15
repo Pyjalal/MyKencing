@@ -449,5 +449,11 @@
     "update_button": "Update risk factor inputs",
     "results_title": "Latest scores",
     "results_hint": "Scores refresh automatically when you update your risk factors or log new measurements."
+  },
+  "chatbot": {
+    "thinking": "Thinking...",
+    "firstMessage": "Hello! How can I help you today?",
+    "prompt": "Type your message...",
+    "send": "Send"
   }
 }
