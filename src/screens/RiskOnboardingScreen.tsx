@@ -19,10 +19,12 @@ import { useSettingsStore } from '../stores/settingsStore';
 type StepId =
   | 'gender'
   | 'age'
+  | 'waistCircumference'
   | 'bpMedication'
   | 'historyHighGlucose'
   | 'smoking'
   | 'physicalActivity'
+  | 'vegetablesDaily'
   | 'familyHistory';
 
 type ChoiceValue = 'male' | 'female' | boolean | 'none' | 'extended' | 'immediate';
@@ -37,12 +39,15 @@ type ChoiceStep = {
 };
 
 type InputStep = {
-  id: 'age';
+  id: 'age' | 'waistCircumference';
   type: 'input';
   title: string;
   prompt: string;
   helper?: string;
   placeholder: string;
+  min: number;
+  max: number;
+  suffix?: string;
 };
 
 type RiskQuestionStep = ChoiceStep | InputStep;
@@ -64,10 +69,12 @@ const BASE_RISK_FACTORS: RiskFactorSettings = {
 type OnboardingAnswers = {
   gender?: 'male' | 'female';
   age?: number;
+  waistCircumference?: number;
   bpMedication?: boolean;
   historyHighGlucose?: boolean;
   smoking?: boolean;
   physicalActivity?: boolean;
+  vegetablesDaily?: boolean;
   familyHistory?: 'none' | 'extended' | 'immediate';
 };
 
@@ -105,6 +112,22 @@ export default function RiskOnboardingScreen() {
           'Younger than 45? You are likely in the low-risk range.'
         ),
         placeholder: t('risk_onboarding.age_placeholder', 'Enter your age'),
+        min: 10,
+        max: 120,
+      },
+      {
+        id: 'waistCircumference',
+        type: 'input',
+        title: t('risk_onboarding.waist_title', 'Waist size'),
+        prompt: t('risk_onboarding.waist_prompt', 'What is your waist circumference in cm?'),
+        helper: t(
+          'risk_onboarding.waist_helper',
+          'Measure at the level of your belly button for accuracy.'
+        ),
+        placeholder: t('risk_onboarding.waist_placeholder', 'e.g. 90'),
+        min: 40,
+        max: 200,
+        suffix: 'cm',
       },
       {
         id: 'bpMedication',
@@ -166,6 +189,23 @@ export default function RiskOnboardingScreen() {
         ],
       },
       {
+        id: 'vegetablesDaily',
+        type: 'choice',
+        title: t('risk_onboarding.vegetables_title', 'Healthy eating'),
+        prompt: t(
+          'risk_onboarding.vegetables_prompt',
+          'Do you eat vegetables every day?'
+        ),
+        helper: t(
+          'risk_onboarding.vegetables_helper',
+          'Daily veggie intake lowers your risk profile.'
+        ),
+        options: [
+          { value: true, label: t('risk_onboarding.vegetables_yes', 'Yes, every day') },
+          { value: false, label: t('risk_onboarding.vegetables_no', 'Not every day') },
+        ],
+      },
+      {
         id: 'familyHistory',
         type: 'choice',
         title: t('risk_onboarding.family_title', 'Family history'),
@@ -196,16 +236,23 @@ export default function RiskOnboardingScreen() {
               ? settings.userGender
               : undefined,
           age: settings.userAge,
+          waistCircumference: settings.riskFactors?.waistCircumference ?? undefined,
           bpMedication: settings.riskFactors?.bpMedication,
           historyHighGlucose: settings.riskFactors?.historyHighGlucose,
           smoking: settings.riskFactors?.smoking,
           physicalActivity: settings.riskFactors?.physicalActivity,
+          vegetablesDaily: settings.riskFactors?.vegetablesDaily,
           familyHistory: settings.riskFactors?.familyHistory,
         }
       : {}
   );
   const [ageInput, setAgeInput] = useState(() =>
     settings.riskQuestionnaireCompleted && settings.userAge ? String(settings.userAge) : ''
+  );
+  const [waistInput, setWaistInput] = useState(() =>
+    settings.riskQuestionnaireCompleted && settings.riskFactors?.waistCircumference
+      ? String(settings.riskFactors.waistCircumference)
+      : ''
   );
 
   useEffect(() => {
@@ -225,20 +272,27 @@ export default function RiskOnboardingScreen() {
     }));
   };
 
-  const handleAgeChange = (value: string) => {
+  const handleNumericInputChange = (stepId: 'age' | 'waistCircumference', value: string) => {
     const digitsOnly = value.replace(/[^0-9]/g, '');
-    setAgeInput(digitsOnly);
+    if (stepId === 'age') {
+      setAgeInput(digitsOnly);
+    } else {
+      setWaistInput(digitsOnly);
+    }
     const numeric = Number(digitsOnly);
     if (!Number.isNaN(numeric) && digitsOnly.length > 0) {
-      setAnswers((prev) => ({ ...prev, age: numeric }));
+      setAnswers((prev) => ({ ...prev, [stepId]: numeric }));
     } else {
-      setAnswers((prev) => ({ ...prev, age: undefined }));
+      setAnswers((prev) => ({ ...prev, [stepId]: undefined }));
     }
   };
 
   const isCurrentStepComplete = () => {
     if (currentStep.type === 'input') {
-      return typeof answers.age === 'number' && answers.age >= 10 && answers.age <= 120;
+      const value =
+        currentStep.id === 'age' ? answers.age : answers.waistCircumference;
+      if (typeof value !== 'number') return false;
+      return value >= currentStep.min && value <= currentStep.max;
     }
 
     const value = (answers as any)[currentStep.id];
@@ -278,7 +332,9 @@ export default function RiskOnboardingScreen() {
       historyHighGlucose: !!answers.historyHighGlucose,
       smoking: !!answers.smoking,
       physicalActivity: !!answers.physicalActivity,
+       vegetablesDaily: answers.vegetablesDaily ?? true,
       familyHistory: answers.familyHistory ?? 'none',
+      waistCircumference: answers.waistCircumference ?? null,
     };
 
     await updateSettings({
@@ -307,7 +363,7 @@ export default function RiskOnboardingScreen() {
             </TouchableOpacity>
             <View style={styles.headerTextGroup}>
               <Text style={styles.headerTitle}>
-                {t('risk_onboarding.header_title', 'Framingham Heart Disease Risk')}
+                {t('risk_onboarding.header_title', 'Risk Score Onboarding')}
               </Text>
               <View style={styles.progressBar}>
                 <View style={[styles.progressFill, { width: `${progress}%` }]} />
@@ -351,14 +407,17 @@ export default function RiskOnboardingScreen() {
             ) : (
               <View style={styles.inputCard}>
                 <TextInput
-                  value={ageInput}
-                  onChangeText={handleAgeChange}
+                  value={currentStep.id === 'age' ? ageInput : waistInput}
+                  onChangeText={(text) => handleNumericInputChange(currentStep.id, text)}
                   keyboardType="number-pad"
                   placeholder={currentStep.placeholder}
                   placeholderTextColor={Colors.text.secondary}
                   maxLength={3}
                   style={styles.ageInput}
                 />
+                {currentStep.suffix && (
+                  <Text style={styles.inputSuffix}>{currentStep.suffix}</Text>
+                )}
               </View>
             )}
             {currentStep.helper && (
@@ -418,18 +477,21 @@ const styles = StyleSheet.create({
   },
   headerTextGroup: {
     flex: 1,
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
   headerTitle: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
-    marginBottom: Spacing.xs,
+    textAlign: 'center',
   },
   progressBar: {
     width: '100%',
     height: 8,
     borderRadius: 999,
     backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
@@ -492,11 +554,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F7FF',
     borderWidth: 1,
     borderColor: 'transparent',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   ageInput: {
     fontSize: Typography.fontSize['2xl'],
     fontWeight: Typography.fontWeight.bold,
     color: Colors.text.primary,
+  },
+  inputSuffix: {
+    fontSize: Typography.fontSize.base,
+    color: Colors.text.secondary,
+    marginLeft: Spacing.md,
   },
   helperText: {
     textAlign: 'center',

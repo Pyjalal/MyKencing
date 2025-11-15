@@ -90,6 +90,10 @@ export default function RiskAssessmentScreen() {
     () => getLatestByType(VitalType.WaistCircumference),
     [getLatestByType]
   );
+  const waistCircumferenceValue = useMemo(
+    () => latestWaist?.value ?? riskFactors.waistCircumference ?? null,
+    [latestWaist?.value, riskFactors.waistCircumference]
+  );
   const latestWeightVital = useMemo(
     () => getLatestByType(VitalType.Weight),
     [getLatestByType]
@@ -195,8 +199,8 @@ export default function RiskAssessmentScreen() {
   );
 
   const getCardBackground = (isRisk: boolean) => ({
-    backgroundColor: isRisk ? Colors.secondary.light : Colors.accent.light,
-    borderColor: isRisk ? Colors.secondary.main : Colors.accent.dark,
+    borderLeftWidth: 6,
+    borderLeftColor: isRisk ? Colors.secondary.main : Colors.status.success,
   });
 
   const familyOptions: Array<{
@@ -217,10 +221,10 @@ export default function RiskAssessmentScreen() {
       age: settings.userAge,
       gender: settings.userGender,
       bmi: bmiValue,
-      waistCircumference: latestWaist?.value ?? null,
+      waistCircumference: waistCircumferenceValue,
       factors: riskFactors,
     });
-  }, [bmiValue, calculators?.findriscEnabled, latestWaist?.value, riskFactors, settings.userAge, settings.userGender]);
+  }, [bmiValue, calculators?.findriscEnabled, riskFactors, settings.userAge, settings.userGender, waistCircumferenceValue]);
 
   const framinghamResult: RiskScoreResult | undefined = useMemo(() => {
     if (!calculators?.framinghamEnabled) return undefined;
@@ -578,10 +582,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   card: {
-    borderRadius: BorderRadius.card,
+    borderRadius: BorderRadius['3xl'],
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
     borderWidth: 1,
+    borderColor: Colors.neutral[100],
+    backgroundColor: Colors.background.card,
     ...Shadows.sm,
   },
   cardHeader: {
@@ -614,10 +620,10 @@ const styles = StyleSheet.create({
   cardPill: {
     fontSize: Typography.fontSize.sm,
     color: Colors.text.secondary,
-    backgroundColor: Colors.background.card,
+    backgroundColor: Colors.background.primary,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.badge,
+    borderRadius: BorderRadius.full,
   },
   toggleRow: {
     flexDirection: 'row',

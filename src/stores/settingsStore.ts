@@ -25,6 +25,7 @@ const DEFAULT_RISK_FACTORS: RiskFactorSettings = {
   familyHistory: 'none',
   weightKg: null,
   heightCm: null,
+  waistCircumference: null,
 };
 
 const DEFAULT_RISK_CALCULATORS: RiskCalculatorSettings = {

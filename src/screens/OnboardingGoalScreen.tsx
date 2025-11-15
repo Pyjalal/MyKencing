@@ -13,6 +13,7 @@ interface OnboardingGoalScreenProps {
 type GoalOption = {
   id: 'get_fit' | 'be_active' | 'be_healthy' | 'find_balance';
   titleKey: string;
+  subtitleKey: string;
   icon: string;
 };
 
@@ -24,10 +25,10 @@ export default function OnboardingGoalScreen({
 }: OnboardingGoalScreenProps) {
   const { t } = useTranslation();
   const GOALS: GoalOption[] = [
-    { id: 'get_fit', titleKey: 'onboarding.get_fit', icon: '💪' },
-    { id: 'be_active', titleKey: 'onboarding.be_active', icon: '❤️' },
-    { id: 'be_healthy', titleKey: 'onboarding.be_healthy', icon: '🩺' },
-    { id: 'find_balance', titleKey: 'onboarding.find_balance', icon: '⚖️' },
+    { id: 'get_fit', titleKey: 'onboarding.get_fit', subtitleKey: 'onboarding.get_fit_desc', icon: '💪' },
+    { id: 'be_active', titleKey: 'onboarding.be_active', subtitleKey: 'onboarding.be_active_desc', icon: '🏃' },
+    { id: 'be_healthy', titleKey: 'onboarding.be_healthy', subtitleKey: 'onboarding.be_healthy_desc', icon: '🍎' },
+    { id: 'find_balance', titleKey: 'onboarding.find_balance', subtitleKey: 'onboarding.find_balance_desc', icon: '🧘' },
   ];
   const [selectedGoal, setSelectedGoal] = useState<
     'get_fit' | 'be_active' | 'be_healthy' | 'find_balance' | null
@@ -62,8 +63,7 @@ export default function OnboardingGoalScreen({
         {/* Title */}
         <Text style={styles.title}>{t('onboarding.whats_your_main_goal')}</Text>
 
-        {/* Goal Cards Grid */}
-        <View style={styles.goalsGrid}>
+        <View style={styles.goalsList}>
           {GOALS.map((goal) => (
             <TouchableOpacity
               key={goal.id}
@@ -75,14 +75,17 @@ export default function OnboardingGoalScreen({
               activeOpacity={0.7}
             >
               <Text style={styles.goalIcon}>{goal.icon}</Text>
-              <Text
-                style={[
-                  styles.goalTitle,
-                  selectedGoal === goal.id && styles.goalTitleSelected,
-                ]}
-              >
-                {t(goal.titleKey)}
-              </Text>
+              <View style={styles.goalTextContainer}>
+                <Text
+                  style={[
+                    styles.goalTitle,
+                    selectedGoal === goal.id && styles.goalTitleSelected,
+                  ]}
+                >
+                  {t(goal.titleKey)}
+                </Text>
+                <Text style={styles.goalSubtitle}>{t(goal.subtitleKey)}</Text>
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -163,41 +166,45 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl + Spacing.md,
     lineHeight: 40,
   },
-  goalsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  goalsList: {
+    width: '100%',
     gap: Spacing.md,
-    justifyContent: 'space-between',
     marginBottom: Spacing.xl,
   },
   goalCard: {
-    width: '48%',
-    aspectRatio: 1,
-    backgroundColor: Colors.background.card,
-    borderRadius: 24,
+    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: Spacing.lg,
-    ...Shadows.md,
+    gap: Spacing.md,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: 20,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: Colors.neutral[200],
+    backgroundColor: Colors.background.card,
+    ...Shadows.sm,
   },
   goalCardSelected: {
     borderColor: Colors.primary.main,
-    backgroundColor: Colors.primary[100],
+    backgroundColor: Colors.primary[50],
   },
   goalIcon: {
-    fontSize: 56,
-    marginBottom: Spacing.md,
+    fontSize: 28,
+  },
+  goalTextContainer: {
+    flex: 1,
   },
   goalTitle: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
-    textAlign: 'center',
   },
   goalTitleSelected: {
     color: Colors.primary.main,
+  },
+  goalSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
   },
   dotsContainer: {
     flexDirection: 'row',

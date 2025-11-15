@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { initializeNotifications, checkForMissedDoses } from '../services/notifications';
+import {
+  initializeNotifications,
+  checkForMissedDoses,
+  ensureDailyVitalsReminderScheduled,
+} from '../services/notifications';
 
 export default function useNotifications() {
   useEffect(() => {
@@ -9,6 +13,7 @@ export default function useNotifications() {
 
     (async () => {
       await initializeNotifications();
+      await ensureDailyVitalsReminderScheduled();
       if (!isMounted) return;
 
       // periodic missed-dose check every 30 minutes

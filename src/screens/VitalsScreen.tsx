@@ -113,9 +113,15 @@ const aggregateWeekly = <T extends MeasuredEntry>(
   });
 };
 
-const getMaxValue = (series: (number | null)[]) => {
+const getMaxValue = (
+  series: (number | null)[],
+  fallbackMax: number | null = null
+) => {
   const filtered = series.filter((value): value is number => value !== null);
-  return filtered.length ? Math.max(...filtered) : null;
+  if (filtered.length) {
+    return Math.max(...filtered);
+  }
+  return fallbackMax;
 };
 
 const amplifyGlucoseBarHeight = (value: number | null, baseHeight: number) => {
@@ -260,6 +266,10 @@ export default function VitalsScreen() {
 
   const latestWeightVital = weightVitals[0];
   const latestWaistVital = waistVitals[0];
+  const waistCircumferenceValue = useMemo(
+    () => latestWaistVital?.value ?? riskFactors?.waistCircumference ?? null,
+    [latestWaistVital?.value, riskFactors?.waistCircumference]
+  );
   const latestBloodPressure = bloodPressureVitals[0];
 
   const latestWeightKg = useMemo(() => {
@@ -284,10 +294,10 @@ export default function VitalsScreen() {
       age: settings.userAge,
       gender: settings.userGender,
       bmi: bmiValue,
-      waistCircumference: latestWaistVital?.value ?? null,
+      waistCircumference: waistCircumferenceValue,
       factors: riskFactors,
     });
-  }, [bmiValue, calculators?.findriscEnabled, latestWaistVital?.value, riskFactors, settings.userAge, settings.userGender]);
+  }, [bmiValue, calculators?.findriscEnabled, riskFactors, settings.userAge, settings.userGender, waistCircumferenceValue]);
 
   const framinghamResult = useMemo(() => {
     if (!calculators?.framinghamEnabled || !riskFactors) return null;
@@ -520,15 +530,15 @@ export default function VitalsScreen() {
   );
 
   const systolicMax = useMemo(() => getMaxValue(systolicSeries), [systolicSeries]);
-  const weightMax = useMemo(() => getMaxValue(weightSeries), [weightSeries]);
-  const glucoseMax = useMemo(() => getMaxValue(glucoseSeries), [glucoseSeries]);
+  const weightMax = useMemo(() => getMaxValue(weightSeries, 200), [weightSeries]);
+  const glucoseMax = useMemo(() => getMaxValue(glucoseSeries, 10), [glucoseSeries]);
   const waistMax = useMemo(() => getMaxValue(waistSeries), [waistSeries]);
   const totalCholesterolMax = useMemo(
-    () => getMaxValue(totalCholesterolWeekly),
+    () => getMaxValue(totalCholesterolWeekly, 10),
     [totalCholesterolWeekly]
   );
   const hdlCholesterolMax = useMemo(
-    () => getMaxValue(hdlCholesterolWeekly),
+    () => getMaxValue(hdlCholesterolWeekly, 10),
     [hdlCholesterolWeekly]
   );
 

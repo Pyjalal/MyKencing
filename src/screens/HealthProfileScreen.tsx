@@ -213,6 +213,22 @@ export default function HealthProfileScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+            style={styles.backButton}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('Home');
+              }
+            }}
+          >
+            <Text style={styles.backIcon}>{'<'}</Text>
+          </TouchableOpacity>
+        </View>
         <ScrollView
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
@@ -240,24 +256,30 @@ export default function HealthProfileScreen() {
 
           <View style={styles.card}>
             <Text style={styles.cardHeading}>{t('vitals.health_profile_details')}</Text>
-            <View style={styles.summaryGrid}>
+            <View style={styles.summaryList}>
               {summaryItems.map((item) => {
                 const colors = getStatusColors(item.status);
                 return (
-                  <View
-                    key={item.key}
-                    style={[
-                      styles.summaryItem,
-                      {
-                        backgroundColor: colors.backgroundColor,
-                        borderColor: colors.borderColor,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.summaryLabel, { color: colors.textColor }]}>
-                      {item.label}
-                    </Text>
-                    <Text style={styles.summaryValue}>{item.value}</Text>
+                  <View key={item.key} style={styles.summaryRow}>
+                    <View
+                      style={[
+                        styles.summaryAccent,
+                        { backgroundColor: colors.borderColor },
+                      ]}
+                    />
+                    <View style={styles.summaryContent}>
+                      <View style={styles.summaryHeader}>
+                        <Text style={styles.summaryLabel}>{item.label}</Text>
+                        <Text style={[styles.summaryBadge, { color: colors.textColor }]}>
+                          {item.status === 'good'
+                            ? t('risk.low_risk', 'Low risk')
+                            : item.status === 'moderate'
+                            ? t('risk.moderate_risk', 'Baseline')
+                            : t('risk.high_risk', 'Risk factor')}
+                        </Text>
+                      </View>
+                      <Text style={styles.summaryValue}>{item.value}</Text>
+                    </View>
                   </View>
                 );
               })}
@@ -291,6 +313,27 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background.primary,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.background.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
+  },
+  backIcon: {
+    fontSize: Typography.fontSize.lg,
+    color: Colors.text.primary,
   },
   content: {
     padding: Spacing.lg,
@@ -361,23 +404,43 @@ const styles = StyleSheet.create({
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
   },
-  summaryGrid: {
-    gap: Spacing.sm,
+  summaryList: {
+    gap: Spacing.md,
   },
-  summaryItem: {
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderRadius: BorderRadius['2xl'],
+    backgroundColor: Colors.background.card,
+    ...Shadows.sm,
+  },
+  summaryAccent: {
+    width: 6,
+    borderTopLeftRadius: BorderRadius['2xl'],
+    borderBottomLeftRadius: BorderRadius['2xl'],
+  },
+  summaryContent: {
+    flex: 1,
     padding: Spacing.md,
-    borderRadius: BorderRadius.card,
-    borderWidth: 1,
+    gap: Spacing.xs,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   summaryLabel: {
-    fontSize: Typography.fontSize.sm,
-    fontWeight: Typography.fontWeight.semibold,
-    marginBottom: Spacing.xs,
-  },
-  summaryValue: {
     fontSize: Typography.fontSize.base,
     fontWeight: Typography.fontWeight.semibold,
     color: Colors.text.primary,
+  },
+  summaryBadge: {
+    fontSize: Typography.fontSize.xs,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+  summaryValue: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.text.secondary,
   },
   scoresRow: {
     flexDirection: 'row',
