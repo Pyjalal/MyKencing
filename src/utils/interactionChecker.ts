@@ -3,6 +3,7 @@ import { useMedicationStore } from '../stores/medicationStore';
 import { useInteractionStore } from '../stores/interactionStore';
 import { isHighRiskInteraction, isMedicationInvolvedInInteraction } from './interactionFilters';
 import type { ApiInteraction } from '../services/api-client';
+import i18n from '../services/i18n';
 
 /**
  * Checks for high-risk interactions after adding a new medication
