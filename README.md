@@ -4,7 +4,7 @@ Personal medication and health tracking companion for Malaysia.
 
 ## Overview
 
-MyKencing is a mobile application designed to help Malaysians manage their medications and health vitals with ease. The app focuses on privacy, clinical accuracy, and user-friendly design.
+MyKencing is a mobile application designed to help Malaysians manage their medications and health vitals with ease. The app focuses on privacy, clinical accuracy, and user-friendly design !!!
 
 ### Key Features
 
