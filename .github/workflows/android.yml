@@ -3,7 +3,9 @@ name: Android CI
 on:
   push:
     branches: [ master, main ]
+    paths-ignore: [ 'api/**', '.github/workflows/api.yml' ]
   pull_request:
+    paths-ignore: [ 'api/**', '.github/workflows/api.yml' ]
   workflow_dispatch:
 
 jobs:

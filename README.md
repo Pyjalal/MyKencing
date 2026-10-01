@@ -36,6 +36,7 @@ MyKencing is a mobile application designed to help Malaysians manage their medic
 
 ```
 MyKencing/
+├── api/                  # MyMedix API (Hono backend, deployed to Fly.io)
 ├── src/
 │   ├── components/        # Reusable UI components
 │   ├── screens/          # Screen components
@@ -69,7 +70,7 @@ MyKencing now integrates with the **MyMedix API** for real Malaysian medicine da
 - ✅ **Auto-Fallback**: Seamlessly falls back to local database if API is unavailable
 
 ### Quick Start
-1. **Start MyMedix API** (see `../mymedix_api/README.md`)
+1. **Start MyMedix API**: `cd api && npm install && npm run dev` (see `api/README.md`)
 2. **Run MyKencing** - it will automatically connect to the API
 3. **Test it**: Search for "Panadol" or scan a prescription
 
@@ -82,6 +83,13 @@ The API endpoint is hardcoded to production:
 - **URL**: `https://mymedix-api.fly.dev`
 
 To change, edit `API_BASE_URL` in `src/services/api-client.ts`
+
+### Deploying the API
+The API lives in `api/` and has its own `package.json`, `Dockerfile` and `fly.toml`.
+The **API CI** workflow builds it on every change under `api/`, and deploys it to
+Fly.io on pushes to `master` once a `FLY_API_TOKEN` repository secret is set
+(`fly tokens create deploy -a mymedix-api`). To deploy by hand: `cd api && fly deploy`.
+Changes that only touch `api/` don't trigger the Android/iOS builds.
 
 ---
 
