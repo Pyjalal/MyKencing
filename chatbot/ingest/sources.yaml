@@ -1,0 +1,38 @@
+# Knowledge base for Dhia. Edit this list, then run:  uv run python -m ingest.run
+# Documents whose file hash is unchanged are skipped; changed or new ones are re-chunked and re-embedded.
+documents:
+  - id: cpg-hypertension
+    title: "CPG Management of Hypertension"
+    version: "5th Edition (2018)"
+    url: "https://www.moh.gov.my/images/04-penerbitan/penerbitan-klinikal/panduan-amalan-klinikal/MSH%20Hypertension%20CPG%202018%20V3.8%20FA.pdf"
+
+  - id: cpg-t2dm
+    title: "CPG Management of Type 2 Diabetes Mellitus"
+    version: "6th Edition (2020)"
+    url: "https://www.moh.gov.my/images/04-penerbitan/penerbitan-klinikal/panduan-amalan-klinikal/CPG_T2DM_6th_Edition_2020_13042021.pdf"
+
+  - id: cpg-dyslipidaemia
+    title: "CPG Management of Dyslipidaemia"
+    version: "6th Edition (2023)"
+    url: "https://www.moh.gov.my/images/04-penerbitan/penerbitan-klinikal/panduan-amalan-klinikal/e-CPG_on_Dyslipidaemia_2023_6th_Ed.pdf"
+
+  - id: cpg-obesity
+    title: "CPG Management of Obesity"
+    version: "2nd Edition (2023)"
+    url: "https://www.moh.gov.my/images/04-penerbitan/penerbitan-klinikal/panduan-amalan-klinikal/CPG_Management_of_Obesity_Second_Edition_2023.pdf"
+
+  - id: cpg-ckd
+    title: "CPG Management of Chronic Kidney Disease"
+    version: "2nd Edition (2018)"
+    url: "https://www.moh.gov.my/images/04-penerbitan/penerbitan-klinikal/panduan-amalan-klinikal/CPG%20Management%20of%20Chronic%20Kidney%20%20Disease%20Second%20Edition.pdf"
+
+  - id: cpg-heart-failure
+    title: "CPG Management of Heart Failure"
+    version: "5th Edition (2023)"
+    url: "https://www.moh.gov.my/images/04-penerbitan/penerbitan-klinikal/panduan-amalan-klinikal/e-CPG_on_Heart_Failure_2023_5th_Ed.pdf"
+
+  # The app's own thresholds (what MyKencing shows users), so Dhia agrees with the app.
+  - id: mykencing-thresholds
+    title: "MyKencing clinical thresholds"
+    version: "app source"
+    path: "../src/constants/clinical.ts"
