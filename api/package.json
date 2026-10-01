@@ -8,7 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "deploy": "wrangler deploy",
+    "deploy": "fly deploy",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -36,8 +36,7 @@
     "supabase": "^2.53.6",
     "ts-jest": "^29.4.5",
     "tsx": "^4.6.0",
-    "typescript": "^5.3.0",
-    "wrangler": "^3.22.0"
+    "typescript": "^5.3.0"
   },
   "engines": {
     "node": ">=18.0.0"
